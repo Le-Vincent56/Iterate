@@ -1,0 +1,16 @@
+{
+    "name": "Iterate.Application",
+    "rootNamespace": "Iterate.Application",
+    "references": [
+        "GUID:ca58359a5132a2547af27b27b2ac7c3b"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

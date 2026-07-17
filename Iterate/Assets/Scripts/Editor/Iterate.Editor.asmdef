@@ -1,0 +1,25 @@
+{
+    "name": "Iterate.Editor",
+    "rootNamespace": "Iterate.Editor",
+    "references": [
+        "GUID:ca58359a5132a2547af27b27b2ac7c3b",
+        "GUID:431b96e9b6514be4ca2c605b2529ed2d",
+        "GUID:d27a024c4b5815e4e97440077483c8a1",
+        "GUID:2f188e2597bedbc438d0db0e3692c143",
+        "GUID:960e0f945d2f16d48872bf9b722e948c",
+        "GUID:488ee9defa4c174f9b4942cbfd052a53",
+        "GUID:89fce27dccebc17e3abebd1b4b46a8cd",
+        "GUID:5b940b80951d5abeba0a14e0fb00e382"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

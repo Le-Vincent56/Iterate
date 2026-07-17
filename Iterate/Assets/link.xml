@@ -1,0 +1,4 @@
+<linker>
+    <assembly fullname="Iterate.Domain" preserve="all" />
+    <assembly fullname="Iterate.Application" preserve="all" />
+</linker>
