@@ -1,6 +1,6 @@
 {
     "name": "Iterate.Domain",
-    "rootNamespace": "Iterate.Domain",
+    "rootNamespace": "Iterate",
     "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],

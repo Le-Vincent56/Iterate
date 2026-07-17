@@ -1,6 +1,6 @@
 {
     "name": "Iterate.Composition",
-    "rootNamespace": "Iterate.Composition",
+    "rootNamespace": "Iterate",
     "references": [
         "GUID:ca58359a5132a2547af27b27b2ac7c3b",
         "GUID:431b96e9b6514be4ca2c605b2529ed2d",
