@@ -1,0 +1,26 @@
+{
+    "name": "Iterate.Infrastructure.Tests",
+    "rootNamespace": "Iterate",
+    "references": [
+        "GUID:431b96e9b6514be4ca2c605b2529ed2d",
+        "GUID:ca58359a5132a2547af27b27b2ac7c3b",
+        "GUID:d27a024c4b5815e4e97440077483c8a1",
+        "GUID:27619889b8ba8c24980f49ee34dbb44a",
+        "GUID:0acc523941302664db1f4e527237feb3"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

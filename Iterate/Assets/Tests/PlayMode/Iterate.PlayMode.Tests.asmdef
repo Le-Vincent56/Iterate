@@ -1,0 +1,28 @@
+{
+    "name": "Iterate.PlayMode.Tests",
+    "rootNamespace": "",
+    "references": [
+        "GUID:431b96e9b6514be4ca2c605b2529ed2d",
+        "GUID:960e0f945d2f16d48872bf9b722e948c",
+        "GUID:ca58359a5132a2547af27b27b2ac7c3b",
+        "GUID:d27a024c4b5815e4e97440077483c8a1",
+        "GUID:2f188e2597bedbc438d0db0e3692c143",
+        "GUID:488ee9defa4c174f9b4942cbfd052a53",
+        "GUID:89fce27dccebc17e3abebd1b4b46a8cd",
+        "GUID:27619889b8ba8c24980f49ee34dbb44a",
+        "GUID:0acc523941302664db1f4e527237feb3"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
