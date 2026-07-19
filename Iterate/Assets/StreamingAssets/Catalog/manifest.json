@@ -1,0 +1,13 @@
+{
+  "revision": "0.1.0",
+  "schemaVersion": "1.0.0",
+  "files": [
+    { "file": "parameters.json", "category": "PARAMETERS" },
+    { "file": "instructions.json", "category": "INSTRUCTION" },
+    { "file": "structures.json", "category": "STRUCTURE" },
+    { "file": "directives.json", "category": "DIRECTIVE" },
+    { "file": "dependencies.json", "category": "DEPENDENCY" },
+    { "file": "patches.json", "category": "PATCH" },
+    { "file": "utilities.json", "category": "UTILITY" }
+  ]
+}

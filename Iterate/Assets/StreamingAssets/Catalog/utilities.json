@@ -1,0 +1,41 @@
+[
+  {
+    "id": "WB-UTL-001", "rulesText": "Start the declared next Process with +1 Byte.", "displayName": "BYTE CACHE",
+    "category": "UTILITY", "rarity": "COMMON", "tags": ["Utility", "Bytes", "Setup"],
+    "effects": [
+      {
+        "phaseDomain": "PROCESS_SETUP",
+        "operation": { "kind": "CONFIGURATION_MODIFICATION", "setting": "STARTING_BYTES", "amount": 1, "setsAbsolute": false },
+        "targeting": { "kind": "NO_TARGET", "argument": "" },
+        "stacking": "ADDITIVE_PARAMETER",
+        "frequency": { "allowance": "ONCE", "scope": "PROCESS" }
+      }
+    ]
+  },
+  {
+    "id": "WB-UTL-002", "rulesText": "Increase Buffer capacity by 1 for the declared Process.", "displayName": "BUFFER EXTENSION",
+    "category": "UTILITY", "rarity": "COMMON", "tags": ["Utility", "Buffer", "Setup"],
+    "effects": [
+      {
+        "phaseDomain": "PROCESS_SETUP",
+        "operation": { "kind": "CONFIGURATION_MODIFICATION", "setting": "INSTRUCTION_BUFFER_CAPACITY", "amount": 1, "setsAbsolute": false },
+        "targeting": { "kind": "NO_TARGET", "argument": "" },
+        "stacking": "ADDITIVE_PARAMETER",
+        "frequency": { "allowance": "ONCE", "scope": "PROCESS" }
+      }
+    ]
+  },
+  {
+    "id": "WB-UTL-003", "rulesText": "Set Active Branch capacity to 10 for the Critical Process only; natural exposure remains six unless another rule changes it.", "displayName": "ACTIVE BRANCH EXPANSION",
+    "category": "UTILITY", "rarity": "COMMON", "tags": ["Utility", "Branch", "Setup"],
+    "effects": [
+      {
+        "phaseDomain": "PROCESS_SETUP",
+        "operation": { "kind": "CONFIGURATION_MODIFICATION", "setting": "ACTIVE_BRANCH_CAPACITY", "amount": 10, "setsAbsolute": true },
+        "targeting": { "kind": "NO_TARGET", "argument": "" },
+        "stacking": "SET_REPLACEMENT",
+        "frequency": { "allowance": "ONCE", "scope": "PROCESS" }
+      }
+    ]
+  }
+]

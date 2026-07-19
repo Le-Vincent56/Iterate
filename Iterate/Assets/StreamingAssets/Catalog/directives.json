@@ -1,0 +1,70 @@
+[
+  {
+    "id": "WB-DIR-001", "rulesText": "For one compilation, the first runtime Instruction that increases Value executes one additional time. Inside a Repeat, only the first qualifying runtime event is duplicated.", "displayName": "OVERCLOCK",
+    "category": "DIRECTIVE", "rarity": "UNCOMMON", "tags": ["Directive", "Value", "Execution"],
+    "effects": [
+      {
+        "phaseDomain": "EXECUTION",
+        "trigger": { "eventFamily": "QUANTITY", "eventSubtype": "QUANTITY_CHANGED", "qualifiers": [ { "kind": "ACTUAL_DELTA_SIGN", "value": "POSITIVE" }, { "kind": "REGISTER", "value": "VALUE" } ], "timing": { "kind": "BAND", "name": "IMMEDIATE_RESULT_REACTION" } },
+        "operation": { "kind": "ADDED_EXECUTION_REQUEST", "target": { "kind": "TRIGGERING_UNIT", "argument": "" }, "cancelOnInvalid": false },
+        "targeting": { "kind": "TRIGGERING_UNIT", "argument": "" },
+        "timing": { "kind": "BAND", "name": "ADDED_EXECUTION_HANDLING" },
+        "stacking": "INDEPENDENT_RESOLUTION",
+        "frequency": { "allowance": "ONCE", "scope": "EXECUTION" }
+      }
+    ]
+  },
+  {
+    "id": "WB-DIR-002", "rulesText": "For one compilation, after the final player-controlled line, if Value is odd, Value increases by 1.", "displayName": "ALIGN",
+    "category": "DIRECTIVE", "rarity": "UNCOMMON", "tags": ["Directive", "Value", "Parity"],
+    "effects": [
+      {
+        "phaseDomain": "EXECUTION",
+        "trigger": { "eventFamily": "LIFECYCLE", "eventSubtype": "BOUNDARY_EFFECT_REQUESTED", "qualifiers": [ { "kind": "PARITY", "value": "ODD" }, { "kind": "REGISTER", "value": "VALUE" } ], "timing": { "kind": "NAMED_BOUNDARY", "name": "END_OF_PLAYER_CONTROLLED_SOURCE_TRAVERSAL" } },
+        "operation": { "kind": "QUANTITY_CHANGE", "register": "VALUE", "operator": "ADD", "operand": { "source": "CONSTANT", "constant": 1 } },
+        "targeting": { "kind": "NO_TARGET", "argument": "" },
+        "timing": { "kind": "NAMED_BOUNDARY", "name": "END_OF_PLAYER_CONTROLLED_SOURCE_TRAVERSAL" },
+        "stacking": "INDEPENDENT_RESOLUTION",
+        "frequency": { "allowance": "ONCE", "scope": "EXECUTION" }
+      }
+    ]
+  },
+  {
+    "id": "WB-DIR-003", "rulesText": "For one compilation, the last player Instruction that increases Score executes one additional time. It cannot duplicate immutable Core output lines.", "displayName": "BURST OUTPUT",
+    "category": "DIRECTIVE", "rarity": "UNCOMMON", "tags": ["Directive", "Score", "Output"],
+    "effects": [
+      {
+        "phaseDomain": "EXECUTION",
+        "trigger": { "eventFamily": "QUANTITY", "eventSubtype": "QUANTITY_CHANGED", "qualifiers": [ { "kind": "ACTUAL_DELTA_SIGN", "value": "POSITIVE" }, { "kind": "REGISTER", "value": "SCORE" }, { "kind": "OPERATION_CLASS", "value": "PLAYER_INSTRUCTION" } ], "timing": { "kind": "BAND", "name": "IMMEDIATE_RESULT_REACTION" } },
+        "operation": { "kind": "TARGET_LOCK_UPDATE", "selection": { "kind": "MOST_RECENT_QUALIFYING_UNIT", "argument": "" } },
+        "targeting": { "kind": "MOST_RECENT_QUALIFYING_UNIT", "argument": "" },
+        "timing": { "kind": "BAND", "name": "IMMEDIATE_RESULT_REACTION" },
+        "stacking": "INDEPENDENT_RESOLUTION",
+        "frequency": { "allowance": "EVERY_QUALIFYING_EVENT", "scope": "DECLARED_SCOPE" }
+      },
+      {
+        "phaseDomain": "EXECUTION",
+        "trigger": { "eventFamily": "LIFECYCLE", "eventSubtype": "BOUNDARY_EFFECT_REQUESTED", "qualifiers": [], "timing": { "kind": "NAMED_BOUNDARY", "name": "END_OF_PLAYER_CONTROLLED_SOURCE_TRAVERSAL" } },
+        "operation": { "kind": "ADDED_EXECUTION_REQUEST", "target": { "kind": "LOCKED_TARGET", "argument": "" }, "cancelOnInvalid": true },
+        "targeting": { "kind": "LOCKED_TARGET", "argument": "" },
+        "timing": { "kind": "NAMED_BOUNDARY", "name": "END_OF_PLAYER_CONTROLLED_SOURCE_TRAVERSAL" },
+        "stacking": "INDEPENDENT_RESOLUTION",
+        "frequency": { "allowance": "ONCE", "scope": "EXECUTION" }
+      }
+    ]
+  },
+  {
+    "id": "WB-DIR-004", "rulesText": "For one compilation, ordinary source-edit cost is reduced by 1 Byte, to a minimum of 0. The edited-compilation progression number still advances normally.", "displayName": "COMPILE AHEAD",
+    "category": "DIRECTIVE", "rarity": "UNCOMMON", "tags": ["Directive", "Bytes", "Compilation"],
+    "effects": [
+      {
+        "phaseDomain": "COMPILATION",
+        "trigger": { "eventFamily": "LIFECYCLE", "eventSubtype": "COMPILATION_COMMITTED", "qualifiers": [] },
+        "operation": { "kind": "COST_MODIFICATION", "costKind": "COMPILATION", "setsAbsolute": false, "amount": -1, "floor": 0, "progressionAdvances": true },
+        "targeting": { "kind": "NO_TARGET", "argument": "" },
+        "stacking": "INDEPENDENT_RESOLUTION",
+        "frequency": { "allowance": "ONCE", "scope": "COMPILATION" }
+      }
+    ]
+  }
+]

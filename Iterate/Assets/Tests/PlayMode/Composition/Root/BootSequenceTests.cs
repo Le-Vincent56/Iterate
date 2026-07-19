@@ -32,12 +32,12 @@ namespace Iterate.Composition.Root.Tests
             _projectScope.SetActive(false);
             _projectScope.AddComponent<ProjectLifetimeScope>();
             _projectScope.AddComponent<BootAnnouncer>();
-            LogAssert.Expect(LogType.Log, "[Boot] Boot complete!");
 
             // Act: activation runs LifetimeScopeBehaviour.Awake — build, scene walk, Phase 2.
             _projectScope.SetActive(true);
 
             // Assert: LogAssert verifies the expected line arrived.
+            LogAssert.Expect(LogType.Log, "[Boot] Boot complete!");
         }
     }
 }

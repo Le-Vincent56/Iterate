@@ -10,5 +10,10 @@ namespace Iterate.Application.Logging
         /// Application startup and composition-root activity.
         /// </summary>
         public static readonly LogCategory Boot = new("Boot");
+
+        /// <summary>
+        /// Catalog loading and boot-time content activity.
+        /// </summary>
+        public static readonly LogCategory Catalog = new("Catalog");
     }
 }

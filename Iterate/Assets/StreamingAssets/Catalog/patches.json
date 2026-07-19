@@ -1,0 +1,92 @@
+[
+  {
+    "id": "WB-PAT-001", "rulesText": "Attach to an Instruction that adds a fixed number to Value or Signal; increase that constant by 1.", "displayName": "CONSTANT PATCH",
+    "category": "PATCH", "rarity": "COMMON", "tags": ["Patch", "Value", "Signal", "Add"], "hostEligibility": "FIXED_NUMBER_ADDITION_HOSTS",
+    "effects": [
+      {
+        "phaseDomain": "EXECUTION",
+        "trigger": { "eventFamily": "OPERATION", "eventSubtype": "PRIMARY_OPERATION_PENDING", "qualifiers": [ { "kind": "OPERATION_CLASS", "value": "FIXED_ADDITION" } ], "timing": { "kind": "BAND", "name": "OPERATION_MODIFICATION_REPLACEMENT_OR_PREVENTION" } },
+        "operation": { "kind": "OPERATION_MODIFICATION", "operandDelta": 1 },
+        "targeting": { "kind": "OWN_HOST", "argument": "" },
+        "timing": { "kind": "BAND", "name": "OPERATION_MODIFICATION_REPLACEMENT_OR_PREVENTION" },
+        "stacking": "ADDITIVE_PARAMETER",
+        "frequency": { "allowance": "EVERY_QUALIFYING_EVENT", "scope": "DECLARED_SCOPE" }
+      }
+    ]
+  },
+  {
+    "id": "WB-PAT-002", "rulesText": "Attach to an ordinary Instruction; when it occupies an even-numbered source line, execute it one additional time.", "displayName": "ECHO PATCH",
+    "category": "PATCH", "rarity": "UNCOMMON", "tags": ["Patch", "Position", "Execution"], "hostEligibility": "ORDINARY_INSTRUCTION_HOSTS",
+    "effects": [
+      {
+        "phaseDomain": "EXECUTION",
+        "trigger": { "eventFamily": "LIFECYCLE", "eventSubtype": "RUNTIME_UNIT_COMPLETED", "qualifiers": [ { "kind": "POSITIONAL", "value": "EVEN_NUMBERED_LINE" } ], "timing": { "kind": "BAND", "name": "POST_UNIT_CONSEQUENCE_AND_EVIDENCE" } },
+        "operation": { "kind": "ADDED_EXECUTION_REQUEST", "target": { "kind": "OWN_HOST", "argument": "" }, "cancelOnInvalid": false },
+        "targeting": { "kind": "OWN_HOST", "argument": "" },
+        "timing": { "kind": "BAND", "name": "ADDED_EXECUTION_HANDLING" },
+        "stacking": "INDEPENDENT_RESOLUTION",
+        "frequency": { "allowance": "ONCE", "scope": "SOURCE_EXECUTION" }
+      }
+    ]
+  },
+  {
+    "id": "WB-PAT-003", "rulesText": "Attach to an ordinary Instruction; when it is the final occupied player-controlled line, execute it one additional time. Empty positions below it do not prevent activation.", "displayName": "TERMINAL PATCH",
+    "category": "PATCH", "rarity": "UNCOMMON", "tags": ["Patch", "Position", "Execution"], "hostEligibility": "ORDINARY_INSTRUCTION_HOSTS",
+    "effects": [
+      {
+        "phaseDomain": "EXECUTION",
+        "trigger": { "eventFamily": "LIFECYCLE", "eventSubtype": "RUNTIME_UNIT_COMPLETED", "qualifiers": [ { "kind": "POSITIONAL", "value": "FINAL_OCCUPIED_PLAYER_LINE" } ], "timing": { "kind": "BAND", "name": "POST_UNIT_CONSEQUENCE_AND_EVIDENCE" } },
+        "operation": { "kind": "ADDED_EXECUTION_REQUEST", "target": { "kind": "OWN_HOST", "argument": "" }, "cancelOnInvalid": false },
+        "targeting": { "kind": "OWN_HOST", "argument": "" },
+        "timing": { "kind": "BAND", "name": "ADDED_EXECUTION_HANDLING" },
+        "stacking": "INDEPENDENT_RESOLUTION",
+        "frequency": { "allowance": "ONCE", "scope": "SOURCE_EXECUTION" }
+      }
+    ]
+  },
+  {
+    "id": "WB-PAT-004", "rulesText": "Attach to an ordinary Instruction; when it executes inside a Condition that succeeds, execute it one additional time.", "displayName": "TRUE PATCH",
+    "category": "PATCH", "rarity": "UNCOMMON", "tags": ["Patch", "Condition", "Execution"], "hostEligibility": "ORDINARY_INSTRUCTION_HOSTS",
+    "effects": [
+      {
+        "phaseDomain": "EXECUTION",
+        "trigger": { "eventFamily": "LIFECYCLE", "eventSubtype": "RUNTIME_UNIT_COMPLETED", "qualifiers": [ { "kind": "STRUCTURE_CONTEXT", "value": "INSIDE_SUCCEEDING_CONDITION" } ], "timing": { "kind": "BAND", "name": "POST_UNIT_CONSEQUENCE_AND_EVIDENCE" } },
+        "operation": { "kind": "ADDED_EXECUTION_REQUEST", "target": { "kind": "OWN_HOST", "argument": "" }, "cancelOnInvalid": false },
+        "targeting": { "kind": "OWN_HOST", "argument": "" },
+        "timing": { "kind": "BAND", "name": "ADDED_EXECUTION_HANDLING" },
+        "stacking": "INDEPENDENT_RESOLUTION",
+        "frequency": { "allowance": "ONCE", "scope": "SOURCE_EXECUTION" }
+      }
+    ]
+  },
+  {
+    "id": "WB-PAT-005", "rulesText": "Attach to an Instruction that increases Score; after that Instruction increases Score, Value increases by 1.", "displayName": "FEEDBACK PATCH",
+    "category": "PATCH", "rarity": "UNCOMMON", "tags": ["Patch", "Score", "Value"], "hostEligibility": "SCORE_INSTRUCTION_HOSTS",
+    "effects": [
+      {
+        "phaseDomain": "EXECUTION",
+        "trigger": { "eventFamily": "QUANTITY", "eventSubtype": "QUANTITY_CHANGED", "qualifiers": [ { "kind": "ACTUAL_DELTA_SIGN", "value": "POSITIVE" }, { "kind": "REGISTER", "value": "SCORE" }, { "kind": "OPERATION_CLASS", "value": "HOST_INSTRUCTION" } ], "timing": { "kind": "BAND", "name": "IMMEDIATE_RESULT_REACTION" } },
+        "operation": { "kind": "QUANTITY_CHANGE", "register": "VALUE", "operator": "ADD", "operand": { "source": "CONSTANT", "constant": 1 } },
+        "targeting": { "kind": "NO_TARGET", "argument": "" },
+        "timing": { "kind": "BAND", "name": "IMMEDIATE_RESULT_REACTION" },
+        "stacking": "INDEPENDENT_RESOLUTION",
+        "frequency": { "allowance": "EVERY_QUALIFYING_EVENT", "scope": "DECLARED_SCOPE" }
+      }
+    ]
+  },
+  {
+    "id": "WB-PAT-006", "rulesText": "Attach to an ordinary Instruction; when it executes immediately after a player Instruction that actually increased Score, execute it one additional time. An intervening executed Instruction or immutable line breaks adjacency.", "displayName": "PIPELINE PATCH",
+    "category": "PATCH", "rarity": "RARE", "tags": ["Patch", "Score", "Adjacency", "Execution"], "hostEligibility": "ORDINARY_INSTRUCTION_HOSTS",
+    "effects": [
+      {
+        "phaseDomain": "EXECUTION",
+        "trigger": { "eventFamily": "LIFECYCLE", "eventSubtype": "RUNTIME_UNIT_COMPLETED", "qualifiers": [ { "kind": "STRUCTURE_CONTEXT", "value": "ADJACENT_AFTER_SUCCESSFUL_SCORE" } ], "timing": { "kind": "BAND", "name": "POST_UNIT_CONSEQUENCE_AND_EVIDENCE" } },
+        "operation": { "kind": "ADDED_EXECUTION_REQUEST", "target": { "kind": "OWN_HOST", "argument": "" }, "cancelOnInvalid": false },
+        "targeting": { "kind": "OWN_HOST", "argument": "" },
+        "timing": { "kind": "BAND", "name": "ADDED_EXECUTION_HANDLING" },
+        "stacking": "INDEPENDENT_RESOLUTION",
+        "frequency": { "allowance": "ONCE", "scope": "SOURCE_EXECUTION" }
+      }
+    ]
+  }
+]

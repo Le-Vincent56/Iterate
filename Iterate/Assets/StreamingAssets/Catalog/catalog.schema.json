@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://iterate.invalid/catalog.schema.json",
+  "title": "Iterate content catalog (v0.1)",
+  "description": "Shape library for the shipped catalog files. Each content file is a JSON array of the matching $defs entry; manifest.json is the manifest object.",
+  "$defs": {
+    "manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["revision", "schemaVersion", "files"],
+      "properties": {
+        "revision": { "type": "string", "minLength": 1 },
+        "schemaVersion": { "type": "string", "minLength": 1 },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["file", "category"],
+            "properties": {
+              "file": { "type": "string", "minLength": 1 },
+              "category": { "enum": ["PARAMETERS", "INSTRUCTION", "STRUCTURE", "DIRECTIVE", "DEPENDENCY", "PATCH", "UTILITY"] }
+            }
+          }
+        }
+      }
+    },
+    "parameterRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "value", "unit", "scope"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^WB-PAR-[0-9]{3}$" },
+        "name": { "type": "string", "minLength": 1 },
+        "value": { "type": "number" },
+        "unit": { "type": "string", "minLength": 1 },
+        "scope": { "type": "string", "minLength": 1 }
+      }
+    },
+    "rarity": { "enum": ["STARTER", "COMMON", "UNCOMMON", "RARE"] },
+    "coreRegister": { "enum": ["VALUE", "SIGNAL", "SCORE"] },
+    "tags": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+    "operand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source"],
+      "properties": {
+        "source": { "enum": ["CONSTANT", "REGISTER", "LINE_NUMBER"] },
+        "constant": { "type": "integer" },
+        "register": { "$ref": "#/$defs/coreRegister" }
+      },
+      "allOf": [
+        { "if": { "properties": { "source": { "const": "CONSTANT" } } }, "then": { "required": ["constant"] } },
+        { "if": { "properties": { "source": { "const": "REGISTER" } } }, "then": { "required": ["register"] } }
+      ]
+    },
+    "quantityChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "register", "operator", "operand"],
+      "properties": {
+        "kind": { "const": "QUANTITY_CHANGE" },
+        "register": { "$ref": "#/$defs/coreRegister" },
+        "operator": { "enum": ["ADD", "MULTIPLY"] },
+        "operand": { "$ref": "#/$defs/operand" }
+      }
+    },
+    "qualifier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "value"],
+      "properties": {
+        "kind": { "enum": ["POSITIONAL", "ACTUAL_DELTA_SIGN", "REGISTER", "OPERATION_CLASS", "STRUCTURE_CONTEXT", "PARITY"] },
+        "value": { "type": "string", "minLength": 1 }
+      }
+    },
+    "timing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "name"],
+      "properties": {
+        "kind": { "enum": ["BAND", "NAMED_BOUNDARY"] },
+        "name": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        { "if": { "properties": { "kind": { "const": "BAND" } } }, "then": { "properties": { "name": { "enum": ["QUALIFICATION_AND_PRE_OPERATION_INTERVENTION", "OPERATION_MODIFICATION_REPLACEMENT_OR_PREVENTION", "PRIMARY_OPERATION_RESOLUTION", "IMMEDIATE_RESULT_REACTION", "ADDED_EXECUTION_HANDLING", "POST_UNIT_CONSEQUENCE_AND_EVIDENCE"] } } } },
+        { "if": { "properties": { "kind": { "const": "NAMED_BOUNDARY" } } }, "then": { "properties": { "name": { "enum": ["END_OF_REPEAT_ITERATION", "END_OF_STRUCTURE_ENTRY", "END_OF_PLAYER_CONTROLLED_SOURCE_TRAVERSAL", "BEFORE_DESIGNATED_CORE_OUTPUT", "END_OF_COMPLETE_SOURCE_TRAVERSAL", "EXECUTION_COMPLETION_CLOSURE"] } } } }
+      ]
+    },
+    "targeting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "argument"],
+      "properties": {
+        "kind": { "enum": ["NO_TARGET", "OWN_HOST", "TRIGGERING_UNIT", "SAME_REGISTER_AS_TRIGGER", "LOCKED_TARGET", "FIRST_CONTAINED_INSTRUCTION", "MOST_RECENT_QUALIFYING_UNIT"] },
+        "argument": { "type": "string" }
+      }
+    },
+    "trigger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eventFamily", "eventSubtype", "qualifiers"],
+      "properties": {
+        "eventFamily": { "enum": ["LIFECYCLE", "SOURCE", "OPERATION", "QUALIFICATION", "QUANTITY", "STRUCTURE", "DISPOSITION", "REACTION", "ADDED_EXECUTION", "INTERVENTION", "THRESHOLD", "TRANSACTION", "CONTENT_LIFECYCLE", "RANDOM_SELECTION", "SAFETY"] },
+        "eventSubtype": { "enum": ["COMPILATION_COMMITTED", "COMPILATION_FAILED", "EFFECT_ACTIVATED", "EFFECT_EXPIRED", "EXECUTION_STARTED", "EXECUTION_COMPLETED", "RUNTIME_UNIT_STARTED", "RUNTIME_UNIT_COMPLETED", "SOURCE_EXECUTION_STARTED", "SOURCE_EXECUTION_COMPLETED", "SOURCE_EXECUTION_SKIPPED", "PRIMARY_OPERATION_PENDING", "PRIMARY_OPERATION_RESOLVED", "QUANTITY_CHANGED", "CONDITION_TRUE", "OBJECT_ARCHIVED", "BOUNDARY_EFFECT_REQUESTED", "ADDED_EXECUTION_REQUESTED"] },
+        "qualifiers": { "type": "array", "items": { "$ref": "#/$defs/qualifier" } },
+        "timing": { "$ref": "#/$defs/timing" }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": { "kind": { "enum": ["QUANTITY_CHANGE", "DISPOSITION_CHANGE", "ADDED_EXECUTION_REQUEST", "COUNTER_REQUEST", "COST_MODIFICATION", "RESCUE", "PREDICTION_VISIBILITY", "CONFIGURATION_MODIFICATION", "OPERATION_MODIFICATION", "TARGET_LOCK_UPDATE"] } },
+      "allOf": [
+        { "if": { "properties": { "kind": { "const": "QUANTITY_CHANGE" } } }, "then": { "$ref": "#/$defs/quantityChange" } },
+        { "if": { "properties": { "kind": { "const": "DISPOSITION_CHANGE" } } }, "then": { "additionalProperties": false, "required": ["kind", "newDisposition"], "properties": { "kind": {}, "newDisposition": { "enum": ["RESOLVED", "SKIPPED", "PREVENTED", "CANCELLED", "RESCUED", "REPLACED"] } } } },
+        { "if": { "properties": { "kind": { "const": "ADDED_EXECUTION_REQUEST" } } }, "then": { "additionalProperties": false, "required": ["kind", "target", "cancelOnInvalid"], "properties": { "kind": {}, "target": { "$ref": "#/$defs/targeting" }, "cancelOnInvalid": { "type": "boolean" } } } },
+        { "if": { "properties": { "kind": { "const": "COUNTER_REQUEST" } } }, "then": { "additionalProperties": false, "required": ["kind", "counter", "delta", "floor", "ceiling", "hasFloor", "hasCeiling"], "properties": { "kind": {}, "counter": { "enum": ["HEAT"] }, "delta": { "type": "integer" }, "floor": { "type": "integer" }, "ceiling": { "type": "integer" }, "hasFloor": { "type": "boolean" }, "hasCeiling": { "type": "boolean" } } } },
+        { "if": { "properties": { "kind": { "const": "COST_MODIFICATION" } } }, "then": { "additionalProperties": false, "required": ["kind", "costKind", "setsAbsolute", "amount", "floor", "progressionAdvances"], "properties": { "kind": {}, "costKind": { "enum": ["COMPILATION"] }, "setsAbsolute": { "type": "boolean" }, "amount": { "type": "integer" }, "floor": { "type": "integer" }, "progressionAdvances": { "type": "boolean" } } } },
+        { "if": { "properties": { "kind": { "const": "RESCUE" } } }, "then": { "additionalProperties": false, "required": ["kind", "resultingDisposition"], "properties": { "kind": {}, "resultingDisposition": { "enum": ["RESOLVED", "SKIPPED", "PREVENTED", "CANCELLED", "RESCUED", "REPLACED"] } } } },
+        { "if": { "properties": { "kind": { "const": "PREDICTION_VISIBILITY" } } }, "then": { "additionalProperties": false, "required": ["kind", "projection"], "properties": { "kind": {}, "projection": { "enum": ["CANONICAL_PREDICTION"] } } } },
+        { "if": { "properties": { "kind": { "const": "CONFIGURATION_MODIFICATION" } } }, "then": { "additionalProperties": false, "required": ["kind", "setting", "amount", "setsAbsolute"], "properties": { "kind": {}, "setting": { "enum": ["STARTING_BYTES", "INSTRUCTION_BUFFER_CAPACITY", "ACTIVE_BRANCH_CAPACITY"] }, "amount": { "type": "integer" }, "setsAbsolute": { "type": "boolean" } } } },
+        { "if": { "properties": { "kind": { "const": "OPERATION_MODIFICATION" } } }, "then": { "additionalProperties": false, "required": ["kind", "operandDelta"], "properties": { "kind": {}, "operandDelta": { "type": "integer" } } } },
+        { "if": { "properties": { "kind": { "const": "TARGET_LOCK_UPDATE" } } }, "then": { "additionalProperties": false, "required": ["kind", "selection"], "properties": { "kind": {}, "selection": { "$ref": "#/$defs/targeting" } } } }
+      ]
+    },
+    "frequency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowance", "scope"],
+      "properties": {
+        "allowance": { "enum": ["EVERY_QUALIFYING_EVENT", "FIRST_QUALIFYING_EVENT", "FIRST_SUCCESSFUL_RESOLUTION", "ONCE", "UP_TO_N"] },
+        "scope": { "enum": ["SOURCE_ACTIVATION", "SOURCE_EXECUTION", "LINE_PER_EXECUTION", "STRUCTURE_ENTRY", "REPEAT_ITERATION", "CONDITION_EVALUATION", "EXECUTION", "COMPILATION", "PROCESS", "SYSTEM", "SESSION", "DECLARED_SCOPE"] }
+      }
+    },
+    "effect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["phaseDomain", "operation", "stacking"],
+      "properties": {
+        "phaseDomain": { "enum": ["EXECUTION", "COMPILATION", "BUILD_INTERACTION", "PROCESS_SETUP", "DISCLOSURE"] },
+        "trigger": { "$ref": "#/$defs/trigger" },
+        "operation": { "$ref": "#/$defs/operation" },
+        "targeting": { "$ref": "#/$defs/targeting" },
+        "timing": { "$ref": "#/$defs/timing" },
+        "stacking": { "enum": ["INDEPENDENT_RESOLUTION", "ADDITIVE_PARAMETER", "MULTIPLICATIVE_PARAMETER", "SET_REPLACEMENT", "FIRST_QUALIFYING_SELECTION", "CAPPED_INDEPENDENT", "EXCLUSIVE_GROUP", "SHARED_FREQUENCY", "STRONGEST_ONLY"] },
+        "frequency": { "$ref": "#/$defs/frequency" }
+      },
+      "if": { "properties": { "phaseDomain": { "const": "EXECUTION" } } },
+      "then": { "required": ["phaseDomain", "operation", "stacking", "trigger"] }
+    },
+    "instruction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "rulesText", "displayName", "category", "rarity", "tags", "sourceFootprint", "primaryOperation"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^WB-INS-[0-9]{3}$" },
+        "rulesText": { "type": "string", "minLength": 1 },
+        "displayName": { "type": "string", "minLength": 1 },
+        "category": { "const": "INSTRUCTION" },
+        "rarity": { "$ref": "#/$defs/rarity" },
+        "tags": { "$ref": "#/$defs/tags" },
+        "sourceFootprint": { "type": "integer" },
+        "primaryOperation": { "$ref": "#/$defs/quantityChange" },
+        "positionQualifier": { "$ref": "#/$defs/qualifier" },
+        "ineligibilityTags": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "structure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "rulesText", "displayName", "category", "rarity", "tags", "sourceFootprint", "structureKind"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^WB-STR-[0-9]{3}$" },
+        "rulesText": { "type": "string", "minLength": 1 },
+        "displayName": { "type": "string", "minLength": 1 },
+        "category": { "const": "STRUCTURE" },
+        "rarity": { "$ref": "#/$defs/rarity" },
+        "tags": { "$ref": "#/$defs/tags" },
+        "sourceFootprint": { "type": "integer" },
+        "structureKind": { "enum": ["REPEAT", "CONDITION"] },
+        "repeatCount": { "type": "integer" },
+        "predicate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["register", "comparison", "operand"],
+          "properties": { "register": { "$ref": "#/$defs/coreRegister" }, "comparison": { "enum": ["IS_EVEN", "AT_LEAST"] }, "operand": { "type": "integer" } }
+        }
+      },
+      "allOf": [
+        { "if": { "properties": { "structureKind": { "const": "REPEAT" } } }, "then": { "required": ["repeatCount"], "not": { "required": ["predicate"] } } },
+        { "if": { "properties": { "structureKind": { "const": "CONDITION" } } }, "then": { "required": ["predicate"] } }
+      ]
+    },
+    "directive": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "rulesText", "displayName", "category", "rarity", "tags", "effects"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^WB-DIR-[0-9]{3}$" },
+        "rulesText": { "type": "string", "minLength": 1 },
+        "displayName": { "type": "string", "minLength": 1 },
+        "category": { "const": "DIRECTIVE" },
+        "rarity": { "$ref": "#/$defs/rarity" },
+        "tags": { "$ref": "#/$defs/tags" },
+        "effects": { "type": "array", "items": { "$ref": "#/$defs/effect" } }
+      }
+    },
+    "dependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "rulesText", "displayName", "category", "rarity", "tags", "ram", "effects"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^WB-DEP-[0-9]{3}$" },
+        "rulesText": { "type": "string", "minLength": 1 },
+        "displayName": { "type": "string", "minLength": 1 },
+        "category": { "const": "DEPENDENCY" },
+        "rarity": { "$ref": "#/$defs/rarity" },
+        "tags": { "$ref": "#/$defs/tags" },
+        "ram": { "type": "integer" },
+        "effects": { "type": "array", "items": { "$ref": "#/$defs/effect" } }
+      }
+    },
+    "patch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "rulesText", "displayName", "category", "rarity", "tags", "hostEligibility", "effects"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^WB-PAT-[0-9]{3}$" },
+        "rulesText": { "type": "string", "minLength": 1 },
+        "displayName": { "type": "string", "minLength": 1 },
+        "category": { "const": "PATCH" },
+        "rarity": { "$ref": "#/$defs/rarity" },
+        "tags": { "$ref": "#/$defs/tags" },
+        "hostEligibility": { "type": "string", "minLength": 1 },
+        "effects": { "type": "array", "items": { "$ref": "#/$defs/effect" } }
+      }
+    },
+    "utility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "rulesText", "displayName", "category", "rarity", "tags", "effects"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^WB-UTL-[0-9]{3}$" },
+        "rulesText": { "type": "string", "minLength": 1 },
+        "displayName": { "type": "string", "minLength": 1 },
+        "category": { "const": "UTILITY" },
+        "rarity": { "$ref": "#/$defs/rarity" },
+        "tags": { "$ref": "#/$defs/tags" },
+        "effects": { "type": "array", "items": { "$ref": "#/$defs/effect" } }
+      }
+    }
+  }
+}

@@ -1,0 +1,153 @@
+[
+  {
+    "id": "WB-DEP-001", "rulesText": "The first eligible fixed addition to Value each execution gains +1. It is permanent, nonremovable, and always installed.", "displayName": "STANDARD LIBRARY",
+    "category": "DEPENDENCY", "rarity": "STARTER", "tags": ["Value", "Add", "Fixed"], "ram": 0,
+    "effects": [
+      {
+        "phaseDomain": "EXECUTION",
+        "trigger": { "eventFamily": "QUANTITY", "eventSubtype": "PRIMARY_OPERATION_PENDING", "qualifiers": [ { "kind": "OPERATION_CLASS", "value": "FIXED_ADDITION" }, { "kind": "REGISTER", "value": "VALUE" } ], "timing": { "kind": "BAND", "name": "OPERATION_MODIFICATION_REPLACEMENT_OR_PREVENTION" } },
+        "operation": { "kind": "QUANTITY_CHANGE", "register": "VALUE", "operator": "ADD", "operand": { "source": "CONSTANT", "constant": 1 } },
+        "targeting": { "kind": "TRIGGERING_UNIT", "argument": "" },
+        "timing": { "kind": "BAND", "name": "OPERATION_MODIFICATION_REPLACEMENT_OR_PREVENTION" },
+        "stacking": "INDEPENDENT_RESOLUTION",
+        "frequency": { "allowance": "FIRST_QUALIFYING_EVENT", "scope": "EXECUTION" }
+      }
+    ]
+  },
+  {
+    "id": "WB-DEP-002", "rulesText": "The first edited compilation each Process costs 0 Bytes.", "displayName": "CLEAN BUILD",
+    "category": "DEPENDENCY", "rarity": "UNCOMMON", "tags": ["Bytes", "Compilation"], "ram": 1,
+    "effects": [
+      {
+        "phaseDomain": "COMPILATION",
+        "trigger": { "eventFamily": "LIFECYCLE", "eventSubtype": "COMPILATION_COMMITTED", "qualifiers": [ { "kind": "OPERATION_CLASS", "value": "EDITED_COMPILATION" } ] },
+        "operation": { "kind": "COST_MODIFICATION", "costKind": "COMPILATION", "setsAbsolute": true, "amount": 0, "floor": 0, "progressionAdvances": true },
+        "targeting": { "kind": "NO_TARGET", "argument": "" },
+        "stacking": "INDEPENDENT_RESOLUTION",
+        "frequency": { "allowance": "FIRST_QUALIFYING_EVENT", "scope": "PROCESS" }
+      }
+    ]
+  },
+  {
+    "id": "WB-DEP-003", "rulesText": "Shows exact runtime values and exact predicted Score where the UX permits prediction.", "displayName": "PREDICTIVE DEBUGGER",
+    "category": "DEPENDENCY", "rarity": "UNCOMMON", "tags": ["Prediction", "Accessibility"], "ram": 1,
+    "effects": [
+      {
+        "phaseDomain": "DISCLOSURE",
+        "operation": { "kind": "PREDICTION_VISIBILITY", "projection": "CANONICAL_PREDICTION" },
+        "targeting": { "kind": "NO_TARGET", "argument": "" },
+        "stacking": "INDEPENDENT_RESOLUTION"
+      }
+    ]
+  },
+  {
+    "id": "WB-DEP-004", "rulesText": "Whenever Signal increases, Value increases by 1 for each qualifying Signal-increase event under the authored rule.", "displayName": "PARALLEL CHANNEL",
+    "category": "DEPENDENCY", "rarity": "UNCOMMON", "tags": ["Signal", "Value"], "ram": 2,
+    "effects": [
+      {
+        "phaseDomain": "EXECUTION",
+        "trigger": { "eventFamily": "QUANTITY", "eventSubtype": "QUANTITY_CHANGED", "qualifiers": [ { "kind": "ACTUAL_DELTA_SIGN", "value": "POSITIVE" }, { "kind": "REGISTER", "value": "SIGNAL" } ], "timing": { "kind": "BAND", "name": "IMMEDIATE_RESULT_REACTION" } },
+        "operation": { "kind": "QUANTITY_CHANGE", "register": "VALUE", "operator": "ADD", "operand": { "source": "CONSTANT", "constant": 1 } },
+        "targeting": { "kind": "NO_TARGET", "argument": "" },
+        "timing": { "kind": "BAND", "name": "IMMEDIATE_RESULT_REACTION" },
+        "stacking": "INDEPENDENT_RESOLUTION",
+        "frequency": { "allowance": "EVERY_QUALIFYING_EVENT", "scope": "DECLARED_SCOPE" }
+      }
+    ]
+  },
+  {
+    "id": "WB-DEP-005", "rulesText": "The first player Instruction that increases Score each execution adds +2 Score afterward.", "displayName": "OUTPUT CACHE",
+    "category": "DEPENDENCY", "rarity": "UNCOMMON", "tags": ["Score", "Output"], "ram": 1,
+    "effects": [
+      {
+        "phaseDomain": "EXECUTION",
+        "trigger": { "eventFamily": "QUANTITY", "eventSubtype": "QUANTITY_CHANGED", "qualifiers": [ { "kind": "ACTUAL_DELTA_SIGN", "value": "POSITIVE" }, { "kind": "REGISTER", "value": "SCORE" }, { "kind": "OPERATION_CLASS", "value": "PLAYER_INSTRUCTION" } ], "timing": { "kind": "BAND", "name": "IMMEDIATE_RESULT_REACTION" } },
+        "operation": { "kind": "QUANTITY_CHANGE", "register": "SCORE", "operator": "ADD", "operand": { "source": "CONSTANT", "constant": 2 } },
+        "targeting": { "kind": "NO_TARGET", "argument": "" },
+        "timing": { "kind": "BAND", "name": "IMMEDIATE_RESULT_REACTION" },
+        "stacking": "INDEPENDENT_RESOLUTION",
+        "frequency": { "allowance": "FIRST_QUALIFYING_EVENT", "scope": "EXECUTION" }
+      }
+    ]
+  },
+  {
+    "id": "WB-DEP-006", "rulesText": "The first time Value += Signal executes each execution, gain +1 Signal afterward.", "displayName": "SIGNAL ROUTER",
+    "category": "DEPENDENCY", "rarity": "UNCOMMON", "tags": ["Signal", "Value"], "ram": 1,
+    "effects": [
+      {
+        "phaseDomain": "EXECUTION",
+        "trigger": { "eventFamily": "OPERATION", "eventSubtype": "PRIMARY_OPERATION_RESOLVED", "qualifiers": [ { "kind": "OPERATION_CLASS", "value": "VALUE_ADD_SIGNAL" } ], "timing": { "kind": "BAND", "name": "IMMEDIATE_RESULT_REACTION" } },
+        "operation": { "kind": "QUANTITY_CHANGE", "register": "SIGNAL", "operator": "ADD", "operand": { "source": "CONSTANT", "constant": 1 } },
+        "targeting": { "kind": "NO_TARGET", "argument": "" },
+        "timing": { "kind": "BAND", "name": "IMMEDIATE_RESULT_REACTION" },
+        "stacking": "INDEPENDENT_RESOLUTION",
+        "frequency": { "allowance": "FIRST_QUALIFYING_EVENT", "scope": "EXECUTION" }
+      }
+    ]
+  },
+  {
+    "id": "WB-DEP-007", "rulesText": "The first skipped Instruction each execution executes normally instead.", "displayName": "SAFE MODE",
+    "category": "DEPENDENCY", "rarity": "UNCOMMON", "tags": ["Skip", "Execution"], "ram": 2,
+    "effects": [
+      {
+        "phaseDomain": "EXECUTION",
+        "trigger": { "eventFamily": "DISPOSITION", "eventSubtype": "SOURCE_EXECUTION_SKIPPED", "qualifiers": [], "timing": { "kind": "BAND", "name": "QUALIFICATION_AND_PRE_OPERATION_INTERVENTION" } },
+        "operation": { "kind": "RESCUE", "resultingDisposition": "RESCUED" },
+        "targeting": { "kind": "TRIGGERING_UNIT", "argument": "" },
+        "timing": { "kind": "BAND", "name": "QUALIFICATION_AND_PRE_OPERATION_INTERVENTION" },
+        "stacking": "INDEPENDENT_RESOLUTION",
+        "frequency": { "allowance": "FIRST_QUALIFYING_EVENT", "scope": "EXECUTION" }
+      }
+    ]
+  },
+  {
+    "id": "WB-DEP-008", "rulesText": "The first time an item is archived each Process, gain 1 Byte. Buffered and incoming-overflow archives qualify; consuming a Directive does not.", "displayName": "GARBAGE COLLECTOR",
+    "category": "DEPENDENCY", "rarity": "UNCOMMON", "tags": ["Buffer", "Archive", "Bytes"], "ram": 1,
+    "effects": []
+  },
+  {
+    "id": "WB-DEP-009", "rulesText": "The first time an Instruction inside a Repeat executes each execution, execute it one additional time.", "displayName": "LOOP UNROLLER",
+    "category": "DEPENDENCY", "rarity": "UNCOMMON", "tags": ["Structure", "Repeat", "Execution"], "ram": 1,
+    "effects": [
+      {
+        "phaseDomain": "EXECUTION",
+        "trigger": { "eventFamily": "LIFECYCLE", "eventSubtype": "RUNTIME_UNIT_COMPLETED", "qualifiers": [ { "kind": "STRUCTURE_CONTEXT", "value": "INSIDE_REPEAT" } ], "timing": { "kind": "BAND", "name": "POST_UNIT_CONSEQUENCE_AND_EVIDENCE" } },
+        "operation": { "kind": "ADDED_EXECUTION_REQUEST", "target": { "kind": "TRIGGERING_UNIT", "argument": "" }, "cancelOnInvalid": false },
+        "targeting": { "kind": "TRIGGERING_UNIT", "argument": "" },
+        "timing": { "kind": "BAND", "name": "ADDED_EXECUTION_HANDLING" },
+        "stacking": "INDEPENDENT_RESOLUTION",
+        "frequency": { "allowance": "FIRST_QUALIFYING_EVENT", "scope": "EXECUTION" }
+      }
+    ]
+  },
+  {
+    "id": "WB-DEP-010", "rulesText": "The first time a Condition succeeds each execution, its first contained Instruction executes one additional time.", "displayName": "BRANCH PREDICTOR",
+    "category": "DEPENDENCY", "rarity": "UNCOMMON", "tags": ["Structure", "Condition", "Execution"], "ram": 1,
+    "effects": [
+      {
+        "phaseDomain": "EXECUTION",
+        "trigger": { "eventFamily": "STRUCTURE", "eventSubtype": "CONDITION_TRUE", "qualifiers": [], "timing": { "kind": "BAND", "name": "POST_UNIT_CONSEQUENCE_AND_EVIDENCE" } },
+        "operation": { "kind": "ADDED_EXECUTION_REQUEST", "target": { "kind": "FIRST_CONTAINED_INSTRUCTION", "argument": "" }, "cancelOnInvalid": false },
+        "targeting": { "kind": "FIRST_CONTAINED_INSTRUCTION", "argument": "" },
+        "timing": { "kind": "BAND", "name": "ADDED_EXECUTION_HANDLING" },
+        "stacking": "INDEPENDENT_RESOLUTION",
+        "frequency": { "allowance": "FIRST_QUALIFYING_EVENT", "scope": "EXECUTION" }
+      }
+    ]
+  },
+  {
+    "id": "WB-DEP-011", "rulesText": "After the first player Instruction that increases Score each execution, Value increases by 2.", "displayName": "OUTPUT PIPELINE",
+    "category": "DEPENDENCY", "rarity": "UNCOMMON", "tags": ["Score", "Value", "Output"], "ram": 1,
+    "effects": [
+      {
+        "phaseDomain": "EXECUTION",
+        "trigger": { "eventFamily": "QUANTITY", "eventSubtype": "QUANTITY_CHANGED", "qualifiers": [ { "kind": "ACTUAL_DELTA_SIGN", "value": "POSITIVE" }, { "kind": "REGISTER", "value": "SCORE" }, { "kind": "OPERATION_CLASS", "value": "PLAYER_INSTRUCTION" } ], "timing": { "kind": "BAND", "name": "IMMEDIATE_RESULT_REACTION" } },
+        "operation": { "kind": "QUANTITY_CHANGE", "register": "VALUE", "operator": "ADD", "operand": { "source": "CONSTANT", "constant": 2 } },
+        "targeting": { "kind": "NO_TARGET", "argument": "" },
+        "timing": { "kind": "BAND", "name": "IMMEDIATE_RESULT_REACTION" },
+        "stacking": "INDEPENDENT_RESOLUTION",
+        "frequency": { "allowance": "FIRST_QUALIFYING_EVENT", "scope": "EXECUTION" }
+      }
+    ]
+  }
+]
