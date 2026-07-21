@@ -15,9 +15,9 @@ namespace Iterate.Domain.Compilation.Tests
     /// </summary>
     public sealed class ArrangementEquivalenceTests
     {
-        private static readonly CoreLine _coreOne = new("core-01", "Value = 1");
-        private static readonly CoreLine _coreTwo = new("core-02", "Signal = 0");
-        private static readonly CoreLine _coreNine = new("core-09", "Score += Value");
+        private static readonly CoreLine _coreOne = new("core-01", new CoreLineOperation(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(1)));
+        private static readonly CoreLine _coreTwo = new("core-02", new CoreLineOperation(CoreLineOperator.Assign, CoreRegister.Signal, OperandSpec.FromConstant(0)));
+        private static readonly CoreLine _coreNine = new("core-09", new CoreLineOperation(CoreLineOperator.Add, CoreRegister.Score, OperandSpec.FromRegister(CoreRegister.Value)));
 
         private static readonly InstructionDefinition _instructionDefinition = new(
             new InstructionID("WB-INS-002"),
@@ -151,7 +151,7 @@ namespace Iterate.Domain.Compilation.Tests
             SourceArrangement left = StandardCore();
             SourceArrangement right = left.WithSlots(new List<SourceSlot>
             {
-                SourceSlot.ForCore(new SourcePosition(1), new CoreLine("core-01", "Value = 2"))
+                SourceSlot.ForCore(new SourcePosition(1), new CoreLine("core-01", new CoreLineOperation(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(2))))
             });
 
             Assert.IsFalse(ArrangementEquivalence.AreEquivalent(left, right));

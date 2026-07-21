@@ -3,14 +3,13 @@ using System;
 namespace Iterate.Domain.Compilation
 {
     /// <summary>
-    /// One Core-owned source line: a stable core-line identity paired with an authored operation payload
-    /// treated as an opaque immutable value by this feature. The payload participates in equivalence and
-    /// is carried into a compiled source; executing it belongs to the Execution Engine, which finalizes
-    /// the payload format.
+    /// One Core-owned source line: a stable core-line identity paired with the typed operation the
+    /// Execution Engine evaluates directly. Value equality compares the identity and the operation, so
+    /// arrangement equivalence over Core lines stays a pure value comparison.
     /// </summary>
     /// <param name="Identity">The stable core-line identity; non-empty.</param>
-    /// <param name="OperationText">The opaque operation payload; non-empty.</param>
-    public sealed record CoreLine(string Identity, string OperationText)
+    /// <param name="Operation">The typed operation this line applies; non-null.</param>
+    public sealed record CoreLine(string Identity, CoreLineOperation Operation)
     {
         /// <summary>
         /// The stable core-line identity. Validated non-empty at construction.
@@ -18,9 +17,9 @@ namespace Iterate.Domain.Compilation
         public string Identity { get; } = RequireText(Identity, nameof(Identity));
 
         /// <summary>
-        /// The opaque operation payload. Validated non-empty at construction.
+        /// The typed operation this line applies. Validated non-null at construction.
         /// </summary>
-        public string OperationText { get; } = RequireText(OperationText, nameof(OperationText));
+        public CoreLineOperation Operation { get; } = RequireOperation(Operation);
 
         /// <summary>
         /// Validates that a supplied text field is present and non-empty.
@@ -35,6 +34,20 @@ namespace Iterate.Domain.Compilation
                 throw new ArgumentException("A CoreLine requires non-empty text.", fieldName);
 
             return value;
+        }
+
+        /// <summary>
+        /// Validates that the paired operation is present.
+        /// </summary>
+        /// <param name="operation">The candidate operation.</param>
+        /// <returns>The operation unchanged.</returns>
+        /// <exception cref="ArgumentException">Thrown when the operation is null.</exception>
+        private static CoreLineOperation RequireOperation(CoreLineOperation operation)
+        {
+            if (operation == null)
+                throw new ArgumentException("A CoreLine requires an operation.", nameof(operation));
+
+            return operation;
         }
     }
 }

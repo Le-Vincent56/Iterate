@@ -46,7 +46,7 @@ namespace Iterate.Domain.Compilation.Tests
         [Test]
         public void ForCore_SetsCoreAndNullsOccupants()
         {
-            CoreLine line = new("core-01", "Value = 1");
+            CoreLine line = new("core-01", new CoreLineOperation(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(1)));
 
             SourceSlot slot = SourceSlot.ForCore(new SourcePosition(1), line);
 

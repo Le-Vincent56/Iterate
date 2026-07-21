@@ -15,9 +15,9 @@ namespace Iterate.Domain.Compilation.Tests
     /// </summary>
     public sealed class BuildStateCompileTests
     {
-        private static readonly CoreLine _coreOne = new CoreLine("core-01", "Value = 1");
-        private static readonly CoreLine _coreTwo = new CoreLine("core-02", "Signal = 0");
-        private static readonly CoreLine _coreNine = new CoreLine("core-09", "Score += Value");
+        private static readonly CoreLine _coreOne = new CoreLine("core-01", new CoreLineOperation(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(1)));
+        private static readonly CoreLine _coreTwo = new CoreLine("core-02", new CoreLineOperation(CoreLineOperator.Assign, CoreRegister.Signal, OperandSpec.FromConstant(0)));
+        private static readonly CoreLine _coreNine = new CoreLine("core-09", new CoreLineOperation(CoreLineOperator.Add, CoreRegister.Score, OperandSpec.FromRegister(CoreRegister.Value)));
 
         private static readonly InstructionDefinition _ordinaryDefinition = new InstructionDefinition(
             new InstructionID("WB-INS-002"),

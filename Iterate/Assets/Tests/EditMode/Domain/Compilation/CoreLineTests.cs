@@ -1,59 +1,66 @@
 using System;
 using NUnit.Framework;
 using Iterate.Domain.Compilation;
+using Iterate.Domain.Content;
 
 namespace Iterate.Domain.Compilation.Tests
 {
     /// <summary>
-    /// Tests that <see cref="CoreLine"/> requires both a non-empty identity and a non-empty operation
-    /// payload, round-trips them, and compares by value. The payload is an opaque immutable string this
-    /// feature does not execute.
+    /// Tests that <see cref="CoreLine"/> requires a non-empty identity and a non-null typed operation,
+    /// round-trips them, and compares by value over the typed operation (UX-SRC-016 arrangement
+    /// equivalence holds by construction).
     /// </summary>
     public sealed class CoreLineTests
     {
         [Test]
         public void Constructor_NullIdentity_Throws()
         {
-            Assert.Throws<ArgumentException>(() => _ = new CoreLine(null, "Value = 1"));
+            CoreLineOperation operation = new(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(1));
+
+            Assert.Throws<ArgumentException>(() => _ = new CoreLine(null, operation));
         }
 
         [Test]
         public void Constructor_EmptyIdentity_Throws()
         {
-            Assert.Throws<ArgumentException>(() => _ = new CoreLine(string.Empty, "Value = 1"));
+            CoreLineOperation operation = new(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(1));
+
+            Assert.Throws<ArgumentException>(() => _ = new CoreLine(string.Empty, operation));
         }
 
         [Test]
-        public void Constructor_NullOperationText_Throws()
+        public void Constructor_NullOperation_Throws()
         {
             Assert.Throws<ArgumentException>(() => _ = new CoreLine("core-01", null));
         }
 
         [Test]
-        public void Constructor_EmptyOperationText_Throws()
+        public void Constructor_BothPresent_RoundTrips()
         {
-            Assert.Throws<ArgumentException>(() => _ = new CoreLine("core-01", string.Empty));
-        }
+            CoreLineOperation operation = new(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(1));
 
-        [Test]
-        public void Constructor_BothNonEmpty_RoundTrips()
-        {
-            CoreLine line = new("core-01", "Value = 1");
+            CoreLine line = new("core-01", operation);
 
             Assert.AreEqual("core-01", line.Identity);
-            Assert.AreEqual("Value = 1", line.OperationText);
+            Assert.AreEqual(operation, line.Operation);
         }
 
         [Test]
         public void Equality_SameValues_AreEqual()
         {
-            Assert.AreEqual(new CoreLine("core-01", "Value = 1"), new CoreLine("core-01", "Value = 1"));
+            CoreLine left = new("core-01", new CoreLineOperation(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(1)));
+            CoreLine right = new("core-01", new CoreLineOperation(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(1)));
+
+            Assert.AreEqual(left, right);
         }
 
         [Test]
-        public void Equality_DifferentOperationText_AreNotEqual()
+        public void Equality_DifferentOperation_AreNotEqual()
         {
-            Assert.AreNotEqual(new CoreLine("core-01", "Value = 1"), new CoreLine("core-01", "Value = 2"));
+            CoreLine left = new("core-01", new CoreLineOperation(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(1)));
+            CoreLine right = new("core-01", new CoreLineOperation(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(2)));
+
+            Assert.AreNotEqual(left, right);
         }
     }
 }

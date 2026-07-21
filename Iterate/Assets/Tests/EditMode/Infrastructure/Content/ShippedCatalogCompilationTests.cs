@@ -19,9 +19,9 @@ namespace Iterate.Infrastructure.Content.Tests
     /// </summary>
     public sealed class ShippedCatalogCompilationTests
     {
-        private static readonly CoreLine _coreOne = new CoreLine("core-01", "Value = 1");
-        private static readonly CoreLine _coreTwo = new CoreLine("core-02", "Signal = 0");
-        private static readonly CoreLine _coreNine = new CoreLine("core-09", "Score += Value");
+        private static readonly CoreLine _coreOne = new CoreLine("core-01", new CoreLineOperation(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(1)));
+        private static readonly CoreLine _coreTwo = new CoreLine("core-02", new CoreLineOperation(CoreLineOperator.Assign, CoreRegister.Signal, OperandSpec.FromConstant(0)));
+        private static readonly CoreLine _coreNine = new CoreLine("core-09", new CoreLineOperation(CoreLineOperator.Add, CoreRegister.Score, OperandSpec.FromRegister(CoreRegister.Value)));
 
         [Test]
         public void EveryCompilationEffect_ResolvesWithoutException()
