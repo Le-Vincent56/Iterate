@@ -137,7 +137,7 @@ namespace Iterate.Domain.Execution.Tests
             List<DirectiveInstance> pragmas = new List<DirectiveInstance> { pragma };
             CompiledSource source = new CompiledSource(arrangement, pragmas, StandardCost());
 
-            return new ExecutionRequest(source, StandardConfiguration(), StandardStamps(), initialState);
+            return new ExecutionRequest(source, StandardConfiguration(), StandardStamps(), initialState, new List<DependencyInstance>());
         }
 
         private static InstructionDefinition AddValueInstruction(int constant)

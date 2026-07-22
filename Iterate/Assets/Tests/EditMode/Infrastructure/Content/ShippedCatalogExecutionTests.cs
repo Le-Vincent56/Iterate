@@ -178,7 +178,7 @@ namespace Iterate.Infrastructure.Content.Tests
             SourceArrangement arrangement = new SourceArrangement(slots);
             CompiledSource source = new CompiledSource(arrangement, new List<DirectiveInstance>(), StandardCost());
 
-            return new ExecutionRequest(source, StandardConfiguration(), StandardStamps(), ZeroState());
+            return new ExecutionRequest(source, StandardConfiguration(), StandardStamps(), ZeroState(), new List<DependencyInstance>());
         }
 
         private static ExecutionRecord Execute(ExecutionRequest request)

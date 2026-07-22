@@ -9,12 +9,15 @@ namespace Iterate.Domain.Execution
     /// The pure evaluator that resolves one operation against the current registers into an
     /// <see cref="EvaluatedOperation"/>. It reads registers but never writes them, so the scheduler owns
     /// all mutation. Assign classifies as an absolute assignment; Add and Multiply both classify as an
-    /// increase (the operation type records mechanical meaning, not arithmetic form).
+    /// increase (the operation type records mechanical meaning, not arithmetic form). An accumulated
+    /// modifier sum folds into an addition's resolved delta while the requested amount stays the
+    /// unmodified request; assignments and multiplications ignore the sum — only fixed additions are
+    /// modifiable at this content.
     /// </summary>
     public static class OperationEvaluator
     {
         /// <summary>
-        /// Evaluates a Core-line operation against the current registers.
+        /// Evaluates a Core-line operation against the current registers with no modifiers.
         /// </summary>
         /// <param name="operation">The Core-line operation to evaluate.</param>
         /// <param name="registers">The registers read during evaluation.</param>
@@ -23,14 +26,35 @@ namespace Iterate.Domain.Execution
         /// <exception cref="ArgumentException">Thrown when the operation is null.</exception>
         public static EvaluatedOperation EvaluateCoreLine(CoreLineOperation operation, ExecutionRegisters registers, SourcePosition position)
         {
-            if (operation == null)
-                throw new ArgumentException("A Core-line operation is required.", nameof(operation));
-
-            return Evaluate(operation.Operator, operation.Target, operation.Operand, registers, position);
+            return EvaluateCoreLine(operation, registers, position, 0);
         }
 
         /// <summary>
-        /// Evaluates an Instruction's quantity-change primary operation against the current registers.
+        /// Evaluates a Core-line operation against the current registers, folding the accumulated
+        /// modifier sum into an addition's resolved delta.
+        /// </summary>
+        /// <param name="operation">The Core-line operation to evaluate.</param>
+        /// <param name="registers">The registers read during evaluation.</param>
+        /// <param name="position">The executing source position, resolving a line-number operand.</param>
+        /// <param name="modifierSum">The accumulated modifier sum from the modification band.</param>
+        /// <returns>The resolved evaluation result.</returns>
+        /// <exception cref="ArgumentException">Thrown when the operation is null.</exception>
+        public static EvaluatedOperation EvaluateCoreLine(
+            CoreLineOperation operation,
+            ExecutionRegisters registers,
+            SourcePosition position,
+            int modifierSum
+        )
+        {
+            if (operation == null)
+                throw new ArgumentException("A Core-line operation is required.", nameof(operation));
+
+            return Evaluate(operation.Operator, operation.Target, operation.Operand, registers, position, modifierSum);
+        }
+
+        /// <summary>
+        /// Evaluates an Instruction's quantity-change primary operation against the current registers
+        /// with no modifiers.
         /// </summary>
         /// <param name="operation">The quantity-change operation to evaluate.</param>
         /// <param name="registers">The registers read during evaluation.</param>
@@ -38,6 +62,26 @@ namespace Iterate.Domain.Execution
         /// <returns>The resolved evaluation result.</returns>
         /// <exception cref="ArgumentException">Thrown when the operation is null or carries an unknown operator.</exception>
         public static EvaluatedOperation EvaluateInstruction(QuantityChangeOperation operation, ExecutionRegisters registers, SourcePosition position)
+        {
+            return EvaluateInstruction(operation, registers, position, 0);
+        }
+
+        /// <summary>
+        /// Evaluates an Instruction's quantity-change primary operation against the current registers,
+        /// folding the accumulated modifier sum into an addition's resolved delta.
+        /// </summary>
+        /// <param name="operation">The quantity-change operation to evaluate.</param>
+        /// <param name="registers">The registers read during evaluation.</param>
+        /// <param name="position">The executing source position, resolving a line-number operand.</param>
+        /// <param name="modifierSum">The accumulated modifier sum from the modification band.</param>
+        /// <returns>The resolved evaluation result.</returns>
+        /// <exception cref="ArgumentException">Thrown when the operation is null or carries an unknown operator.</exception>
+        public static EvaluatedOperation EvaluateInstruction(
+            QuantityChangeOperation operation,
+            ExecutionRegisters registers,
+            SourcePosition position,
+            int modifierSum
+        )
         {
             if (operation == null)
                 throw new ArgumentException("A quantity-change operation is required.", nameof(operation));
@@ -48,27 +92,29 @@ namespace Iterate.Domain.Execution
                 case QuantityOperator.Add:
                     resolvedOperator = CoreLineOperator.Add;
                     break;
-                
+
                 case QuantityOperator.Multiply:
                     resolvedOperator = CoreLineOperator.Multiply;
                     break;
-                
+
                 default:
                     throw new ArgumentException($"Unknown quantity operator {operation.Operator}.", nameof(operation));
             }
 
-            return Evaluate(resolvedOperator, operation.Register, operation.Operand, registers, position);
+            return Evaluate(resolvedOperator, operation.Register, operation.Operand, registers, position, modifierSum);
         }
 
         /// <summary>
         /// Resolves the operand and applies the operator against the target register, classifying the
-        /// resulting evidence without writing any register.
+        /// resulting evidence without writing any register. An addition resolves to the operand plus
+        /// the modifier sum; assignments and multiplications ignore the sum.
         /// </summary>
         /// <param name="op">The operator to apply.</param>
         /// <param name="target">The target register.</param>
         /// <param name="operand">The operand to resolve.</param>
         /// <param name="registers">The registers read during evaluation.</param>
         /// <param name="position">The executing source position.</param>
+        /// <param name="modifierSum">The accumulated modifier sum.</param>
         /// <returns>The resolved evaluation result.</returns>
         /// <exception cref="ArgumentException">Thrown when the operator is not a known member.</exception>
         private static EvaluatedOperation Evaluate(
@@ -76,7 +122,8 @@ namespace Iterate.Domain.Execution
             CoreRegister target,
             OperandSpec operand,
             ExecutionRegisters registers,
-            SourcePosition position
+            SourcePosition position,
+            int modifierSum
         )
         {
             int operandValue = ResolveOperand(operand, registers, position);
@@ -94,21 +141,21 @@ namespace Iterate.Domain.Execution
                     subtype = ExecutionEventSubtypes.QuantityAssigned;
                     requested = operandValue;
                     break;
-                
+
                 case CoreLineOperator.Add:
-                    finalValue = prior + operandValue;
+                    finalValue = prior + operandValue + modifierSum;
                     operationType = QuantityOperationType.Increase;
                     subtype = ExecutionEventSubtypes.QuantityChanged;
                     requested = operandValue;
                     break;
-                
+
                 case CoreLineOperator.Multiply:
                     finalValue = prior * operandValue;
                     operationType = QuantityOperationType.Increase;
                     subtype = ExecutionEventSubtypes.QuantityChanged;
                     requested = (prior * operandValue) - prior;
                     break;
-                
+
                 default:
                     throw new ArgumentException($"Unknown Core-line operator {op}.", nameof(op));
             }
@@ -131,13 +178,13 @@ namespace Iterate.Domain.Execution
             {
                 case OperandSource.Constant:
                     return operand.Constant;
-                
+
                 case OperandSource.Register:
                     return registers.Read(operand.SourceRegister);
-                
+
                 case OperandSource.LineNumber:
                     return position.LineNumber;
-                
+
                 default:
                     throw new ArgumentException($"Unknown operand source {operand.Source}.", nameof(operand));
             }

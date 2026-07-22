@@ -5,7 +5,7 @@
     "effects": [
       {
         "phaseDomain": "EXECUTION",
-        "trigger": { "eventFamily": "QUANTITY", "eventSubtype": "PRIMARY_OPERATION_PENDING", "qualifiers": [ { "kind": "OPERATION_CLASS", "value": "FIXED_ADDITION" }, { "kind": "REGISTER", "value": "VALUE" } ], "timing": { "kind": "BAND", "name": "OPERATION_MODIFICATION_REPLACEMENT_OR_PREVENTION" } },
+        "trigger": { "eventFamily": "OPERATION", "eventSubtype": "PRIMARY_OPERATION_PENDING", "qualifiers": [ { "kind": "OPERATION_CLASS", "value": "FIXED_ADDITION" }, { "kind": "OPERATION_CLASS", "value": "PLAYER_INSTRUCTION" }, { "kind": "REGISTER", "value": "VALUE" } ], "timing": { "kind": "BAND", "name": "OPERATION_MODIFICATION_REPLACEMENT_OR_PREVENTION" } },
         "operation": { "kind": "QUANTITY_CHANGE", "register": "VALUE", "operator": "ADD", "operand": { "source": "CONSTANT", "constant": 1 } },
         "targeting": { "kind": "TRIGGERING_UNIT", "argument": "" },
         "timing": { "kind": "BAND", "name": "OPERATION_MODIFICATION_REPLACEMENT_OR_PREVENTION" },

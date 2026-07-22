@@ -6,9 +6,10 @@ using Iterate.Domain.Trace;
 namespace Iterate.Domain.Execution.Tests
 {
     /// <summary>
-    /// Tests that <see cref="ExecutionSafetyTallies"/> begins at zero, counts opened units, projects to a
-    /// structurally-zero <see cref="SafetyCounts"/> save the unit count, and enforces the source-execution
-    /// ceiling as preflight-permits-reaching / prohibits-exceeding.
+    /// Tests that <see cref="ExecutionSafetyTallies"/> begins at zero, counts opened units, effect
+    /// reactions, and per-pending-operation transformations with a retained high-water, projects them
+    /// to <see cref="SafetyCounts"/>, and enforces every ceiling as preflight-permits-reaching /
+    /// prohibits-exceeding.
     /// </summary>
     public sealed class ExecutionSafetyTalliesTests
     {
@@ -71,6 +72,96 @@ namespace Iterate.Domain.Execution.Tests
 
             Assert.Throws<InvalidOperationException>(() => tallies.RecordUnitOpened());
             Assert.AreEqual(SafetyCeilings.SourceExecutionUnitsPerExecution, tallies.SourceExecutionUnits);
+        }
+
+        [Test]
+        public void Fresh_ReactionAndTransformationCounts_AreZero()
+        {
+            ExecutionSafetyTallies tallies = new();
+
+            Assert.AreEqual(0, tallies.EffectReactions);
+            Assert.AreEqual(0, tallies.TransformationsOnPendingOperation);
+            Assert.AreEqual(0, tallies.TransformationHighWater);
+            Assert.AreEqual(new SafetyCounts(0, 0, 0, 0, 0), tallies.ToCounts());
+        }
+
+        [Test]
+        public void RecordReaction_ThreeTimes_LandsInCounts()
+        {
+            ExecutionSafetyTallies tallies = new();
+
+            tallies.RecordReaction();
+            tallies.RecordReaction();
+            tallies.RecordReaction();
+
+            Assert.AreEqual(3, tallies.EffectReactions);
+            Assert.AreEqual(new SafetyCounts(0, 0, 0, 3, 0), tallies.ToCounts());
+        }
+
+        [Test]
+        public void RecordTransformation_TwoOnOneOperation_HighWaterTwo()
+        {
+            ExecutionSafetyTallies tallies = new();
+
+            tallies.BeginPendingOperation();
+            tallies.RecordTransformation();
+            tallies.RecordTransformation();
+
+            Assert.AreEqual(2, tallies.TransformationsOnPendingOperation);
+            Assert.AreEqual(2, tallies.TransformationHighWater);
+        }
+
+        [Test]
+        public void BeginPendingOperation_ResetsPerOperation_HighWaterIsMaxNotSum()
+        {
+            ExecutionSafetyTallies tallies = new();
+
+            tallies.BeginPendingOperation();
+            tallies.RecordTransformation();
+            tallies.RecordTransformation();
+            tallies.BeginPendingOperation();
+
+            Assert.AreEqual(0, tallies.TransformationsOnPendingOperation);
+            Assert.AreEqual(2, tallies.TransformationHighWater);
+
+            tallies.RecordTransformation();
+
+            Assert.AreEqual(1, tallies.TransformationsOnPendingOperation);
+            Assert.AreEqual(2, tallies.TransformationHighWater);
+            Assert.AreEqual(new SafetyCounts(0, 0, 0, 0, 2), tallies.ToCounts());
+        }
+
+        [Test]
+        public void RecordReaction_ReachingCeiling_IsLegalThenPreflightFalse()
+        {
+            ExecutionSafetyTallies tallies = new();
+
+            for (int i = 0; i < SafetyCeilings.EffectReactionsPerExecution - 1; i++)
+                tallies.RecordReaction();
+
+            Assert.IsTrue(tallies.PreflightReaction());
+            Assert.DoesNotThrow(() => tallies.RecordReaction());
+            Assert.AreEqual(SafetyCeilings.EffectReactionsPerExecution, tallies.EffectReactions);
+            Assert.IsFalse(tallies.PreflightReaction());
+            Assert.Throws<InvalidOperationException>(() => tallies.RecordReaction());
+            Assert.AreEqual(SafetyCeilings.EffectReactionsPerExecution, tallies.EffectReactions);
+        }
+
+        [Test]
+        public void RecordTransformation_ReachingCeiling_IsLegalThenPreflightFalse()
+        {
+            ExecutionSafetyTallies tallies = new();
+            tallies.BeginPendingOperation();
+
+            for (int i = 0; i < SafetyCeilings.TransformationsPerPendingOperation - 1; i++)
+                tallies.RecordTransformation();
+
+            Assert.IsTrue(tallies.PreflightTransformation());
+            Assert.DoesNotThrow(() => tallies.RecordTransformation());
+            Assert.AreEqual(SafetyCeilings.TransformationsPerPendingOperation, tallies.TransformationsOnPendingOperation);
+            Assert.IsFalse(tallies.PreflightTransformation());
+            Assert.Throws<InvalidOperationException>(() => tallies.RecordTransformation());
+            Assert.AreEqual(SafetyCeilings.TransformationsPerPendingOperation, tallies.TransformationsOnPendingOperation);
         }
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NUnit.Framework;
 using Iterate.Domain.Execution;
 using Iterate.Domain.Content;
@@ -71,11 +72,27 @@ namespace Iterate.Domain.Execution.Tests
         {
             ExecutionRecord record = Execute(SchedulerFixtures.StrongOrderRequest(SchedulerFixtures.ZeroState(), new InstanceIDSource()));
 
-            AssertQuantity(record.Events[4].Evidence, "Value", 0, 1);
-            AssertQuantity(record.Events[5].Evidence, "Value", 1, 3);
-            AssertQuantity(record.Events[6].Evidence, "Value", 3, 5);
-            AssertQuantity(record.Events[7].Evidence, "Score", 0, 5);
-            AssertQuantity(record.Events[8].Evidence, "Score", 5, 10);
+            List<EventEvidence> quantities = InUnitQuantityEvents(record);
+
+            Assert.AreEqual(5, quantities.Count);
+            AssertQuantity(quantities[0], "Value", 0, 1);
+            AssertQuantity(quantities[1], "Value", 1, 3);
+            AssertQuantity(quantities[2], "Value", 3, 5);
+            AssertQuantity(quantities[3], "Score", 0, 5);
+            AssertQuantity(quantities[4], "Score", 5, 10);
+        }
+
+        private static List<EventEvidence> InUnitQuantityEvents(ExecutionRecord record)
+        {
+            List<EventEvidence> quantities = new();
+            for (int i = 0; i < record.Events.Count; i++)
+            {
+                EventEvidence evidence = record.Events[i].Evidence;
+                if (evidence.Family == EventFamilies.Quantity && evidence.ContainingUnit != null)
+                    quantities.Add(evidence);
+            }
+
+            return quantities;
         }
 
         [Test]
