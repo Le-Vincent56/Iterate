@@ -25,17 +25,17 @@ namespace Iterate.Domain.Execution.Tests
             RuntimeUnitRecord unit = record.Units[2];
             List<EventEvidence> events = UnitEvents(record, unit);
 
-            Assert.AreEqual(10, events.Count);
-            Assert.AreEqual(ExecutionEventSubtypes.PrimaryOperationResultFinalized, events[4].Subtype);
-            Assert.AreEqual(ExecutionEventSubtypes.EffectQualified, events[5].Subtype);
-            Assert.AreEqual(ExecutionEventSubtypes.EffectCommitted, events[6].Subtype);
-            Assert.AreEqual(ExecutionEventSubtypes.ImmediateReactionResolved, events[7].Subtype);
-            Assert.AreEqual(ExecutionEventSubtypes.QuantityChanged, events[8].Subtype);
-            Assert.AreEqual(ExecutionEventSubtypes.SourceExecutionCompleted, events[9].Subtype);
-            Assert.AreEqual(EventFamilies.Reaction, events[7].Family);
+            Assert.AreEqual(12, events.Count);
+            Assert.AreEqual(ExecutionEventSubtypes.PrimaryOperationResultFinalized, events[5].Subtype);
+            Assert.AreEqual(ExecutionEventSubtypes.EffectQualified, events[6].Subtype);
+            Assert.AreEqual(ExecutionEventSubtypes.EffectCommitted, events[7].Subtype);
+            Assert.AreEqual(ExecutionEventSubtypes.ImmediateReactionResolved, events[8].Subtype);
+            Assert.AreEqual(ExecutionEventSubtypes.QuantityChanged, events[9].Subtype);
+            Assert.AreEqual(ExecutionEventSubtypes.SourceExecutionCompleted, events[11].Subtype);
+            Assert.AreEqual(EventFamilies.Reaction, events[8].Family);
 
-            TraceEventID primaryQuantity = unit.ChildEvents[3];
-            for (int i = 5; i <= 7; i++)
+            TraceEventID primaryQuantity = unit.ChildEvents[4];
+            for (int i = 6; i <= 8; i++)
             {
                 Assert.AreEqual(primaryQuantity, events[i].CausingEvent);
                 Assert.AreEqual(1, events[i].CausalDepth);
@@ -43,8 +43,8 @@ namespace Iterate.Domain.Execution.Tests
                 Assert.AreEqual(unit.Identity, events[i].ContainingUnit);
             }
 
-            EventEvidence reactionQuantity = events[8];
-            Assert.AreEqual(unit.ChildEvents[7], reactionQuantity.CausingEvent);
+            EventEvidence reactionQuantity = events[9];
+            Assert.AreEqual(unit.ChildEvents[8], reactionQuantity.CausingEvent);
             Assert.AreEqual(2, reactionQuantity.CausalDepth);
             Assert.AreEqual(new InstanceID(300), reactionQuantity.EffectOriginInstance);
             Assert.IsNull(reactionQuantity.Ownership);
@@ -74,12 +74,12 @@ namespace Iterate.Domain.Execution.Tests
             RuntimeUnitRecord unit = record.Units[1];
             List<EventEvidence> events = UnitEvents(record, unit);
 
-            Assert.AreEqual(7, events.Count);
-            EventEvidence nearMiss = events[5];
+            Assert.AreEqual(9, events.Count);
+            EventEvidence nearMiss = events[6];
             Assert.AreEqual(ExecutionEventSubtypes.EffectFailedToQualify, nearMiss.Subtype);
             Assert.AreEqual(EventDisposition.FailedToQualify, nearMiss.Disposition);
             Assert.AreEqual("OPERATION_CLASS:PLAYER_INSTRUCTION", nearMiss.DispositionReason);
-            Assert.AreEqual(unit.ChildEvents[3], nearMiss.CausingEvent);
+            Assert.AreEqual(unit.ChildEvents[4], nearMiss.CausingEvent);
             Assert.AreEqual(1, nearMiss.CausalDepth);
         }
 
@@ -90,7 +90,7 @@ namespace Iterate.Domain.Execution.Tests
 
             List<EventEvidence> events = UnitEvents(record, record.Units[3]);
 
-            Assert.AreEqual(6, events.Count);
+            Assert.AreEqual(8, events.Count);
         }
 
         [Test]
@@ -114,8 +114,8 @@ namespace Iterate.Domain.Execution.Tests
             List<EventEvidence> first = UnitEvents(record, record.Units[0]);
             List<EventEvidence> second = UnitEvents(record, record.Units[1]);
 
-            Assert.AreEqual(ExecutionEventSubtypes.ImmediateReactionResolved, first[7].Subtype);
-            Assert.AreEqual(ExecutionEventSubtypes.ImmediateReactionResolved, second[7].Subtype);
+            Assert.AreEqual(ExecutionEventSubtypes.ImmediateReactionResolved, first[8].Subtype);
+            Assert.AreEqual(ExecutionEventSubtypes.ImmediateReactionResolved, second[8].Subtype);
             Assert.AreEqual(new SignalValue(2), record.FinalState.FinalSignal);
             Assert.AreEqual(new ValueAmount(2), record.FinalState.FinalValue);
             Assert.AreEqual(2, record.SafetyCounts.EffectReactions);
@@ -128,9 +128,9 @@ namespace Iterate.Domain.Execution.Tests
 
             List<EventEvidence> events = UnitEvents(record, record.Units[2]);
 
-            Assert.AreEqual(7, events.Count);
-            Assert.AreEqual(ExecutionEventSubtypes.EffectFailedToQualify, events[5].Subtype);
-            Assert.AreEqual("ACTUAL_DELTA_SIGN:POSITIVE", events[5].DispositionReason);
+            Assert.AreEqual(9, events.Count);
+            Assert.AreEqual(ExecutionEventSubtypes.EffectFailedToQualify, events[6].Subtype);
+            Assert.AreEqual("ACTUAL_DELTA_SIGN:POSITIVE", events[6].DispositionReason);
         }
 
         [Test]
@@ -179,10 +179,10 @@ namespace Iterate.Domain.Execution.Tests
             RuntimeUnitRecord unit = record.Units[1];
 
             Assert.AreEqual(ExecutionEventSubtypes.ThresholdCrossedUpward, crossing.Subtype);
-            Assert.AreEqual(unit.ChildEvents[8], crossing.CausingEvent);
+            Assert.AreEqual(unit.ChildEvents[9], crossing.CausingEvent);
             Assert.AreEqual(3, crossing.CausalDepth);
 
-            EventEvidence causing = Find(record, unit.ChildEvents[8]);
+            EventEvidence causing = Find(record, unit.ChildEvents[9]);
             Assert.AreEqual(2, causing.CausalDepth);
             Assert.AreEqual(new InstanceID(500), causing.EffectOriginInstance);
         }

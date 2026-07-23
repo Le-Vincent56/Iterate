@@ -91,5 +91,71 @@ namespace Iterate.Domain.Execution
         /// unit's causal closure.
         /// </summary>
         public const string ImmediateReactionResolved = "IMMEDIATE_REACTION_RESOLVED";
+
+        /// <summary>
+        /// The source subtype marking runtime reaching or rule-activating an identified source object.
+        /// </summary>
+        public const string SourceObjectActivated = "SOURCE_OBJECT_ACTIVATED";
+
+        /// <summary>
+        /// The source subtype marking a source execution's final disposition becoming unchangeable.
+        /// </summary>
+        public const string SourceExecutionDispositionFinalized = "SOURCE_EXECUTION_DISPOSITION_FINALIZED";
+
+        /// <summary>
+        /// The structure subtype marking runtime reaching a Structure header.
+        /// </summary>
+        public const string StructureActivated = "STRUCTURE_ACTIVATED";
+
+        /// <summary>
+        /// The structure subtype marking a Structure entry establishing child governance.
+        /// </summary>
+        public const string StructureEntered = "STRUCTURE_ENTERED";
+
+        /// <summary>
+        /// The structure subtype marking a Structure exit after complete child governance closure.
+        /// </summary>
+        public const string StructureExited = "STRUCTURE_EXITED";
+
+        /// <summary>
+        /// The structure subtype marking a Repeat's iteration count captured once at entry.
+        /// </summary>
+        public const string RepeatCountCaptured = "REPEAT_COUNT_CAPTURED";
+
+        /// <summary>
+        /// The structure subtype marking one Repeat iteration beginning.
+        /// </summary>
+        public const string RepeatIterationStarted = "REPEAT_ITERATION_STARTED";
+
+        /// <summary>
+        /// The structure subtype marking one Repeat iteration completing after child causal closure.
+        /// </summary>
+        public const string RepeatIterationCompleted = "REPEAT_ITERATION_COMPLETED";
+
+        /// <summary>
+        /// The structure subtype marking a Condition's predicate register snapshot captured at entry.
+        /// </summary>
+        public const string ConditionSnapshotCaptured = "CONDITION_SNAPSHOT_CAPTURED";
+
+        /// <summary>
+        /// The structure subtype marking a Condition evaluation resulting true.
+        /// </summary>
+        public const string ConditionTrue = "CONDITION_TRUE";
+
+        /// <summary>
+        /// The structure subtype marking a Condition evaluation resulting false.
+        /// </summary>
+        public const string ConditionFalse = "CONDITION_FALSE";
+
+        /// <summary>
+        /// The disposition subtype marking an activated source execution skipped before its primary
+        /// operation.
+        /// </summary>
+        public const string SourceExecutionSkipped = "SOURCE_EXECUTION_SKIPPED";
+
+        /// <summary>
+        /// The disposition subtype marking a skipped source execution transformed to continue by a rescue.
+        /// </summary>
+        public const string SourceExecutionRescued = "SOURCE_EXECUTION_RESCUED";
     }
 }

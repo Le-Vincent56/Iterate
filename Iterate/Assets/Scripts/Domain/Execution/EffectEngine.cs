@@ -3,21 +3,26 @@ using System.Collections.Generic;
 using Iterate.Domain.Compilation;
 using Iterate.Domain.Content;
 using Iterate.Domain.Trace;
+using Iterate.Domain.Values;
 
 namespace Iterate.Domain.Execution
 {
     /// <summary>
     /// The per-execution effect engine: stores the interpreted effects sorted by stable instance
     /// identity at registration — so registration and enumeration order cannot influence resolution —
-    /// and matches typed occurrences at the scheduler's boundaries. Ineligible effects are silently
-    /// skipped; a candidate matching family, subtype, and band that fails a qualifier produces one
+    /// and matches typed occurrences at the scheduler's four boundaries, each candidate gated by its
+    /// participation kind. Ineligible effects are silently skipped — except a consumed selected-host
+    /// modification, which re-applies without re-consumption to later offers hosted by its recorded
+    /// instance; a candidate matching family, subtype, and band that fails a qualifier produces one
     /// near-miss naming the first failed requirement; qualified effects are ordered by declared
-    /// precedence, then stable instance identity.
+    /// precedence, then stable instance identity. The skip boundary offers rescue-kind effects only
+    /// and is silent for non-rescuable or exhausted candidates.
     /// </summary>
     public sealed class EffectEngine
     {
         private readonly List<ActiveEffect> _registered;
         private readonly FrequencyLedger _ledger;
+        private readonly Dictionary<string, InstanceID> _selectedHosts;
 
         /// <summary>
         /// The registered effects, sorted by owning instance identity then effect index.
@@ -36,10 +41,15 @@ namespace Iterate.Domain.Execution
             {
                 InsertSorted(_registered, effects[i]);
             }
+
+            _selectedHosts = new Dictionary<string, InstanceID>();
         }
 
         /// <summary>
-        /// Matches modification-band effects against a pending-operation occurrence.
+        /// Matches modification-band effects against a pending-operation occurrence. A consumed
+        /// selected-host modification whose recorded host matches the occurrence re-applies when its
+        /// qualifiers pass; when they fail it stays silent — consumed effects never produce
+        /// near-miss noise.
         /// </summary>
         /// <param name="occurrence">The pending-operation occurrence.</param>
         /// <returns>The captured batch, or the shared empty batch.</returns>
@@ -49,7 +59,7 @@ namespace Iterate.Domain.Execution
             if (occurrence == null)
                 throw new ArgumentException("Matching requires an occurrence.", nameof(occurrence));
 
-            return MatchOperation(occurrence, true, ExecutionEventSubtypes.PrimaryOperationPending);
+            return MatchOperation(occurrence, ActiveEffectKind.Modification, ExecutionEventSubtypes.PrimaryOperationPending);
         }
 
         /// <summary>
@@ -63,7 +73,7 @@ namespace Iterate.Domain.Execution
             if (occurrence == null)
                 throw new ArgumentException("Matching requires an occurrence.", nameof(occurrence));
 
-            return MatchOperation(occurrence, false, ExecutionEventSubtypes.PrimaryOperationResolved);
+            return MatchOperation(occurrence, ActiveEffectKind.Reaction, ExecutionEventSubtypes.PrimaryOperationResolved);
         }
 
         /// <summary>
@@ -83,7 +93,7 @@ namespace Iterate.Domain.Execution
             for (int i = 0; i < _registered.Count; i++)
             {
                 ActiveEffect effect = _registered[i];
-                if (effect.IsModification || effect.Trigger.EventSubtype != ExecutionEventSubtypes.QuantityChanged)
+                if (effect.Kind != ActiveEffectKind.Reaction || effect.Trigger.EventSubtype != ExecutionEventSubtypes.QuantityChanged)
                     continue;
 
                 if (!_ledger.IsEligible(effect))
@@ -101,7 +111,41 @@ namespace Iterate.Domain.Execution
                 InsertQualified(qualified, effect);
             }
 
-            return ToBatch(qualified, nearMisses);
+            return ToBatch(qualified, nearMisses, null);
+        }
+
+        /// <summary>
+        /// Matches rescue-kind effects against a skipped source-execution occurrence at the
+        /// pre-operation band. A non-rescuable occurrence and a ledger-ineligible rescue are both
+        /// silent — no candidate, no near-miss. The rescue trigger pair carries no qualifiers
+        /// (interpreter-enforced), so a matched eligible rescue always qualifies.
+        /// </summary>
+        /// <param name="occurrence">The skip occurrence.</param>
+        /// <returns>The captured batch, or the shared empty batch.</returns>
+        /// <exception cref="ArgumentException">Thrown when the occurrence is null.</exception>
+        public EffectMatchBatch MatchSkip(SkipOccurrence occurrence)
+        {
+            if (occurrence == null)
+                throw new ArgumentException("Matching requires an occurrence.", nameof(occurrence));
+
+            if (!occurrence.Rescuable)
+                return EffectMatchBatch.Empty;
+
+            List<ActiveEffect> qualified = null;
+            for (int i = 0; i < _registered.Count; i++)
+            {
+                ActiveEffect effect = _registered[i];
+                if (effect.Kind != ActiveEffectKind.Rescue || effect.Trigger.EventSubtype != ExecutionEventSubtypes.SourceExecutionSkipped)
+                    continue;
+
+                if (!_ledger.IsEligible(effect))
+                    continue;
+
+                qualified ??= new List<ActiveEffect>();
+                InsertQualified(qualified, effect);
+            }
+
+            return ToBatch(qualified, null, null);
         }
 
         /// <summary>
@@ -115,36 +159,74 @@ namespace Iterate.Domain.Execution
         }
 
         /// <summary>
-        /// Drops all registered state — the execution-expiration cleanup.
+        /// Consumes a modification's frequency allowance exactly like <see cref="Commit"/>, then
+        /// records the committing occurrence's host instance as the effect's selected host when the
+        /// effect is a selected-host modification with a non-null host.
+        /// </summary>
+        /// <param name="effect">The committing modification effect.</param>
+        /// <param name="hostInstance">The committing occurrence's host instance, or null.</param>
+        /// <exception cref="ArgumentException">Thrown when the effect is null.</exception>
+        public void CommitModification(ActiveEffect effect, InstanceID? hostInstance)
+        {
+            _ledger.Consume(effect);
+
+            if (effect.Kind == ActiveEffectKind.Modification
+                && SelectedHostEffects.IsSelectedHost(effect.DefinitionID)
+                && hostInstance != null)
+            {
+                _selectedHosts[effect.FrequencyKey] = hostInstance.Value;
+            }
+        }
+
+        /// <summary>
+        /// Drops all registered state and recorded selected hosts — the execution-expiration cleanup.
         /// </summary>
         public void Clear()
         {
             _registered.Clear();
+            _selectedHosts.Clear();
         }
 
         /// <summary>
-        /// Matches operation-boundary effects of one band against an operation occurrence.
+        /// Matches operation-boundary effects of one participation kind against an operation
+        /// occurrence. At the modification band, a ledger-ineligible selected-host effect whose
+        /// recorded host equals the occurrence's host re-applies when its qualifiers pass and stays
+        /// silent when they fail — the eligibility exception's guard.
         /// </summary>
         /// <param name="occurrence">The operation occurrence.</param>
-        /// <param name="wantModification">Whether the boundary offers the modification band.</param>
+        /// <param name="wantKind">The participation kind this boundary offers.</param>
         /// <param name="subtype">The trigger subtype this boundary offers.</param>
         /// <returns>The captured batch, or the shared empty batch.</returns>
         private EffectMatchBatch MatchOperation(
             OperationOccurrence occurrence,
-            bool wantModification,
-            string subtype)
+            ActiveEffectKind wantKind,
+            string subtype
+        )
         {
             List<ActiveEffect> qualified = null;
             List<EffectNearMiss> nearMisses = null;
+            List<ActiveEffect> reapplications = null;
 
             for (int i = 0; i < _registered.Count; i++)
             {
                 ActiveEffect effect = _registered[i];
-                if (effect.IsModification != wantModification || effect.Trigger.EventSubtype != subtype)
+                if (effect.Kind != wantKind || effect.Trigger.EventSubtype != subtype)
                     continue;
 
                 if (!_ledger.IsEligible(effect))
+                {
+                    if (wantKind == ActiveEffectKind.Modification
+                        && SelectedHostEffects.IsSelectedHost(effect.DefinitionID)
+                        && _selectedHosts.TryGetValue(effect.FrequencyKey, out InstanceID recordedHost)
+                        && occurrence.HostInstance == recordedHost
+                        && FirstFailedOperationQualifier(effect, occurrence) == null)
+                    {
+                        reapplications ??= new List<ActiveEffect>();
+                        InsertQualified(reapplications, effect);
+                    }
+
                     continue;
+                }
 
                 TriggerQualifier failed = FirstFailedOperationQualifier(effect, occurrence);
                 if (failed != null)
@@ -158,7 +240,7 @@ namespace Iterate.Domain.Execution
                 InsertQualified(qualified, effect);
             }
 
-            return ToBatch(qualified, nearMisses);
+            return ToBatch(qualified, nearMisses, reapplications);
         }
 
         /// <summary>
@@ -352,19 +434,26 @@ namespace Iterate.Domain.Execution
 
         /// <summary>
         /// Wraps the collected lists in a batch, or returns the shared empty batch when nothing
-        /// qualified and nothing near-missed.
+        /// qualified, near-missed, or re-applied.
         /// </summary>
         /// <param name="qualified">The qualified effects, or null.</param>
         /// <param name="nearMisses">The near-misses, or null.</param>
+        /// <param name="reapplications">The selected-host re-applications, or null.</param>
         /// <returns>The batch.</returns>
-        private static EffectMatchBatch ToBatch(List<ActiveEffect> qualified, List<EffectNearMiss> nearMisses)
+        private static EffectMatchBatch ToBatch(
+            List<ActiveEffect> qualified,
+            List<EffectNearMiss> nearMisses,
+            List<ActiveEffect> reapplications
+        )
         {
-            if (qualified == null && nearMisses == null)
+            if (qualified == null && nearMisses == null && reapplications == null)
                 return EffectMatchBatch.Empty;
 
             return new EffectMatchBatch(
                 qualified ?? (IReadOnlyList<ActiveEffect>)Array.Empty<ActiveEffect>(),
-                nearMisses ?? (IReadOnlyList<EffectNearMiss>)Array.Empty<EffectNearMiss>());
+                nearMisses ?? (IReadOnlyList<EffectNearMiss>)Array.Empty<EffectNearMiss>(),
+                reapplications ?? (IReadOnlyList<ActiveEffect>)Array.Empty<ActiveEffect>()
+            );
         }
     }
 }

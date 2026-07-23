@@ -119,16 +119,16 @@ namespace Iterate.Infrastructure.Content.Tests
             RuntimeUnitRecord unit = record.Units[1];
             List<EventEvidence> events = UnitEvents(record, unit);
 
-            Assert.AreEqual(9, events.Count);
-            Assert.AreEqual(ExecutionEventSubtypes.EffectQualified, events[2].Subtype);
-            Assert.AreEqual(ExecutionEventSubtypes.EffectCommitted, events[3].Subtype);
-            Assert.AreEqual(ExecutionEventSubtypes.PrimaryOperationModified, events[4].Subtype);
-            for (int i = 2; i <= 4; i++)
+            Assert.AreEqual(11, events.Count);
+            Assert.AreEqual(ExecutionEventSubtypes.EffectQualified, events[3].Subtype);
+            Assert.AreEqual(ExecutionEventSubtypes.EffectCommitted, events[4].Subtype);
+            Assert.AreEqual(ExecutionEventSubtypes.PrimaryOperationModified, events[5].Subtype);
+            for (int i = 3; i <= 5; i++)
             {
                 Assert.AreEqual(new InstanceID(100), events[i].EffectOriginInstance);
             }
 
-            QuantityChangePayload payload = (QuantityChangePayload)events[6].Payload;
+            QuantityChangePayload payload = (QuantityChangePayload)events[7].Payload;
             Assert.AreEqual(2, payload.RequestedAmount);
             Assert.AreEqual(1, payload.AppliedModifiers.Count);
             Assert.AreEqual(1, payload.AppliedModifiers[0].Amount);

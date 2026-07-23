@@ -2,17 +2,20 @@ using System;
 using Iterate.Domain.Compilation;
 using Iterate.Domain.Content;
 using Iterate.Domain.Trace;
+using Iterate.Domain.Values;
 
 namespace Iterate.Domain.Execution
 {
     /// <summary>
     /// One primary operation observed at the pending or resolved boundary: the structural facts of the
-    /// operation — target register, operator, operand shape, ownership — offered to the effect engine
-    /// for trigger matching, never partially calculated state.
+    /// operation — target register, operator, operand shape, ownership with the owning host instance —
+    /// offered to the effect engine for trigger matching as the complete boundary snapshot, never
+    /// partially calculated state.
     /// </summary>
     /// <param name="Unit">The runtime unit executing the operation.</param>
     /// <param name="Event">The trace event this occurrence mirrors.</param>
     /// <param name="CausalDepth">The candidate event's causal depth; never negative.</param>
+    /// <param name="HostInstance">The owning host instance; non-null exactly when player-owned.</param>
     /// <param name="Register">The register the operation targets.</param>
     /// <param name="Operator">The operator the operation applies.</param>
     /// <param name="OperandSource">The operand's declared source.</param>
@@ -22,6 +25,7 @@ namespace Iterate.Domain.Execution
         RuntimeUnitID Unit,
         TraceEventID Event,
         int CausalDepth,
+        InstanceID? HostInstance,
         CoreRegister Register,
         CoreLineOperator Operator,
         OperandSource OperandSource,
@@ -33,6 +37,12 @@ namespace Iterate.Domain.Execution
         /// The candidate event's causal depth. Validated non-negative at construction.
         /// </summary>
         public int CausalDepth { get; } = RequireDepth(CausalDepth);
+
+        /// <summary>
+        /// The owning host instance. Validated at construction: non-null exactly when the ownership
+        /// is player-owned.
+        /// </summary>
+        public InstanceID? HostInstance { get; } = RequireHostPairing(Ownership, HostInstance);
 
         /// <summary>
         /// The operand register. Validated at construction: non-null exactly when
@@ -52,6 +62,26 @@ namespace Iterate.Domain.Execution
                 throw new ArgumentException("An occurrence requires a non-negative causal depth.", nameof(causalDepth));
 
             return causalDepth;
+        }
+
+        /// <summary>
+        /// Validates that the host instance is present exactly when the unit is player-owned.
+        /// </summary>
+        /// <param name="ownership">The unit's ownership classification.</param>
+        /// <param name="hostInstance">The candidate host instance.</param>
+        /// <returns>The host instance unchanged.</returns>
+        /// <exception cref="ArgumentException">Thrown when presence and ownership disagree.</exception>
+        private static InstanceID? RequireHostPairing(
+            OwnershipClassification ownership,
+            InstanceID? hostInstance)
+        {
+            if (ownership == OwnershipClassification.PlayerOwned && hostInstance == null)
+                throw new ArgumentException("A player-owned occurrence requires a host instance.", nameof(hostInstance));
+
+            if (ownership == OwnershipClassification.CoreOwned && hostInstance != null)
+                throw new ArgumentException("A Core-owned occurrence carries no host instance.", nameof(hostInstance));
+
+            return hostInstance;
         }
 
         /// <summary>

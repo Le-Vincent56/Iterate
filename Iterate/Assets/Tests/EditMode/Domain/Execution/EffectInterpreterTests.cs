@@ -9,9 +9,9 @@ namespace Iterate.Domain.Execution.Tests
 {
     /// <summary>
     /// Tests the closed, fail-fast <see cref="EffectInterpreter"/>: interpretable EXECUTION effects
-    /// become <see cref="ActiveEffect"/>s with the modification/reaction band keyed to the trigger
-    /// subtype, non-EXECUTION domains are skipped, and every token outside the closed vocabulary
-    /// throws naming the offender.
+    /// become <see cref="ActiveEffect"/>s with the modification/reaction/rescue kind keyed to the
+    /// trigger pair and its band, non-EXECUTION domains are skipped, and every token outside the
+    /// closed vocabulary throws naming the offender.
     /// </summary>
     public sealed class EffectInterpreterTests
     {
@@ -214,6 +214,138 @@ namespace Iterate.Domain.Execution.Tests
         }
 
         [Test]
+        public void Interpret_SafeModeShape_YieldsRescue()
+        {
+            DependencyInstance dependency = Instance(9, Dependency("WB-DEP-907", SafeModeEffect()));
+
+            IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(dependency);
+
+            Assert.AreEqual(1, effects.Count);
+            ActiveEffect effect = effects[0];
+            Assert.AreEqual(ActiveEffectKind.Rescue, effect.Kind);
+            Assert.IsNotNull(effect.Rescue);
+            Assert.AreEqual("RESCUED", effect.Rescue.ResultingDisposition);
+            Assert.IsNull(effect.Operation);
+            Assert.IsFalse(effect.IsModification);
+            Assert.AreEqual("SOURCE_EXECUTION_SKIPPED", effect.Trigger.EventSubtype);
+            Assert.AreEqual("FIRST_QUALIFYING_EVENT", effect.Frequency.Allowance);
+        }
+
+        [Test]
+        public void Interpret_RescueResultingSkipped_ThrowsNamingToken()
+        {
+            EffectDefinition effect = Effect(
+                RescueTrigger(),
+                new RescueOperation("SKIPPED"),
+                Frequency("FIRST_QUALIFYING_EVENT"));
+            DependencyInstance dependency = Instance(1, Dependency("WB-DEP-940", effect));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("SKIPPED", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_QualifierOnRescuePair_ThrowsNamingToken()
+        {
+            TriggerDescriptor trigger = new TriggerDescriptor(
+                EventFamily.Disposition,
+                "SOURCE_EXECUTION_SKIPPED",
+                new List<TriggerQualifier> { Qualifier("REGISTER", "VALUE") },
+                new EffectTiming(TimingKind.Band, "QUALIFICATION_AND_PRE_OPERATION_INTERVENTION"));
+            EffectDefinition effect = Effect(trigger, new RescueOperation("RESCUED"), Frequency("FIRST_QUALIFYING_EVENT"));
+            DependencyInstance dependency = Instance(1, Dependency("WB-DEP-941", effect));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("REGISTER", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_RescuePairOnReactionBand_ThrowsNamingToken()
+        {
+            EffectDefinition effect = Effect(
+                Trigger(EventFamily.Disposition, "SOURCE_EXECUTION_SKIPPED", "IMMEDIATE_RESULT_REACTION"),
+                new RescueOperation("RESCUED"),
+                Frequency("FIRST_QUALIFYING_EVENT"));
+            DependencyInstance dependency = Instance(1, Dependency("WB-DEP-942", effect));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("IMMEDIATE_RESULT_REACTION", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_RescueOperationOnPendingTrigger_ThrowsNamingKind()
+        {
+            EffectDefinition effect = Effect(
+                Trigger(EventFamily.Operation, "PRIMARY_OPERATION_PENDING", "OPERATION_MODIFICATION_REPLACEMENT_OR_PREVENTION"),
+                new RescueOperation("RESCUED"),
+                Frequency("FIRST_QUALIFYING_EVENT"));
+            DependencyInstance dependency = Instance(1, Dependency("WB-DEP-943", effect));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("Rescue", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_QuantityChangeOnRescuePair_ThrowsNamingKind()
+        {
+            EffectDefinition effect = Effect(
+                RescueTrigger(),
+                Operation(),
+                Frequency("FIRST_QUALIFYING_EVENT"));
+            DependencyInstance dependency = Instance(1, Dependency("WB-DEP-944", effect));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("QuantityChange", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_LifecycleTriggerFamily_ThrowsNamingToken()
+        {
+            EffectDefinition effect = Effect(
+                Trigger(EventFamily.Lifecycle, "RUNTIME_UNIT_COMPLETED", "POST_UNIT_CONSEQUENCE_AND_EVIDENCE"),
+                Operation(),
+                Frequency("EVERY_QUALIFYING_EVENT"));
+            DependencyInstance dependency = Instance(1, Dependency("WB-DEP-945", effect));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("RUNTIME_UNIT_COMPLETED", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_StructureTriggerFamily_ThrowsNamingToken()
+        {
+            EffectDefinition effect = Effect(
+                Trigger(EventFamily.Structure, "CONDITION_TRUE", "IMMEDIATE_RESULT_REACTION"),
+                Operation(),
+                Frequency("EVERY_QUALIFYING_EVENT"));
+            DependencyInstance dependency = Instance(1, Dependency("WB-DEP-946", effect));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("CONDITION_TRUE", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_AddedExecutionRequestOperation_ThrowsNamingKind()
+        {
+            EffectDefinition effect = Effect(
+                ReactionTrigger("QUANTITY_CHANGED", EventFamily.Quantity),
+                new AddedExecutionRequestOperation(new TargetingRule("TRIGGERING_UNIT", string.Empty), false),
+                Frequency("EVERY_QUALIFYING_EVENT"));
+            DependencyInstance dependency = Instance(1, Dependency("WB-DEP-947", effect));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("AddedExecutionRequest", exception.Message);
+        }
+
+        [Test]
         public void Interpret_LineNumberOperandModification_Throws()
         {
             EffectDefinition effect = Effect(
@@ -294,6 +426,28 @@ namespace Iterate.Domain.Execution.Tests
                     new EffectTiming(TimingKind.Band, "OPERATION_MODIFICATION_REPLACEMENT_OR_PREVENTION")),
                 Operation(),
                 Frequency("FIRST_QUALIFYING_EVENT"));
+        }
+
+        /// <summary>
+        /// The SAFE-MODE-shaped rescue effect: the skipped-execution disposition trigger at the
+        /// pre-operation band, no qualifiers, resolving to RESCUED once per execution.
+        /// </summary>
+        /// <returns>The effect definition.</returns>
+        private static EffectDefinition SafeModeEffect()
+        {
+            return Effect(
+                RescueTrigger(),
+                new RescueOperation("RESCUED"),
+                Frequency("FIRST_QUALIFYING_EVENT"));
+        }
+
+        /// <summary>
+        /// The qualifier-free rescue trigger pair at the pre-operation band.
+        /// </summary>
+        /// <returns>The trigger descriptor.</returns>
+        private static TriggerDescriptor RescueTrigger()
+        {
+            return Trigger(EventFamily.Disposition, "SOURCE_EXECUTION_SKIPPED", "QUALIFICATION_AND_PRE_OPERATION_INTERVENTION");
         }
 
         /// <summary>

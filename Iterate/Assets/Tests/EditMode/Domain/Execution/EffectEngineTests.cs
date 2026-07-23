@@ -11,9 +11,10 @@ namespace Iterate.Domain.Execution.Tests
 {
     /// <summary>
     /// Tests the per-execution <see cref="EffectEngine"/> driven directly with interpreted hand-built
-    /// Dependencies: identity-sorted registration, the three boundary matchers with their qualifier
-    /// semantics and first-failing-qualifier near-misses, the CAB-pinned OUTPUT CACHE → OUTPUT
-    /// PIPELINE precedence over instance order, and commitment-driven eligibility.
+    /// Dependencies: identity-sorted registration, the four boundary matchers with their qualifier
+    /// semantics and first-failing-qualifier near-misses, the rescue-only silent skip boundary, the
+    /// CAB-pinned OUTPUT CACHE → OUTPUT PIPELINE precedence over instance order, and
+    /// commitment-driven eligibility.
     /// </summary>
     public sealed class EffectEngineTests
     {
@@ -229,6 +230,136 @@ namespace Iterate.Domain.Execution.Tests
         }
 
         [Test]
+        public void MatchSkip_RescuablePlayerSkip_QualifiesRescueOnly()
+        {
+            EffectEngine engine = Engine(SafeMode(3), StandardLibrary(1), ParallelChannel(2));
+
+            EffectMatchBatch batch = engine.MatchSkip(Skip(true));
+
+            Assert.AreEqual(1, batch.Qualified.Count);
+            Assert.AreEqual(new InstanceID(3), batch.Qualified[0].Origin);
+            Assert.AreEqual("WB-DEP-007", batch.Qualified[0].DefinitionID);
+            Assert.AreEqual(0, batch.NearMisses.Count);
+        }
+
+        [Test]
+        public void MatchSkip_NonRescuable_YieldsEmptyBatch()
+        {
+            EffectEngine engine = Engine(SafeMode(3));
+
+            EffectMatchBatch batch = engine.MatchSkip(Skip(false));
+
+            Assert.AreEqual(0, batch.Qualified.Count);
+            Assert.AreEqual(0, batch.NearMisses.Count);
+        }
+
+        [Test]
+        public void MatchSkip_AfterCommit_ExhaustedIsSilent()
+        {
+            EffectEngine engine = Engine(SafeMode(3));
+            EffectMatchBatch first = engine.MatchSkip(Skip(true));
+            engine.Commit(first.Qualified[0]);
+
+            EffectMatchBatch second = engine.MatchSkip(Skip(true));
+
+            Assert.AreEqual(0, second.Qualified.Count);
+            Assert.AreEqual(0, second.NearMisses.Count);
+        }
+
+        [Test]
+        public void MatchSkip_NullOccurrence_Throws()
+        {
+            EffectEngine engine = Engine(SafeMode(3));
+
+            Assert.Throws<ArgumentException>(() => engine.MatchSkip(null));
+        }
+
+        [Test]
+        public void MatchSkip_RescueEffect_NeverMatchesOtherBoundaries()
+        {
+            EffectEngine engine = Engine(SafeMode(3));
+
+            EffectMatchBatch pending = engine.MatchPendingOperation(PlayerFixedAddValuePending());
+            EffectMatchBatch resolved = engine.MatchResolvedOperation(ResolvedValueAddSignal(OwnershipClassification.PlayerOwned));
+            EffectMatchBatch quantity = engine.MatchQuantityChange(PrimaryQuantity(CoreRegister.Signal, 1, OwnershipClassification.PlayerOwned));
+
+            Assert.AreSame(EffectMatchBatch.Empty, pending);
+            Assert.AreSame(EffectMatchBatch.Empty, resolved);
+            Assert.AreSame(EffectMatchBatch.Empty, quantity);
+        }
+
+        [Test]
+        public void CommitModification_SameHostOffer_Reapplies()
+        {
+            EffectEngine engine = Engine(StandardLibrary(1));
+            EffectMatchBatch first = engine.MatchPendingOperation(PlayerFixedAddValuePending());
+            engine.CommitModification(first.Qualified[0], new InstanceID(50));
+
+            EffectMatchBatch second = engine.MatchPendingOperation(PlayerFixedAddValuePending());
+
+            Assert.AreEqual(0, second.Qualified.Count);
+            Assert.AreEqual(1, second.Reapplications.Count);
+            Assert.AreEqual("WB-DEP-001", second.Reapplications[0].DefinitionID);
+            Assert.AreEqual(0, second.NearMisses.Count);
+        }
+
+        [Test]
+        public void CommitModification_DifferentHostOffer_YieldsNothing()
+        {
+            EffectEngine engine = Engine(StandardLibrary(1));
+            EffectMatchBatch first = engine.MatchPendingOperation(PlayerFixedAddValuePending());
+            engine.CommitModification(first.Qualified[0], new InstanceID(50));
+
+            EffectMatchBatch second = engine.MatchPendingOperation(PendingWithHost(99));
+
+            Assert.AreEqual(0, second.Qualified.Count);
+            Assert.AreEqual(0, second.Reapplications.Count);
+            Assert.AreEqual(0, second.NearMisses.Count);
+        }
+
+        [Test]
+        public void CommitModification_NonSelectedHostEffect_StaysPlainIneligible()
+        {
+            EffectEngine engine = Engine(ModificationShaped(1, "WB-DEP-902"));
+            EffectMatchBatch first = engine.MatchPendingOperation(PlayerFixedAddValuePending());
+            engine.CommitModification(first.Qualified[0], new InstanceID(50));
+
+            EffectMatchBatch second = engine.MatchPendingOperation(PlayerFixedAddValuePending());
+
+            Assert.AreEqual(0, second.Qualified.Count);
+            Assert.AreEqual(0, second.Reapplications.Count);
+            Assert.AreEqual(0, second.NearMisses.Count);
+        }
+
+        [Test]
+        public void ReapplicationOffer_QualifierFailure_IsSilentOnBothLists()
+        {
+            EffectEngine engine = Engine(StandardLibrary(1));
+            EffectMatchBatch first = engine.MatchPendingOperation(PlayerFixedAddValuePending());
+            engine.CommitModification(first.Qualified[0], new InstanceID(50));
+
+            EffectMatchBatch second = engine.MatchPendingOperation(Pending(
+                CoreRegister.Value, CoreLineOperator.Assign, OperandSource.Constant, null, OwnershipClassification.PlayerOwned));
+
+            Assert.AreEqual(0, second.Qualified.Count);
+            Assert.AreEqual(0, second.Reapplications.Count);
+            Assert.AreEqual(0, second.NearMisses.Count);
+        }
+
+        [Test]
+        public void Clear_ForgetsSelectedHosts()
+        {
+            EffectEngine engine = Engine(StandardLibrary(1));
+            EffectMatchBatch first = engine.MatchPendingOperation(PlayerFixedAddValuePending());
+            engine.CommitModification(first.Qualified[0], new InstanceID(50));
+
+            engine.Clear();
+            EffectMatchBatch afterClear = engine.MatchPendingOperation(PlayerFixedAddValuePending());
+
+            Assert.AreSame(EffectMatchBatch.Empty, afterClear);
+        }
+
+        [Test]
         public void Commit_FirstQualifyingStops_EveryQualifyingKeepsMatching()
         {
             EffectEngine engine = Engine(OutputCache(1), ParallelChannel(2));
@@ -304,7 +435,7 @@ namespace Iterate.Domain.Execution.Tests
             CoreRegister? operandRegister,
             OwnershipClassification ownership)
         {
-            return new OperationOccurrence(new RuntimeUnitID(1), new TraceEventID(10), 0, register, op, operandSource, operandRegister, ownership);
+            return new OperationOccurrence(new RuntimeUnitID(1), new TraceEventID(10), 0, HostFor(ownership), register, op, operandSource, operandRegister, ownership);
         }
 
         /// <summary>
@@ -323,7 +454,62 @@ namespace Iterate.Domain.Execution.Tests
             CoreRegister? operandRegister,
             OwnershipClassification ownership)
         {
-            return new OperationOccurrence(new RuntimeUnitID(1), new TraceEventID(12), 0, register, op, operandSource, operandRegister, ownership);
+            return new OperationOccurrence(new RuntimeUnitID(1), new TraceEventID(12), 0, HostFor(ownership), register, op, operandSource, operandRegister, ownership);
+        }
+
+        /// <summary>
+        /// The standing host instance for an occurrence's ownership: a player-owned occurrence carries
+        /// the fixture host, a Core-owned occurrence none.
+        /// </summary>
+        /// <param name="ownership">The occurrence's ownership.</param>
+        /// <returns>The host instance, or null for Core ownership.</returns>
+        private static InstanceID? HostFor(OwnershipClassification ownership)
+        {
+            return ownership == OwnershipClassification.PlayerOwned ? new InstanceID(50) : (InstanceID?)null;
+        }
+
+        /// <summary>
+        /// The standard player fixed <c>Value += 2</c> pending occurrence hosted by a specific
+        /// Instruction instance.
+        /// </summary>
+        /// <param name="host">The hosting instance's identity value.</param>
+        /// <returns>The pending occurrence.</returns>
+        private static OperationOccurrence PendingWithHost(int host)
+        {
+            return new OperationOccurrence(
+                new RuntimeUnitID(2),
+                new TraceEventID(11),
+                0,
+                new InstanceID(host),
+                CoreRegister.Value,
+                CoreLineOperator.Add,
+                OperandSource.Constant,
+                null,
+                OwnershipClassification.PlayerOwned);
+        }
+
+        /// <summary>
+        /// A STANDARD-LIBRARY-shaped modification effect under a non-selected-host definition
+        /// identity, for pinning plain first-qualifying ineligibility.
+        /// </summary>
+        /// <param name="instance">The instance identity value.</param>
+        /// <param name="definitionID">The definition's surrogate-key identity.</param>
+        /// <returns>The Dependency instance.</returns>
+        private static DependencyInstance ModificationShaped(int instance, string definitionID)
+        {
+            EffectTiming timing = new EffectTiming(TimingKind.Band, "OPERATION_MODIFICATION_REPLACEMENT_OR_PREVENTION");
+            TriggerDescriptor trigger = new TriggerDescriptor(
+                EventFamily.Operation,
+                "PRIMARY_OPERATION_PENDING",
+                new List<TriggerQualifier>
+                {
+                    new TriggerQualifier("OPERATION_CLASS", "FIXED_ADDITION"),
+                    new TriggerQualifier("OPERATION_CLASS", "PLAYER_INSTRUCTION"),
+                    new TriggerQualifier("REGISTER", "VALUE")
+                },
+                timing);
+
+            return Instance(instance, definitionID, Effect(trigger, CoreRegister.Value, 1, "FIRST_QUALIFYING_EVENT", "EXECUTION"));
         }
 
         /// <summary>
@@ -364,6 +550,49 @@ namespace Iterate.Domain.Execution.Tests
             int origin)
         {
             return new QuantityOccurrence(new RuntimeUnitID(1), new TraceEventID(16), 2, register, delta, null, new InstanceID(origin), false);
+        }
+
+        /// <summary>
+        /// A rescuable player-owned skip occurrence at the pre-operation band.
+        /// </summary>
+        /// <param name="rescuable">Whether the skip is structurally rescuable.</param>
+        /// <returns>The skip occurrence.</returns>
+        private static SkipOccurrence Skip(bool rescuable)
+        {
+            return new SkipOccurrence(
+                new RuntimeUnitID(1),
+                new TraceEventID(18),
+                1,
+                OwnershipClassification.PlayerOwned,
+                new InstanceID(50),
+                "CONDITION_FALSE:#5@3#1/eval-1",
+                rescuable);
+        }
+
+        /// <summary>
+        /// A SAFE-MODE-shaped instance (WB-DEP-007): the first skipped source execution each execution
+        /// is rescued to resolve normally.
+        /// </summary>
+        /// <param name="instance">The instance identity value.</param>
+        /// <returns>The Dependency instance.</returns>
+        private static DependencyInstance SafeMode(int instance)
+        {
+            TriggerDescriptor trigger = new TriggerDescriptor(
+                EventFamily.Disposition,
+                "SOURCE_EXECUTION_SKIPPED",
+                new List<TriggerQualifier>(),
+                new EffectTiming(TimingKind.Band, "QUALIFICATION_AND_PRE_OPERATION_INTERVENTION"));
+
+            EffectDefinition effect = new EffectDefinition(
+                PhaseDomain.Execution,
+                trigger,
+                new RescueOperation("RESCUED"),
+                new TargetingRule("TRIGGERING_UNIT", string.Empty),
+                trigger.Timing,
+                StackingMode.IndependentResolution,
+                new EffectFrequency("FIRST_QUALIFYING_EVENT", "EXECUTION"));
+
+            return Instance(instance, "WB-DEP-007", effect);
         }
 
         /// <summary>

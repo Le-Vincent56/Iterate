@@ -4,15 +4,18 @@ using System.Collections.Generic;
 namespace Iterate.Domain.Execution
 {
     /// <summary>
-    /// One boundary's captured sibling batch: the qualified effects already in resolution order and
-    /// the near-misses. Captured complete before the first sibling resolves; mid-batch resolutions
-    /// can create descendants, never new siblings.
+    /// One boundary's captured sibling batch: the qualified effects already in resolution order, the
+    /// near-misses, and the re-applications — consumed selected-host effects whose recorded host
+    /// matches the occurrence and whose qualifiers pass. Captured complete before the first sibling
+    /// resolves; mid-batch resolutions can create descendants, never new siblings.
     /// </summary>
     /// <param name="Qualified">The qualified effects in resolution order; non-null.</param>
     /// <param name="NearMisses">The near-misses at this boundary; non-null.</param>
+    /// <param name="Reapplications">The selected-host re-applications in resolution order; non-null.</param>
     public sealed record EffectMatchBatch(
         IReadOnlyList<ActiveEffect> Qualified,
-        IReadOnlyList<EffectNearMiss> NearMisses
+        IReadOnlyList<EffectNearMiss> NearMisses,
+        IReadOnlyList<ActiveEffect> Reapplications
     )
     {
         /// <summary>
@@ -21,7 +24,8 @@ namespace Iterate.Domain.Execution
         /// </summary>
         public static EffectMatchBatch Empty { get; } = new EffectMatchBatch(
             Array.Empty<ActiveEffect>(),
-            Array.Empty<EffectNearMiss>());
+            Array.Empty<EffectNearMiss>(),
+            Array.Empty<ActiveEffect>());
 
         /// <summary>
         /// The qualified effects in resolution order. Validated non-null at construction.
@@ -32,6 +36,11 @@ namespace Iterate.Domain.Execution
         /// The near-misses at this boundary. Validated non-null at construction.
         /// </summary>
         public IReadOnlyList<EffectNearMiss> NearMisses { get; } = RequireList(NearMisses);
+
+        /// <summary>
+        /// The selected-host re-applications in resolution order. Validated non-null at construction.
+        /// </summary>
+        public IReadOnlyList<ActiveEffect> Reapplications { get; } = RequireList(Reapplications);
 
         /// <summary>
         /// Validates that a batch list is present.

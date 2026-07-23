@@ -27,18 +27,18 @@ namespace Iterate.Domain.Execution.Tests
             RuntimeUnitRecord unit = record.Units[1];
             List<EventEvidence> events = UnitEvents(record, unit);
 
-            Assert.AreEqual(9, events.Count);
-            Assert.AreEqual(ExecutionEventSubtypes.PrimaryOperationPending, events[1].Subtype);
-            Assert.AreEqual(ExecutionEventSubtypes.EffectQualified, events[2].Subtype);
-            Assert.AreEqual(ExecutionEventSubtypes.EffectCommitted, events[3].Subtype);
-            Assert.AreEqual(ExecutionEventSubtypes.PrimaryOperationModified, events[4].Subtype);
-            Assert.AreEqual(ExecutionEventSubtypes.PrimaryOperationResolved, events[5].Subtype);
-            Assert.AreEqual(EventFamilies.Qualification, events[2].Family);
+            Assert.AreEqual(11, events.Count);
+            Assert.AreEqual(ExecutionEventSubtypes.PrimaryOperationPending, events[2].Subtype);
+            Assert.AreEqual(ExecutionEventSubtypes.EffectQualified, events[3].Subtype);
+            Assert.AreEqual(ExecutionEventSubtypes.EffectCommitted, events[4].Subtype);
+            Assert.AreEqual(ExecutionEventSubtypes.PrimaryOperationModified, events[5].Subtype);
+            Assert.AreEqual(ExecutionEventSubtypes.PrimaryOperationResolved, events[6].Subtype);
             Assert.AreEqual(EventFamilies.Qualification, events[3].Family);
-            Assert.AreEqual(EventFamilies.Operation, events[4].Family);
+            Assert.AreEqual(EventFamilies.Qualification, events[4].Family);
+            Assert.AreEqual(EventFamilies.Operation, events[5].Family);
 
-            TraceEventID pending = unit.ChildEvents[1];
-            for (int i = 2; i <= 4; i++)
+            TraceEventID pending = unit.ChildEvents[2];
+            for (int i = 3; i <= 5; i++)
             {
                 Assert.AreEqual(pending, events[i].CausingEvent);
                 Assert.AreEqual(1, events[i].CausalDepth);
@@ -53,7 +53,7 @@ namespace Iterate.Domain.Execution.Tests
             ExecutionRecord record = Execute(StrongRequest());
 
             List<EventEvidence> events = UnitEvents(record, record.Units[1]);
-            QuantityChangePayload payload = (QuantityChangePayload)events[6].Payload;
+            QuantityChangePayload payload = (QuantityChangePayload)events[7].Payload;
 
             Assert.AreEqual(2, payload.RequestedAmount);
             Assert.AreEqual(1, payload.AppliedModifiers.Count);
@@ -88,14 +88,14 @@ namespace Iterate.Domain.Execution.Tests
             RuntimeUnitRecord unit = record.Units[0];
             List<EventEvidence> events = UnitEvents(record, unit);
 
-            Assert.AreEqual(7, events.Count);
-            EventEvidence nearMiss = events[2];
+            Assert.AreEqual(9, events.Count);
+            EventEvidence nearMiss = events[3];
             Assert.AreEqual(EventFamilies.Qualification, nearMiss.Family);
             Assert.AreEqual(ExecutionEventSubtypes.EffectFailedToQualify, nearMiss.Subtype);
             Assert.AreEqual(EventDisposition.FailedToQualify, nearMiss.Disposition);
             Assert.AreEqual("OPERATION_CLASS:FIXED_ADDITION", nearMiss.DispositionReason);
             Assert.AreEqual(0, nearMiss.Qualifiers.Count);
-            Assert.AreEqual(unit.ChildEvents[1], nearMiss.CausingEvent);
+            Assert.AreEqual(unit.ChildEvents[2], nearMiss.CausingEvent);
             Assert.AreEqual(1, nearMiss.CausalDepth);
             Assert.AreEqual(new InstanceID(100), nearMiss.EffectOriginInstance);
         }
@@ -107,8 +107,8 @@ namespace Iterate.Domain.Execution.Tests
 
             List<EventEvidence> events = UnitEvents(record, record.Units[2]);
 
-            Assert.AreEqual(6, events.Count);
-            QuantityChangePayload payload = (QuantityChangePayload)events[3].Payload;
+            Assert.AreEqual(8, events.Count);
+            QuantityChangePayload payload = (QuantityChangePayload)events[4].Payload;
             Assert.AreEqual(0, payload.AppliedModifiers.Count);
             Assert.AreEqual(4, payload.PriorValue);
             Assert.AreEqual(6, payload.FinalValue);
@@ -141,6 +141,60 @@ namespace Iterate.Domain.Execution.Tests
 
             Assert.AreEqual(new ScoreValue(12), second.FinalState.FinalOutput);
             Assert.AreEqual(first, second);
+        }
+
+        [Test]
+        public void Repeat2WithStandardLibrary_IterationTwo_ReappliesWithoutCommitment()
+        {
+            StructureInstance structure = SchedulerFixtures.RepeatStructure(50, 2, 2);
+            SourceArrangement arrangement = new SourceArrangement(new List<SourceSlot>
+            {
+                SourceSlot.ForStructureHeader(new SourcePosition(1), structure),
+                SourceSlot.ForContainedInstruction(new SourcePosition(2), structure, SchedulerFixtures.ValueAddInstance(51, 2))
+            });
+            ExecutionRequest request = SchedulerFixtures.RequestOver(
+                arrangement,
+                SchedulerFixtures.ZeroState(),
+                new InstanceIDSource(),
+                new List<DependencyInstance> { SchedulerFixtures.StandardLibraryInstance(100) });
+
+            ExecutionRecord record = Execute(request);
+
+            RuntimeUnitRecord iterationTwo = record.Units[1];
+            List<EventEvidence> events = UnitEvents(record, iterationTwo);
+
+            int qualified = -1;
+            int modified = -1;
+            for (int i = 0; i < events.Count; i++)
+            {
+                Assert.AreNotEqual(ExecutionEventSubtypes.EffectCommitted, events[i].Subtype);
+                if (events[i].Subtype == ExecutionEventSubtypes.EffectQualified)
+                    qualified = i;
+
+                if (events[i].Subtype == ExecutionEventSubtypes.PrimaryOperationModified)
+                    modified = i;
+            }
+
+            Assert.GreaterOrEqual(qualified, 0);
+            Assert.GreaterOrEqual(modified, 0);
+            Assert.Less(qualified, modified);
+            Assert.AreEqual(new InstanceID(100), events[qualified].EffectOriginInstance);
+            Assert.AreEqual(new InstanceID(100), events[modified].EffectOriginInstance);
+            Assert.AreEqual(iterationTwo.ChildEvents[2], events[qualified].CausingEvent);
+            Assert.AreEqual(1, events[qualified].CausalDepth);
+
+            QuantityChangePayload payload = null;
+            for (int i = 0; i < events.Count; i++)
+            {
+                if (events[i].Subtype == ExecutionEventSubtypes.QuantityChanged)
+                    payload = (QuantityChangePayload)events[i].Payload;
+            }
+
+            Assert.IsNotNull(payload);
+            Assert.AreEqual(1, payload.AppliedModifiers.Count);
+            Assert.AreEqual(3, payload.PriorValue);
+            Assert.AreEqual(3, payload.FinalDelta);
+            Assert.AreEqual(6, payload.FinalValue);
         }
 
         [Test]

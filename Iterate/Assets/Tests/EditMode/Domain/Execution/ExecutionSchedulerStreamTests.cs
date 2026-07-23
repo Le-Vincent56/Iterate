@@ -8,35 +8,39 @@ namespace Iterate.Domain.Execution.Tests
 {
     /// <summary>
     /// Tests the full per-unit SOURCE/OPERATION event stream with no Dependencies installed: each
-    /// Core/Instruction unit emits exactly the six-event stream in order — all in-unit, at depth
-    /// zero, uncaused, mirroring the unit's ownership, host or Core-line identity, and position —
-    /// while the child-iii reset, bookend, and threshold behavior holds unchanged over the new
-    /// stream.
+    /// Core/Instruction unit emits exactly the eight-event stream in order — activation first,
+    /// disposition finalization before completion, all in-unit, at depth zero, uncaused, mirroring
+    /// the unit's ownership, host or Core-line identity, and position — while the child-iii reset,
+    /// bookend, and threshold behavior holds unchanged over the new stream.
     /// </summary>
     public sealed class ExecutionSchedulerStreamTests
     {
         [Test]
-        public void CoreUnit_EmitsTheSixEventStream_InOrder()
+        public void CoreUnit_EmitsTheEightEventStream_InOrder()
         {
             ExecutionRecord record = Execute(SchedulerFixtures.StrongOrderRequest(SchedulerFixtures.ZeroState(), new InstanceIDSource()));
 
             RuntimeUnitRecord unit = record.Units[0];
             List<EventEvidence> events = UnitEvents(record, unit);
 
-            Assert.AreEqual(6, events.Count);
-            Assert.AreEqual(ExecutionEventSubtypes.SourceExecutionStarted, events[0].Subtype);
-            Assert.AreEqual(ExecutionEventSubtypes.PrimaryOperationPending, events[1].Subtype);
-            Assert.AreEqual(ExecutionEventSubtypes.PrimaryOperationResolved, events[2].Subtype);
-            Assert.AreEqual(ExecutionEventSubtypes.QuantityAssigned, events[3].Subtype);
-            Assert.AreEqual(ExecutionEventSubtypes.PrimaryOperationResultFinalized, events[4].Subtype);
-            Assert.AreEqual(ExecutionEventSubtypes.SourceExecutionCompleted, events[5].Subtype);
+            Assert.AreEqual(8, events.Count);
+            Assert.AreEqual(ExecutionEventSubtypes.SourceObjectActivated, events[0].Subtype);
+            Assert.AreEqual(ExecutionEventSubtypes.SourceExecutionStarted, events[1].Subtype);
+            Assert.AreEqual(ExecutionEventSubtypes.PrimaryOperationPending, events[2].Subtype);
+            Assert.AreEqual(ExecutionEventSubtypes.PrimaryOperationResolved, events[3].Subtype);
+            Assert.AreEqual(ExecutionEventSubtypes.QuantityAssigned, events[4].Subtype);
+            Assert.AreEqual(ExecutionEventSubtypes.PrimaryOperationResultFinalized, events[5].Subtype);
+            Assert.AreEqual(ExecutionEventSubtypes.SourceExecutionDispositionFinalized, events[6].Subtype);
+            Assert.AreEqual(ExecutionEventSubtypes.SourceExecutionCompleted, events[7].Subtype);
 
             Assert.AreEqual(EventFamilies.Source, events[0].Family);
-            Assert.AreEqual(EventFamilies.Operation, events[1].Family);
+            Assert.AreEqual(EventFamilies.Source, events[1].Family);
             Assert.AreEqual(EventFamilies.Operation, events[2].Family);
-            Assert.AreEqual(EventFamilies.Quantity, events[3].Family);
-            Assert.AreEqual(EventFamilies.Operation, events[4].Family);
-            Assert.AreEqual(EventFamilies.Source, events[5].Family);
+            Assert.AreEqual(EventFamilies.Operation, events[3].Family);
+            Assert.AreEqual(EventFamilies.Quantity, events[4].Family);
+            Assert.AreEqual(EventFamilies.Operation, events[5].Family);
+            Assert.AreEqual(EventFamilies.Source, events[6].Family);
+            Assert.AreEqual(EventFamilies.Source, events[7].Family);
 
             for (int i = 0; i < events.Count; i++)
             {
@@ -58,9 +62,10 @@ namespace Iterate.Domain.Execution.Tests
             RuntimeUnitRecord unit = record.Units[1];
             List<EventEvidence> events = UnitEvents(record, unit);
 
-            Assert.AreEqual(6, events.Count);
-            Assert.AreEqual(ExecutionEventSubtypes.SourceExecutionStarted, events[0].Subtype);
-            Assert.AreEqual(ExecutionEventSubtypes.QuantityChanged, events[3].Subtype);
+            Assert.AreEqual(8, events.Count);
+            Assert.AreEqual(ExecutionEventSubtypes.SourceObjectActivated, events[0].Subtype);
+            Assert.AreEqual(ExecutionEventSubtypes.SourceExecutionStarted, events[1].Subtype);
+            Assert.AreEqual(ExecutionEventSubtypes.QuantityChanged, events[4].Subtype);
 
             for (int i = 0; i < events.Count; i++)
             {
@@ -75,12 +80,33 @@ namespace Iterate.Domain.Execution.Tests
         }
 
         [Test]
+        public void EveryUnit_FinalizesResolvedDisposition_BeforeCompletion()
+        {
+            ExecutionRecord record = Execute(SchedulerFixtures.StrongOrderRequest(SchedulerFixtures.ZeroState(), new InstanceIDSource()));
+
+            for (int u = 0; u < record.Units.Count; u++)
+            {
+                List<EventEvidence> events = UnitEvents(record, record.Units[u]);
+
+                int activated = IndexOf(events, ExecutionEventSubtypes.SourceObjectActivated);
+                int started = IndexOf(events, ExecutionEventSubtypes.SourceExecutionStarted);
+                int finalized = IndexOf(events, ExecutionEventSubtypes.SourceExecutionDispositionFinalized);
+                int completed = IndexOf(events, ExecutionEventSubtypes.SourceExecutionCompleted);
+
+                Assert.Less(activated, started);
+                Assert.Less(finalized, completed);
+                Assert.AreEqual(events.Count - 1, completed);
+                Assert.AreEqual(EventDisposition.Resolved, events[finalized].Disposition);
+            }
+        }
+
+        [Test]
         public void EmptySlots_EmitNothing_StreamTotalsHold()
         {
             ExecutionRecord record = Execute(SchedulerFixtures.StrongOrderRequest(SchedulerFixtures.ZeroState(), new InstanceIDSource()));
 
             Assert.AreEqual(5, record.Units.Count);
-            Assert.AreEqual(35, record.Events.Count);
+            Assert.AreEqual(45, record.Events.Count);
         }
 
         [Test]
@@ -121,8 +147,8 @@ namespace Iterate.Domain.Execution.Tests
             Assert.AreEqual(EventFamilies.Threshold, crossing.Family);
             Assert.AreEqual(ExecutionEventSubtypes.ThresholdCrossedUpward, crossing.Subtype);
             Assert.AreEqual(1, crossing.CausalDepth);
-            Assert.AreEqual(ExecutionEventSubtypes.QuantityChanged, unitEvents[3].Subtype);
-            Assert.AreEqual(scoreUnit.ChildEvents[3], crossing.CausingEvent);
+            Assert.AreEqual(ExecutionEventSubtypes.QuantityChanged, unitEvents[4].Subtype);
+            Assert.AreEqual(scoreUnit.ChildEvents[4], crossing.CausingEvent);
         }
 
         [Test]
@@ -143,6 +169,24 @@ namespace Iterate.Domain.Execution.Tests
             ExecutionRecord second = scheduler.Execute(request);
 
             Assert.AreEqual(first, second);
+        }
+
+        /// <summary>
+        /// Returns the index of the first event carrying the subtype, failing when absent.
+        /// </summary>
+        /// <param name="events">The unit's events in stream order.</param>
+        /// <param name="subtype">The subtype token to find.</param>
+        /// <returns>The index of the first match.</returns>
+        private static int IndexOf(List<EventEvidence> events, string subtype)
+        {
+            for (int i = 0; i < events.Count; i++)
+            {
+                if (events[i].Subtype == subtype)
+                    return i;
+            }
+
+            Assert.Fail($"No event with subtype {subtype} found in the unit stream.");
+            return -1;
         }
 
         /// <summary>

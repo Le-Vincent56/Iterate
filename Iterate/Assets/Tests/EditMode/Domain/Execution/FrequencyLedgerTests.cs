@@ -93,9 +93,10 @@ namespace Iterate.Domain.Execution.Tests
                 definitionID,
                 effectIndex,
                 trigger,
+                ActiveEffectKind.Reaction,
                 new QuantityChangeOperation(CoreRegister.Value, QuantityOperator.Add, OperandSpec.FromConstant(1)),
-                new EffectFrequency(allowance, "EXECUTION"),
-                false);
+                null,
+                new EffectFrequency(allowance, "EXECUTION"));
         }
     }
 }

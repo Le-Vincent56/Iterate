@@ -4,9 +4,9 @@ using Iterate.Domain.Execution;
 namespace Iterate.Domain.Execution.Tests
 {
     /// <summary>
-    /// Tests that the ten effect-system event-subtype constants added to
-    /// <see cref="ExecutionEventSubtypes"/> hold the CAB tokens verbatim (§7.6, §7.7, §7.8, §7.12),
-    /// pinning the exact canonical strings so evidence never derives them.
+    /// Tests that the event-subtype constants on <see cref="ExecutionEventSubtypes"/> hold the CAB
+    /// tokens verbatim (§7.6, §7.7, §7.8, §7.10, §7.11, §7.12), pinning the exact canonical strings so
+    /// evidence never derives them.
     /// </summary>
     public sealed class ExecutionEventSubtypeTests
     {
@@ -38,6 +38,36 @@ namespace Iterate.Domain.Execution.Tests
         public void ReactionToken_IsCabVerbatim()
         {
             Assert.AreEqual("IMMEDIATE_REACTION_RESOLVED", ExecutionEventSubtypes.ImmediateReactionResolved);
+        }
+
+        [Test]
+        public void SourceStreamTokens_AreCabVerbatim()
+        {
+            Assert.AreEqual("SOURCE_OBJECT_ACTIVATED", ExecutionEventSubtypes.SourceObjectActivated);
+            Assert.AreEqual(
+                "SOURCE_EXECUTION_DISPOSITION_FINALIZED",
+                ExecutionEventSubtypes.SourceExecutionDispositionFinalized);
+        }
+
+        [Test]
+        public void StructureTokens_AreCabVerbatim()
+        {
+            Assert.AreEqual("STRUCTURE_ACTIVATED", ExecutionEventSubtypes.StructureActivated);
+            Assert.AreEqual("STRUCTURE_ENTERED", ExecutionEventSubtypes.StructureEntered);
+            Assert.AreEqual("STRUCTURE_EXITED", ExecutionEventSubtypes.StructureExited);
+            Assert.AreEqual("REPEAT_COUNT_CAPTURED", ExecutionEventSubtypes.RepeatCountCaptured);
+            Assert.AreEqual("REPEAT_ITERATION_STARTED", ExecutionEventSubtypes.RepeatIterationStarted);
+            Assert.AreEqual("REPEAT_ITERATION_COMPLETED", ExecutionEventSubtypes.RepeatIterationCompleted);
+            Assert.AreEqual("CONDITION_SNAPSHOT_CAPTURED", ExecutionEventSubtypes.ConditionSnapshotCaptured);
+            Assert.AreEqual("CONDITION_TRUE", ExecutionEventSubtypes.ConditionTrue);
+            Assert.AreEqual("CONDITION_FALSE", ExecutionEventSubtypes.ConditionFalse);
+        }
+
+        [Test]
+        public void DispositionTokens_AreCabVerbatim()
+        {
+            Assert.AreEqual("SOURCE_EXECUTION_SKIPPED", ExecutionEventSubtypes.SourceExecutionSkipped);
+            Assert.AreEqual("SOURCE_EXECUTION_RESCUED", ExecutionEventSubtypes.SourceExecutionRescued);
         }
     }
 }

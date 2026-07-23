@@ -9,12 +9,12 @@ namespace Iterate.Domain.Execution
     /// <summary>
     /// The immutable, fully-validated request the Execution Engine consumes: the locked compiled source,
     /// the Process execution configuration, the reproduction revision stamps, the initial register
-    /// state, and the installed Dependency instances. Construction enforces the content contract — the
-    /// arrangement may contain only Core, Empty, and Instruction slots, and every installed Dependency's
+    /// state, and the installed Dependency instances. Construction enforces the content contract —
+    /// every slot kind the arrangement can carry is executable, and every installed Dependency's
     /// EXECUTION effects must be interpretable — so unsupported content fails at the boundary rather
     /// than mis-executing, and interpretation runs exactly once.
     /// </summary>
-    /// <param name="Source">The locked compiled source; non-null, Core/Empty/Instruction slots only.</param>
+    /// <param name="Source">The locked compiled source; non-null.</param>
     /// <param name="Configuration">The Process execution configuration; non-null.</param>
     /// <param name="RevisionStamps">The reproduction revision stamps; non-null and non-empty.</param>
     /// <param name="InitialState">The register state before the neutral reset; non-null.</param>
@@ -28,7 +28,8 @@ namespace Iterate.Domain.Execution
     )
     {
         /// <summary>
-        /// The locked compiled source. Validated non-null and content-contract-compliant at construction.
+        /// The locked compiled source. Validated non-null at construction; all six slot kinds are
+        /// executable.
         /// </summary>
         public CompiledSource Source { get; } = RequireExecutableSource(Source);
 
@@ -60,24 +61,17 @@ namespace Iterate.Domain.Execution
         public IReadOnlyList<ActiveEffect> InterpretedEffects { get; } = InterpretInstalled(InstalledDependencies);
 
         /// <summary>
-        /// Validates that the source is present and its arrangement carries only Core, Empty, and
-        /// Instruction slots.
+        /// Validates that the source is present. The arrangement's own construction rules already
+        /// guarantee footprint contiguity, containment ownership, and no nesting, and every slot kind
+        /// is executable, so no per-slot check remains.
         /// </summary>
         /// <param name="source">The candidate compiled source.</param>
         /// <returns>The source unchanged.</returns>
-        /// <exception cref="ArgumentException">Thrown when the source is null or carries an unsupported slot.</exception>
+        /// <exception cref="ArgumentException">Thrown when the source is null.</exception>
         private static CompiledSource RequireExecutableSource(CompiledSource source)
         {
             if (source == null)
                 throw new ArgumentException("An ExecutionRequest requires a compiled source.", nameof(source));
-
-            IReadOnlyList<SourceSlot> slots = source.Arrangement.Slots;
-            for (int i = 0; i < slots.Count; i++)
-            {
-                SourceSlotKind kind = slots[i].Kind;
-                if (kind != SourceSlotKind.Core && kind != SourceSlotKind.Empty && kind != SourceSlotKind.Instruction)
-                    throw new ArgumentException("An ExecutionRequest arrangement may contain only Core, Empty, and Instruction slots.", nameof(source));
-            }
 
             return source;
         }

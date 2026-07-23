@@ -11,15 +11,21 @@ namespace Iterate.Domain.Execution
     /// The Execution Engine spine: a synchronous entry point that drives the nine canonical execution
     /// phases in pinned order over an explicit frame stack, writing the Process-scoped
     /// <see cref="ExecutionTraceBuilder"/> and returning the frozen <see cref="ExecutionRecord"/>. Each
-    /// Core/Instruction unit emits the full SOURCE/OPERATION event stream, offers its pending operation
-    /// to the effect engine at the modification band, and offers its resolved operation and finalized
-    /// quantity change at the immediate-reaction boundary in candidate-event causal order. Qualified
-    /// reactions resolve inside the causing unit's closure as captured sibling batches, each
-    /// descendant branch resolving to closure before the remaining siblings. The builder is the only
-    /// instance field; all per-execution state travels in a nested context constructed fresh per call,
-    /// so the scheduler is reusable and reentrancy-clean. Every request-derived operation that can
-    /// throw completes before the builder is begun, so a rejected request always leaves the builder
-    /// usable.
+    /// Core/Instruction unit emits the full eight-event SOURCE/OPERATION stream — activation first,
+    /// disposition finalization before completion — offers its pending operation to the effect engine
+    /// at the modification band, and offers its resolved operation and finalized quantity change at
+    /// the immediate-reaction boundary in candidate-event causal order. A Structure header opens a
+    /// unit-less Structure walk that consumes its reserved footprint: Repeat iterations execute each
+    /// occupied contained child as a distinct unit per iteration, Conditions capture one predicate
+    /// snapshot and evaluate once per entry, and every governed child carries its Structure context.
+    /// A FALSE Condition skips each occupied governed child at the pre-operation band — one skip
+    /// event with its explicit cause, one boundary offer; a qualified rescue transforms the same unit
+    /// to continue to full resolution. Qualified reactions resolve inside the causing unit's closure
+    /// as captured sibling batches, each descendant branch resolving to closure before the remaining
+    /// siblings. The builder is the only instance field; all per-execution state travels in a nested
+    /// context constructed fresh per call, so the scheduler is reusable and reentrancy-clean. Every
+    /// request-derived operation that can throw completes before the builder is begun, so a rejected
+    /// request always leaves the builder usable.
     /// </summary>
     public sealed class ExecutionScheduler
     {
@@ -59,20 +65,14 @@ namespace Iterate.Domain.Execution
         }
 
         /// <summary>
-        /// Phase 1: accepts the locked compiled source and re-asserts the content contract as defense in
-        /// depth. A request that validated at construction cannot legally fail here.
+        /// Phase 1: accepts the locked compiled source. Every slot kind the arrangement can carry is
+        /// executable and the arrangement's own construction guarantees footprint contiguity,
+        /// containment ownership, and no nesting, so no content re-check remains; the phase is the
+        /// named handoff point.
         /// </summary>
         /// <param name="context">The per-execution context.</param>
-        /// <exception cref="InvalidOperationException">Thrown when a validated request carries unsupported content.</exception>
         private void AcceptCompilationHandoff(ExecutionContext context)
         {
-            IReadOnlyList<SourceSlot> slots = context.Request.Source.Arrangement.Slots;
-            for (int i = 0; i < slots.Count; i++)
-            {
-                SourceSlotKind kind = slots[i].Kind;
-                if (kind != SourceSlotKind.Core && kind != SourceSlotKind.Empty && kind != SourceSlotKind.Instruction)
-                    throw new InvalidOperationException("A validated request unexpectedly carries unsupported content.");
-            }
         }
 
         /// <summary>
@@ -135,29 +135,39 @@ namespace Iterate.Domain.Execution
         }
 
         /// <summary>
-        /// Phase 4: walks the arrangement top to bottom, opening a runtime unit for each Core and
-        /// Instruction slot, emitting its full event stream through both occurrence boundaries, and
-        /// closing the unit.
+        /// Phase 4: walks the arrangement top to bottom by index, opening a runtime unit for each
+        /// top-level Core and Instruction slot and dispatching each Structure header to the Structure
+        /// walk, which consumes the complete reserved footprint so contained slots are traversed only
+        /// through their governing Structure.
         /// </summary>
         /// <param name="context">The per-execution context.</param>
+        /// <exception cref="InvalidOperationException">Thrown when a contained slot reaches the top level — unreachable behind arrangement validation.</exception>
         private void TraverseSource(ExecutionContext context)
         {
-            IReadOnlyList<SourceSlot> slots = context.Request.Source.Arrangement.Slots;
-            for (int i = 0; i < slots.Count; i++)
+            SourceArrangement arrangement = context.Request.Source.Arrangement;
+            IReadOnlyList<SourceSlot> slots = arrangement.Slots;
+            int index = 0;
+            while (index < slots.Count)
             {
-                SourceSlot slot = slots[i];
+                SourceSlot slot = slots[index];
                 switch (slot.Kind)
                 {
                     case SourceSlotKind.Empty:
+                        index++;
                         break;
 
                     case SourceSlotKind.Core:
                     case SourceSlotKind.Instruction:
-                        TraverseUnit(context, slot);
+                        TraverseUnit(context, slot, null, null);
+                        index++;
+                        break;
+
+                    case SourceSlotKind.StructureHeader:
+                        index = TraverseStructure(context, slot, arrangement, index);
                         break;
 
                     default:
-                        throw new InvalidOperationException("A validated request unexpectedly carries unsupported content.");
+                        throw new InvalidOperationException("A contained slot reached top-level traversal.");
                 }
             }
         }
@@ -228,20 +238,197 @@ namespace Iterate.Domain.Execution
         }
 
         /// <summary>
-        /// Opens a unit for a Core or Instruction slot and drives its full stream: source start, pending
-        /// operation, the modification boundary, resolution, the finalized quantity event with modifier
-        /// evidence, threshold crossings, result finalization, the immediate-reaction boundary — the
-        /// resolved-operation batch then the finalized-quantity batch, in candidate-event causal
-        /// order — and source completion, closing the unit Resolved/NormalCompletion.
+        /// Walks one Structure entry: activation and entry events under the entry context, the
+        /// kind-specific body, and the exit event after complete child governance closure. Consumes
+        /// the complete reserved footprint and returns the slot index past it.
+        /// </summary>
+        /// <param name="context">The per-execution context.</param>
+        /// <param name="headerSlot">The Structure header slot.</param>
+        /// <param name="arrangement">The source arrangement being traversed.</param>
+        /// <param name="headerIndex">The header's slot index.</param>
+        /// <returns>The slot index past the Structure's footprint.</returns>
+        private int TraverseStructure(
+            ExecutionContext context,
+            SourceSlot headerSlot,
+            SourceArrangement arrangement,
+            int headerIndex)
+        {
+            StructureInstance structure = headerSlot.Structure;
+            string entryIdentity = StructureIdentities.Entry(structure.InstanceID, headerSlot.Position, 1);
+            StructureContext entryContext = new StructureContext(
+                new List<InstanceID> { structure.InstanceID },
+                entryIdentity,
+                null,
+                null);
+
+            _builder.AppendEvent(StructureEvent(ExecutionEventSubtypes.StructureActivated, headerSlot, entryContext));
+            _builder.AppendEvent(StructureEvent(ExecutionEventSubtypes.StructureEntered, headerSlot, entryContext));
+
+            int firstContained = headerIndex + 1;
+            int pastFootprint = headerIndex + structure.Definition.SourceFootprint;
+            if (structure.Definition.StructureKind == StructureKind.Repeat)
+                TraverseRepeat(context, headerSlot, arrangement, firstContained, pastFootprint, entryIdentity, entryContext);
+            else
+                TraverseCondition(context, headerSlot, arrangement, firstContained, pastFootprint, entryIdentity, entryContext);
+
+            _builder.AppendEvent(StructureEvent(ExecutionEventSubtypes.StructureExited, headerSlot, entryContext));
+            return pastFootprint;
+        }
+
+        /// <summary>
+        /// Runs a Repeat body: the count captured once at entry, then per ascending iteration a
+        /// per-iteration context, the iteration start event, each occupied contained child executed as
+        /// a full runtime unit in contained order reading current state, and the iteration completion
+        /// event after child causal closure. Empty contained positions produce nothing.
+        /// </summary>
+        /// <param name="context">The per-execution context.</param>
+        /// <param name="headerSlot">The Structure header slot.</param>
+        /// <param name="arrangement">The source arrangement being traversed.</param>
+        /// <param name="firstContained">The first contained slot index.</param>
+        /// <param name="pastFootprint">The slot index past the footprint.</param>
+        /// <param name="entryIdentity">The entry identity.</param>
+        /// <param name="entryContext">The entry context.</param>
+        private void TraverseRepeat(
+            ExecutionContext context,
+            SourceSlot headerSlot,
+            SourceArrangement arrangement,
+            int firstContained,
+            int pastFootprint,
+            string entryIdentity,
+            StructureContext entryContext)
+        {
+            _builder.AppendEvent(StructureEvent(ExecutionEventSubtypes.RepeatCountCaptured, headerSlot, entryContext));
+
+            int count = headerSlot.Structure.Definition.RepeatCount;
+            for (int iteration = 1; iteration <= count; iteration++)
+            {
+                StructureContext iterationContext = new StructureContext(
+                    entryContext.StructureAncestry,
+                    entryIdentity,
+                    StructureIdentities.Iteration(entryIdentity, iteration),
+                    null);
+
+                _builder.AppendEvent(StructureEvent(ExecutionEventSubtypes.RepeatIterationStarted, headerSlot, iterationContext));
+                for (int i = firstContained; i < pastFootprint; i++)
+                {
+                    SourceSlot contained = arrangement.Slots[i];
+                    if (contained.Kind == SourceSlotKind.ContainedInstruction)
+                        TraverseUnit(context, contained, iterationContext, null);
+                }
+
+                _builder.AppendEvent(StructureEvent(ExecutionEventSubtypes.RepeatIterationCompleted, headerSlot, iterationContext));
+            }
+        }
+
+        /// <summary>
+        /// Runs a Condition body: one predicate snapshot captured at entry, one evaluation from the
+        /// snapshot under the per-evaluation context, then the result event. TRUE schedules each
+        /// occupied contained child normally under the evaluation context; FALSE gives each occupied
+        /// governed child one activation and one skipped disposition with this evaluation bound as the
+        /// skip cause.
+        /// </summary>
+        /// <param name="context">The per-execution context.</param>
+        /// <param name="headerSlot">The Structure header slot.</param>
+        /// <param name="arrangement">The source arrangement being traversed.</param>
+        /// <param name="firstContained">The first contained slot index.</param>
+        /// <param name="pastFootprint">The slot index past the footprint.</param>
+        /// <param name="entryIdentity">The entry identity.</param>
+        /// <param name="entryContext">The entry context.</param>
+        private void TraverseCondition(
+            ExecutionContext context,
+            SourceSlot headerSlot,
+            SourceArrangement arrangement,
+            int firstContained,
+            int pastFootprint,
+            string entryIdentity,
+            StructureContext entryContext)
+        {
+            string evaluationIdentity = StructureIdentities.Evaluation(entryIdentity);
+            StructureContext evaluationContext = new StructureContext(
+                entryContext.StructureAncestry,
+                entryIdentity,
+                null,
+                evaluationIdentity);
+
+            StructurePredicate predicate = headerSlot.Structure.Definition.Predicate;
+            int snapshotValue = context.Registers.Read(predicate.Register);
+            _builder.AppendEvent(StructureEvent(ExecutionEventSubtypes.ConditionSnapshotCaptured, headerSlot, evaluationContext));
+
+            if (ConditionPredicateEvaluator.Evaluate(predicate, snapshotValue))
+            {
+                _builder.AppendEvent(StructureEvent(ExecutionEventSubtypes.ConditionTrue, headerSlot, evaluationContext));
+                for (int i = firstContained; i < pastFootprint; i++)
+                {
+                    SourceSlot contained = arrangement.Slots[i];
+                    if (contained.Kind == SourceSlotKind.ContainedInstruction)
+                        TraverseUnit(context, contained, evaluationContext, null);
+                }
+
+                return;
+            }
+
+            _builder.AppendEvent(StructureEvent(ExecutionEventSubtypes.ConditionFalse, headerSlot, evaluationContext));
+            string skipCause = "CONDITION_FALSE:" + evaluationIdentity;
+            for (int i = firstContained; i < pastFootprint; i++)
+            {
+                SourceSlot contained = arrangement.Slots[i];
+                if (contained.Kind == SourceSlotKind.ContainedInstruction)
+                    TraverseUnit(context, contained, evaluationContext, skipCause);
+            }
+        }
+
+        /// <summary>
+        /// Opens a unit for a Core or Instruction slot and drives it through the named stages: open
+        /// and activate, pending operation, the pre-operation band — skip determination and the
+        /// rescue offer — then either the skipped closure or the operation path and the resolved or
+        /// rescued closure. Inside a Structure the passed context rides the opening and every stream,
+        /// skip, quantity, and disposition event.
         /// </summary>
         /// <param name="context">The per-execution context.</param>
         /// <param name="slot">The Core or Instruction slot to execute.</param>
-        private void TraverseUnit(ExecutionContext context, SourceSlot slot)
+        /// <param name="structureContext">The governing Structure context, or null at top level.</param>
+        /// <param name="skipCause">The explicit skip cause, or null when the unit is not skipped.</param>
+        private void TraverseUnit(
+            ExecutionContext context,
+            SourceSlot slot,
+            StructureContext structureContext,
+            string skipCause)
+        {
+            bool isCore = slot.Kind == SourceSlotKind.Core;
+            RuntimeUnitID unit = OpenAndActivateUnit(context, slot, isCore, structureContext);
+            TraceEventID pendingEvent = EmitPendingOperation(context, slot, isCore, unit, structureContext);
+
+            EventDisposition bandDisposition = ResolvePreOperationBand(
+                context, slot, isCore, unit, pendingEvent, structureContext, skipCause);
+            if (bandDisposition == EventDisposition.Skipped)
+            {
+                CloseSkippedUnit(context, slot, isCore, unit, structureContext);
+                return;
+            }
+
+            TraceEventID quantityEvent = ResolveOperationPath(context, slot, isCore, unit, pendingEvent, structureContext);
+            FinalizeAndCloseUnit(context, slot, isCore, unit, quantityEvent, bandDisposition, structureContext);
+        }
+
+        /// <summary>
+        /// Stage 1: preflights and opens the runtime unit, counts it, pushes its frame, and emits the
+        /// activation and execution-start events.
+        /// </summary>
+        /// <param name="context">The per-execution context.</param>
+        /// <param name="slot">The executing slot.</param>
+        /// <param name="isCore">Whether the slot is Core-owned.</param>
+        /// <param name="structureContext">The governing Structure context, or null at top level.</param>
+        /// <returns>The opened unit.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the unit ceiling has been reached — preflight guards it.</exception>
+        private RuntimeUnitID OpenAndActivateUnit(
+            ExecutionContext context,
+            SourceSlot slot,
+            bool isCore,
+            StructureContext structureContext)
         {
             if (!context.Tallies.PreflightUnitOpening())
                 throw new InvalidOperationException("Preflight prohibits opening another source-execution unit.");
 
-            bool isCore = slot.Kind == SourceSlotKind.Core;
             RuntimeUnitOpening opening = isCore
                 ? new RuntimeUnitOpening(
                     null,
@@ -252,7 +439,7 @@ namespace Iterate.Domain.Execution
                     null,
                     0,
                     EffectOriginLineage.Empty,
-                    null,
+                    structureContext,
                     null
                 )
                 : new RuntimeUnitOpening(
@@ -264,7 +451,7 @@ namespace Iterate.Domain.Execution
                     null,
                     0,
                     EffectOriginLineage.Empty,
-                    null,
+                    structureContext,
                     null
                 );
 
@@ -272,19 +459,149 @@ namespace Iterate.Domain.Execution
             context.Tallies.RecordUnitOpened();
             context.FrameStack.Add(new ExecutionFrame(unit, EffectOriginLineage.Empty));
 
-            _builder.AppendEvent(UnitStreamEvent(EventFamilies.Source, ExecutionEventSubtypes.SourceExecutionStarted, slot, isCore, unit));
-            TraceEventID pendingEvent = _builder.AppendEvent(UnitStreamEvent(EventFamilies.Operation, ExecutionEventSubtypes.PrimaryOperationPending, slot, isCore, unit));
-            context.Tallies.BeginPendingOperation();
+            _builder.AppendEvent(UnitStreamEvent(EventFamilies.Source, ExecutionEventSubtypes.SourceObjectActivated, slot, isCore, unit, structureContext));
+            _builder.AppendEvent(UnitStreamEvent(EventFamilies.Source, ExecutionEventSubtypes.SourceExecutionStarted, slot, isCore, unit, structureContext));
+            return unit;
+        }
 
+        /// <summary>
+        /// Stage 2: emits the pending-operation event and begins the pending-operation tally window.
+        /// </summary>
+        /// <param name="context">The per-execution context.</param>
+        /// <param name="slot">The executing slot.</param>
+        /// <param name="isCore">Whether the slot is Core-owned.</param>
+        /// <param name="unit">The containing unit.</param>
+        /// <param name="structureContext">The governing Structure context, or null at top level.</param>
+        /// <returns>The pending-operation event.</returns>
+        private TraceEventID EmitPendingOperation(
+            ExecutionContext context,
+            SourceSlot slot,
+            bool isCore,
+            RuntimeUnitID unit,
+            StructureContext structureContext)
+        {
+            TraceEventID pendingEvent = _builder.AppendEvent(UnitStreamEvent(EventFamilies.Operation, ExecutionEventSubtypes.PrimaryOperationPending, slot, isCore, unit, structureContext));
+            context.Tallies.BeginPendingOperation();
+            return pendingEvent;
+        }
+
+        /// <summary>
+        /// Stage 3: the pre-operation band. Without a skip cause the unit proceeds Resolved. With one,
+        /// the skip event is recorded with its explicit cause and offered to the engine's skip
+        /// boundary: no qualified rescue leaves the unit Skipped; exactly one resolves the pinned
+        /// qualification, commitment, and rescued-disposition chain and the unit proceeds Rescued.
+        /// </summary>
+        /// <param name="context">The per-execution context.</param>
+        /// <param name="slot">The executing slot.</param>
+        /// <param name="isCore">Whether the slot is Core-owned.</param>
+        /// <param name="unit">The containing unit.</param>
+        /// <param name="pendingEvent">The pending-operation event.</param>
+        /// <param name="structureContext">The governing Structure context, or null at top level.</param>
+        /// <param name="skipCause">The explicit skip cause, or null when the unit is not skipped.</param>
+        /// <returns>The unit's disposition after the band.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when more than one rescue qualifies — an undeclared conflict is an authoring defect.</exception>
+        private EventDisposition ResolvePreOperationBand(
+            ExecutionContext context,
+            SourceSlot slot,
+            bool isCore,
+            RuntimeUnitID unit,
+            TraceEventID pendingEvent,
+            StructureContext structureContext,
+            string skipCause)
+        {
+            if (skipCause == null)
+                return EventDisposition.Resolved;
+
+            TraceEventID skipEvent = _builder.AppendEvent(SkipEvent(slot, isCore, unit, pendingEvent, skipCause, structureContext));
+            SkipOccurrence occurrence = new SkipOccurrence(
+                unit,
+                skipEvent,
+                1,
+                isCore ? OwnershipClassification.CoreOwned : OwnershipClassification.PlayerOwned,
+                isCore ? (InstanceID?)null : slot.Instruction.InstanceID,
+                skipCause,
+                true);
+
+            EffectMatchBatch batch = context.Engine.MatchSkip(occurrence);
+            if (batch.Qualified.Count == 0)
+                return EventDisposition.Skipped;
+
+            if (batch.Qualified.Count > 1)
+                throw new InvalidOperationException("More than one rescue effect qualified against one skip; an undeclared rescuer conflict is an authoring defect.");
+
+            ActiveEffect rescueEffect = batch.Qualified[0];
+            _builder.AppendEvent(EffectChainEvent(EventFamilies.Qualification, ExecutionEventSubtypes.EffectQualified, skipEvent, 2, rescueEffect.Origin, unit, null, null));
+            context.Engine.Commit(rescueEffect);
+            _builder.AppendEvent(EffectChainEvent(EventFamilies.Qualification, ExecutionEventSubtypes.EffectCommitted, skipEvent, 2, rescueEffect.Origin, unit, null, null));
+            _builder.AppendEvent(EffectChainEvent(EventFamilies.Disposition, ExecutionEventSubtypes.SourceExecutionRescued, skipEvent, 2, rescueEffect.Origin, unit, EventDisposition.Rescued, null));
+            return EventDisposition.Rescued;
+        }
+
+        /// <summary>
+        /// Stage 4 (skipped): finalizes and closes a skipped, unrescued unit — no modification offer,
+        /// no resolution, no quantity delta, no threshold checks, no reaction offers.
+        /// </summary>
+        /// <param name="context">The per-execution context.</param>
+        /// <param name="slot">The executing slot.</param>
+        /// <param name="isCore">Whether the slot is Core-owned.</param>
+        /// <param name="unit">The containing unit.</param>
+        /// <param name="structureContext">The governing Structure context, or null at top level.</param>
+        private void CloseSkippedUnit(
+            ExecutionContext context,
+            SourceSlot slot,
+            bool isCore,
+            RuntimeUnitID unit,
+            StructureContext structureContext)
+        {
+            _builder.AppendEvent(DispositionFinalizedEvent(slot, isCore, unit, EventDisposition.Skipped, structureContext));
+            _builder.AppendEvent(UnitStreamEvent(EventFamilies.Source, ExecutionEventSubtypes.SourceExecutionCompleted, slot, isCore, unit, structureContext));
+
+            RuntimeUnitClosure closure = new RuntimeUnitClosure(
+                null,
+                EventDisposition.Skipped,
+                null,
+                Array.Empty<string>(),
+                UnitClosureStatus.NormalCompletion,
+                SafetyStatus.Normal
+            );
+            _builder.CompleteUnit(unit, closure);
+
+            context.FrameStack.RemoveAt(context.FrameStack.Count - 1);
+        }
+
+                /// <summary>
+        /// Stage 4 (operating): drives the operation path — the modification boundary with first-time
+        /// commitments and selected-host re-applications, resolution, the finalized quantity event
+        /// with modifier evidence, threshold crossings, result finalization, and both
+        /// immediate-reaction boundaries in candidate-event causal order.
+        /// </summary>
+        /// <param name="context">The per-execution context.</param>
+        /// <param name="slot">The executing slot.</param>
+        /// <param name="isCore">Whether the slot is Core-owned.</param>
+        /// <param name="unit">The containing unit.</param>
+        /// <param name="pendingEvent">The pending-operation event.</param>
+        /// <param name="structureContext">The governing Structure context, or null at top level.</param>
+        /// <returns>The unit's finalized quantity event.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the transformation ceiling has been reached — preflight guards it.</exception>
+        private TraceEventID ResolveOperationPath(
+            ExecutionContext context,
+            SourceSlot slot,
+            bool isCore,
+            RuntimeUnitID unit,
+            TraceEventID pendingEvent,
+            StructureContext structureContext
+        )
+        {
             OperationOccurrence pendingOccurrence = BuildOperationOccurrence(slot, isCore, unit, pendingEvent, 0);
             EffectMatchBatch modificationBatch = context.Engine.MatchPendingOperation(pendingOccurrence);
             AppendNearMisses(modificationBatch, pendingEvent, 1, unit);
 
             int modifierSum = 0;
             IReadOnlyList<QuantityModifierEvidence> modifiers = Array.Empty<QuantityModifierEvidence>();
-            if (modificationBatch.Qualified.Count > 0)
+            if (modificationBatch.Qualified.Count > 0 || modificationBatch.Reapplications.Count > 0)
             {
-                List<QuantityModifierEvidence> applied = new List<QuantityModifierEvidence>(modificationBatch.Qualified.Count);
+                List<QuantityModifierEvidence> applied = new List<QuantityModifierEvidence>(
+                    modificationBatch.Qualified.Count + modificationBatch.Reapplications.Count);
                 for (int i = 0; i < modificationBatch.Qualified.Count; i++)
                 {
                     ActiveEffect effect = modificationBatch.Qualified[i];
@@ -292,8 +609,23 @@ namespace Iterate.Domain.Execution
                         throw new InvalidOperationException("Preflight prohibits another transformation of the pending operation.");
 
                     _builder.AppendEvent(EffectChainEvent(EventFamilies.Qualification, ExecutionEventSubtypes.EffectQualified, pendingEvent, 1, effect.Origin, unit, null, null));
-                    context.Engine.Commit(effect);
+                    context.Engine.CommitModification(effect, pendingOccurrence.HostInstance);
                     _builder.AppendEvent(EffectChainEvent(EventFamilies.Qualification, ExecutionEventSubtypes.EffectCommitted, pendingEvent, 1, effect.Origin, unit, null, null));
+                    context.Tallies.RecordTransformation();
+                    _builder.AppendEvent(EffectChainEvent(EventFamilies.Operation, ExecutionEventSubtypes.PrimaryOperationModified, pendingEvent, 1, effect.Origin, unit, null, null));
+
+                    int amount = effect.Operation.Operand.Constant;
+                    modifierSum += amount;
+                    applied.Add(new QuantityModifierEvidence(effect.Origin.ToString(), ModificationStage, amount));
+                }
+
+                for (int i = 0; i < modificationBatch.Reapplications.Count; i++)
+                {
+                    ActiveEffect effect = modificationBatch.Reapplications[i];
+                    if (!context.Tallies.PreflightTransformation())
+                        throw new InvalidOperationException("Preflight prohibits another transformation of the pending operation.");
+
+                    _builder.AppendEvent(EffectChainEvent(EventFamilies.Qualification, ExecutionEventSubtypes.EffectQualified, pendingEvent, 1, effect.Origin, unit, null, null));
                     context.Tallies.RecordTransformation();
                     _builder.AppendEvent(EffectChainEvent(EventFamilies.Operation, ExecutionEventSubtypes.PrimaryOperationModified, pendingEvent, 1, effect.Origin, unit, null, null));
 
@@ -309,14 +641,14 @@ namespace Iterate.Domain.Execution
                 ? OperationEvaluator.EvaluateCoreLine(slot.Core.Operation, context.Registers, slot.Position, modifierSum)
                 : OperationEvaluator.EvaluateInstruction(slot.Instruction.Definition.PrimaryOperation, context.Registers, slot.Position, modifierSum);
 
-            TraceEventID resolvedEvent = _builder.AppendEvent(UnitStreamEvent(EventFamilies.Operation, ExecutionEventSubtypes.PrimaryOperationResolved, slot, isCore, unit));
-            TraceEventID quantityEvent = AppendQuantityEvent(slot, isCore, evaluation, unit, modifiers);
+            TraceEventID resolvedEvent = _builder.AppendEvent(UnitStreamEvent(EventFamilies.Operation, ExecutionEventSubtypes.PrimaryOperationResolved, slot, isCore, unit, structureContext));
+            TraceEventID quantityEvent = AppendQuantityEvent(slot, isCore, evaluation, unit, modifiers, structureContext);
             context.Registers.Write(evaluation.Register, evaluation.FinalValue);
 
             if (evaluation.Register == CoreRegister.Score)
                 EmitThresholdCrossings(context, evaluation, quantityEvent, 1, unit);
 
-            _builder.AppendEvent(UnitStreamEvent(EventFamilies.Operation, ExecutionEventSubtypes.PrimaryOperationResultFinalized, slot, isCore, unit));
+            _builder.AppendEvent(UnitStreamEvent(EventFamilies.Operation, ExecutionEventSubtypes.PrimaryOperationResultFinalized, slot, isCore, unit, structureContext));
 
             OperationOccurrence resolvedOccurrence = BuildOperationOccurrence(slot, isCore, unit, resolvedEvent, 0);
             EffectMatchBatch resolvedBatch = context.Engine.MatchResolvedOperation(resolvedOccurrence);
@@ -335,11 +667,35 @@ namespace Iterate.Domain.Execution
             EffectMatchBatch quantityBatch = context.Engine.MatchQuantityChange(primaryQuantity);
             ResolveReactionBatch(context, quantityBatch, quantityEvent, 0, unit, slot.Position);
 
-            _builder.AppendEvent(UnitStreamEvent(EventFamilies.Source, ExecutionEventSubtypes.SourceExecutionCompleted, slot, isCore, unit));
+            return quantityEvent;
+        }
+
+        /// <summary>
+        /// Stage 5: finalizes the unit's disposition, emits completion, and closes the unit — a
+        /// rescued unit preserves its original skip as the transformed disposition.
+        /// </summary>
+        /// <param name="context">The per-execution context.</param>
+        /// <param name="slot">The executing slot.</param>
+        /// <param name="isCore">Whether the slot is Core-owned.</param>
+        /// <param name="unit">The containing unit.</param>
+        /// <param name="quantityEvent">The unit's finalized quantity event.</param>
+        /// <param name="finalDisposition">The unit's final disposition.</param>
+        /// <param name="structureContext">The governing Structure context, or null at top level.</param>
+        private void FinalizeAndCloseUnit(
+            ExecutionContext context,
+            SourceSlot slot,
+            bool isCore,
+            RuntimeUnitID unit,
+            TraceEventID quantityEvent,
+            EventDisposition finalDisposition,
+            StructureContext structureContext)
+        {
+            _builder.AppendEvent(DispositionFinalizedEvent(slot, isCore, unit, finalDisposition, structureContext));
+            _builder.AppendEvent(UnitStreamEvent(EventFamilies.Source, ExecutionEventSubtypes.SourceExecutionCompleted, slot, isCore, unit, structureContext));
 
             RuntimeUnitClosure closure = new RuntimeUnitClosure(
-                null,
-                EventDisposition.Resolved,
+                finalDisposition == EventDisposition.Rescued ? EventDisposition.Skipped : (EventDisposition?)null,
+                finalDisposition,
                 quantityEvent,
                 Array.Empty<string>(),
                 UnitClosureStatus.NormalCompletion,
@@ -433,8 +789,8 @@ namespace Iterate.Domain.Execution
 
         /// <summary>
         /// Builds the typed occurrence for a unit's primary operation at the pending or resolved
-        /// boundary: operator, target register, and operand shape from the payload, ownership from the
-        /// slot kind.
+        /// boundary: operator, target register, and operand shape from the payload, ownership and the
+        /// owning host instance from the slot kind.
         /// </summary>
         /// <param name="slot">The executing slot.</param>
         /// <param name="isCore">Whether the slot is Core-owned.</param>
@@ -471,6 +827,7 @@ namespace Iterate.Domain.Execution
                 unit,
                 candidateEvent,
                 causalDepth,
+                isCore ? (InstanceID?)null : slot.Instruction.InstanceID,
                 register,
                 op,
                 operand.Source,
@@ -512,21 +869,109 @@ namespace Iterate.Domain.Execution
         }
 
         /// <summary>
+        /// Assembles a unit-less Structure lifecycle event: STRUCTURE family, uncaused, depth zero,
+        /// player-owned with the Structure's instance as host, at the header position, carrying the
+        /// Structure context, payload-free.
+        /// </summary>
+        /// <param name="subtype">The STRUCTURE subtype token.</param>
+        /// <param name="headerSlot">The Structure header slot.</param>
+        /// <param name="structureContext">The context the event executes within.</param>
+        /// <returns>The assembled evidence.</returns>
+        private static EventEvidence StructureEvent(
+            string subtype,
+            SourceSlot headerSlot,
+            StructureContext structureContext)
+        {
+            return new EventEvidence(
+                EventFamilies.Structure,
+                subtype,
+                Array.Empty<string>(),
+                0,
+                null,
+                null,
+                null,
+                headerSlot.Structure.InstanceID,
+                null,
+                null,
+                OwnershipClassification.PlayerOwned,
+                headerSlot.Position,
+                null,
+                EffectOriginLineage.Empty,
+                null,
+                0,
+                structureContext,
+                null,
+                null,
+                SafetyStatus.Normal,
+                null
+            );
+        }
+
+        /// <summary>
+        /// Assembles the skip event: DISPOSITION family, caused by the pending-operation event at
+        /// depth one, in-unit, mirroring the unit's ownership, host or Core-line identity, and
+        /// position, carrying the skipped disposition with its explicit cause and the unit's
+        /// Structure context, payload-free.
+        /// </summary>
+        /// <param name="slot">The executing slot.</param>
+        /// <param name="isCore">Whether the slot is Core-owned.</param>
+        /// <param name="unit">The containing unit.</param>
+        /// <param name="pendingEvent">The causing pending-operation event.</param>
+        /// <param name="skipCause">The explicit skip cause.</param>
+        /// <param name="structureContext">The governing Structure context.</param>
+        /// <returns>The assembled evidence.</returns>
+        private static EventEvidence SkipEvent(
+            SourceSlot slot,
+            bool isCore,
+            RuntimeUnitID unit,
+            TraceEventID pendingEvent,
+            string skipCause,
+            StructureContext structureContext)
+        {
+            return new EventEvidence(
+                EventFamilies.Disposition,
+                ExecutionEventSubtypes.SourceExecutionSkipped,
+                Array.Empty<string>(),
+                1,
+                unit,
+                null,
+                pendingEvent,
+                isCore ? (InstanceID?)null : slot.Instruction.InstanceID,
+                isCore ? slot.Core.Identity : null,
+                null,
+                isCore ? OwnershipClassification.CoreOwned : OwnershipClassification.PlayerOwned,
+                slot.Position,
+                null,
+                EffectOriginLineage.Empty,
+                null,
+                0,
+                structureContext,
+                EventDisposition.Skipped,
+                skipCause,
+                SafetyStatus.Normal,
+                null
+            );
+        }
+
+        /// <summary>
         /// Assembles a SOURCE/OPERATION stream event mirroring the unit's ownership, host or Core-line
-        /// identity, and position — uncaused, at depth zero, in-unit, payload-free.
+        /// identity, and position — uncaused, at depth zero, in-unit, payload-free, carrying the
+        /// unit's Structure context when governed.
         /// </summary>
         /// <param name="family">The event family token.</param>
         /// <param name="subtype">The event subtype token.</param>
         /// <param name="slot">The executing slot.</param>
         /// <param name="isCore">Whether the slot is Core-owned.</param>
         /// <param name="unit">The containing unit.</param>
+        /// <param name="structureContext">The governing Structure context, or null at top level.</param>
         /// <returns>The assembled evidence.</returns>
         private static EventEvidence UnitStreamEvent(
             string family,
             string subtype,
             SourceSlot slot,
             bool isCore,
-            RuntimeUnitID unit
+            RuntimeUnitID unit,
+            StructureContext structureContext
         )
         {
             return new EventEvidence(
@@ -546,7 +991,7 @@ namespace Iterate.Domain.Execution
                 EffectOriginLineage.Empty,
                 null,
                 0,
-                null,
+                structureContext,
                 null,
                 null,
                 SafetyStatus.Normal,
@@ -555,9 +1000,53 @@ namespace Iterate.Domain.Execution
         }
 
         /// <summary>
-        /// Assembles a QUALIFICATION/REACTION/modified-operation chain event: caused by the observed
-        /// candidate at the given depth, carrying the effect origin, in-unit, payload-free, with no
-        /// source origin of its own.
+        /// Assembles the disposition-finalization stream event: the unit-mirroring stream shape —
+        /// uncaused, at depth zero, in-unit, payload-free — carrying the unit's final disposition and
+        /// its Structure context when governed.
+        /// </summary>
+        /// <param name="slot">The executing slot.</param>
+        /// <param name="isCore">Whether the slot is Core-owned.</param>
+        /// <param name="unit">The containing unit.</param>
+        /// <param name="disposition">The unit's final disposition.</param>
+        /// <param name="structureContext">The governing Structure context, or null at top level.</param>
+        /// <returns>The assembled evidence.</returns>
+        private static EventEvidence DispositionFinalizedEvent(
+            SourceSlot slot,
+            bool isCore,
+            RuntimeUnitID unit,
+            EventDisposition disposition,
+            StructureContext structureContext
+        )
+        {
+            return new EventEvidence(
+                EventFamilies.Source,
+                ExecutionEventSubtypes.SourceExecutionDispositionFinalized,
+                Array.Empty<string>(),
+                0,
+                unit,
+                null,
+                null,
+                isCore ? (InstanceID?)null : slot.Instruction.InstanceID,
+                isCore ? slot.Core.Identity : null,
+                null,
+                isCore ? OwnershipClassification.CoreOwned : OwnershipClassification.PlayerOwned,
+                slot.Position,
+                null,
+                EffectOriginLineage.Empty,
+                null,
+                0,
+                structureContext,
+                disposition,
+                null,
+                SafetyStatus.Normal,
+                null
+            );
+        }
+
+        /// <summary>
+        /// Assembles a QUALIFICATION/REACTION/DISPOSITION/modified-operation chain event: caused by
+        /// the observed candidate at the given depth, carrying the effect origin, in-unit,
+        /// payload-free, with no source origin of its own.
         /// </summary>
         /// <param name="family">The event family token.</param>
         /// <param name="subtype">The event subtype token.</param>
@@ -720,20 +1209,22 @@ namespace Iterate.Domain.Execution
         /// <summary>
         /// Appends the finalized quantity event for a traversal unit, mirroring the unit's ownership,
         /// host or Core-line identity, and position, with one modifier evidence entry per applied
-        /// modification.
+        /// modification, carrying the unit's Structure context when governed.
         /// </summary>
         /// <param name="slot">The executing slot.</param>
         /// <param name="isCore">Whether the slot is Core-owned.</param>
         /// <param name="evaluation">The resolved evaluation.</param>
         /// <param name="unit">The containing unit.</param>
         /// <param name="modifiers">The applied modifier evidence, or empty.</param>
+        /// <param name="structureContext">The governing Structure context, or null at top level.</param>
         /// <returns>The minted quantity-event identity.</returns>
         private TraceEventID AppendQuantityEvent(
             SourceSlot slot,
             bool isCore,
             EvaluatedOperation evaluation,
             RuntimeUnitID unit,
-            IReadOnlyList<QuantityModifierEvidence> modifiers
+            IReadOnlyList<QuantityModifierEvidence> modifiers,
+            StructureContext structureContext
         )
         {
             QuantityChangePayload payload = new QuantityChangePayload(
@@ -766,7 +1257,7 @@ namespace Iterate.Domain.Execution
                 EffectOriginLineage.Empty,
                 null,
                 0,
-                null,
+                structureContext,
                 EventDisposition.Resolved,
                 null,
                 SafetyStatus.Normal,

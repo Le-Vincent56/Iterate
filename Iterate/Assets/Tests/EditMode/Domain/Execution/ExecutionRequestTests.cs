@@ -11,8 +11,8 @@ namespace Iterate.Domain.Execution.Tests
 {
     /// <summary>
     /// Tests that <see cref="ExecutionRequest"/> validates its five components fully at construction and
-    /// enforces the content contract at the boundary: an arrangement carrying any Structure-bearing slot
-    /// and an installed Dependency the effect interpreter cannot honor are both rejected rather than
+    /// enforces the content contract at the boundary: all six source slot kinds construct, while a null
+    /// source and an installed Dependency the effect interpreter cannot honor are rejected rather than
     /// silently mis-executed.
     /// </summary>
     public sealed class ExecutionRequestTests
@@ -36,7 +36,7 @@ namespace Iterate.Domain.Execution.Tests
             ContentCategory.Structure,
             Rarity.Common,
             Array.Empty<string>(),
-            2,
+            3,
             StructureKind.Repeat,
             2,
             null);
@@ -96,12 +96,14 @@ namespace Iterate.Domain.Execution.Tests
         }
 
         [Test]
-        public void Constructor_StructureBearingArrangement_Throws()
+        public void Constructor_StructureBearingArrangement_Constructs()
         {
             CompiledSource source = CompiledFrom(StructureBearingArrangement());
 
-            Assert.Throws<ArgumentException>(() => _ = new ExecutionRequest(
-                source, ValidConfiguration(), ValidStamps(), ZeroInitialState(), NoDependencies()));
+            ExecutionRequest request = new(
+                source, ValidConfiguration(), ValidStamps(), ZeroInitialState(), NoDependencies());
+
+            Assert.AreSame(source, request.Source);
         }
 
         [Test]
@@ -202,12 +204,14 @@ namespace Iterate.Domain.Execution.Tests
         {
             CoreLine core = new("core-01", new CoreLineOperation(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(1)));
             StructureInstance structure = new(new InstanceID(4), _repeatDefinition);
+            InstructionInstance contained = new(new InstanceID(5), _instructionDefinition, null);
 
             return new SourceArrangement(new List<SourceSlot>
             {
                 SourceSlot.ForCore(new SourcePosition(1), core),
                 SourceSlot.ForStructureHeader(new SourcePosition(2), structure),
-                SourceSlot.ForContainedEmpty(new SourcePosition(3), structure)
+                SourceSlot.ForContainedInstruction(new SourcePosition(3), structure, contained),
+                SourceSlot.ForContainedEmpty(new SourcePosition(4), structure)
             });
         }
 
