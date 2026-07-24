@@ -2,7 +2,8 @@ namespace Iterate.Domain.Execution
 {
     /// <summary>
     /// How an interpreted effect participates at the engine's boundaries: transforming the pending
-    /// primary operation, reacting to a result, or rescuing a skipped source execution.
+    /// primary operation, reacting to a result, rescuing a skipped source execution, creating an
+    /// added-execution request, or resolving at a named traversal boundary.
     /// </summary>
     public enum ActiveEffectKind
     {
@@ -19,6 +20,16 @@ namespace Iterate.Domain.Execution
         /// <summary>
         /// Rescues a skipped source execution at the pre-operation band.
         /// </summary>
-        Rescue
+        Rescue,
+
+        /// <summary>
+        /// Creates one added-execution request from a qualifying occurrence.
+        /// </summary>
+        AddedExecution,
+
+        /// <summary>
+        /// Resolves a source-less quantity change at a named traversal boundary.
+        /// </summary>
+        Boundary
     }
 }

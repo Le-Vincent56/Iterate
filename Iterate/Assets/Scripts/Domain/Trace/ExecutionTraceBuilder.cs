@@ -49,7 +49,7 @@ namespace Iterate.Domain.Trace
         /// <summary>
         /// Opens a runtime unit, minting the next one-based identity and start order.
         /// </summary>
-        /// <param name="opening">The opening evidence; a referenced parent unit must be open.</param>
+        /// <param name="opening">The opening evidence; a referenced parent unit must have been minted.</param>
         /// <returns>The minted unit identity.</returns>
         public RuntimeUnitID OpenUnit(RuntimeUnitOpening opening)
         {
@@ -58,9 +58,9 @@ namespace Iterate.Domain.Trace
             
             if (opening == null)
                 throw new ArgumentException("OpenUnit requires an opening.", nameof(opening));
-            
+
             if (opening.ParentUnit != null)
-                RequireOpenUnit(opening.ParentUnit.Value, nameof(opening));
+                RequireMintedUnit(opening.ParentUnit.Value, nameof(opening));
 
             int identity = _unitOpenings.Count + 1;
             _unitOpenings.Add(opening);

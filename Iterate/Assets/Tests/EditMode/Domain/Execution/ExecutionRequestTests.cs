@@ -126,6 +126,40 @@ namespace Iterate.Domain.Execution.Tests
         }
 
         [Test]
+        public void Constructor_PragmaDirectives_InterpretAheadOfDependencies()
+        {
+            CompiledSource source = new CompiledSource(
+                CoreAndInstructionArrangement(),
+                new List<DirectiveInstance> { new DirectiveInstance(new InstanceID(31), OverclockDirective("WB-DIR-921")) },
+                new CompilationCostBreakdown(CompilationClassification.Initial, 0, true, 0, new List<CostModifierEntry>(), 0, false));
+            List<DependencyInstance> installed = new List<DependencyInstance>
+            {
+                new DependencyInstance(new InstanceID(12), ReactionDependency("WB-DEP-922"))
+            };
+
+            ExecutionRequest request = new(
+                source, ValidConfiguration(), ValidStamps(), ZeroInitialState(), installed);
+
+            Assert.AreEqual(2, request.InterpretedEffects.Count);
+            Assert.AreEqual(new InstanceID(31), request.InterpretedEffects[0].Origin);
+            Assert.AreEqual(ActiveEffectKind.AddedExecution, request.InterpretedEffects[0].Kind);
+            Assert.AreEqual(new InstanceID(12), request.InterpretedEffects[1].Origin);
+            Assert.AreEqual(ActiveEffectKind.Reaction, request.InterpretedEffects[1].Kind);
+        }
+
+        [Test]
+        public void Constructor_UninterpretablePragma_Throws()
+        {
+            CompiledSource source = new CompiledSource(
+                CoreAndInstructionArrangement(),
+                new List<DirectiveInstance> { new DirectiveInstance(new InstanceID(32), PreFixAlignDirective()) },
+                new CompilationCostBreakdown(CompilationClassification.Initial, 0, true, 0, new List<CostModifierEntry>(), 0, false));
+
+            Assert.Throws<ArgumentException>(() => _ = new ExecutionRequest(
+                source, ValidConfiguration(), ValidStamps(), ZeroInitialState(), NoDependencies()));
+        }
+
+        [Test]
         public void Constructor_FiveDependencies_CarriesInterpretedEffects()
         {
             List<DependencyInstance> installed = new List<DependencyInstance>
@@ -278,6 +312,73 @@ namespace Iterate.Domain.Execution.Tests
                 timing,
                 StackingMode.IndependentResolution,
                 new EffectFrequency("FIRST_QUALIFYING_EVENT", "EXECUTION")));
+        }
+
+        private static DirectiveDefinition OverclockDirective(string id)
+        {
+            EffectTiming timing = new EffectTiming(TimingKind.Band, "IMMEDIATE_RESULT_REACTION");
+            TriggerDescriptor trigger = new TriggerDescriptor(
+                EventFamily.Quantity,
+                "QUANTITY_CHANGED",
+                new List<TriggerQualifier>
+                {
+                    new TriggerQualifier("ACTUAL_DELTA_SIGN", "POSITIVE"),
+                    new TriggerQualifier("REGISTER", "VALUE"),
+                    new TriggerQualifier("OPERATION_CLASS", "PLAYER_INSTRUCTION")
+                },
+                timing);
+
+            return new DirectiveDefinition(
+                new DirectiveID(id),
+                "Test rules.",
+                "TEST DIRECTIVE",
+                ContentCategory.Directive,
+                Rarity.Uncommon,
+                new List<string>(),
+                new List<EffectDefinition>
+                {
+                    new EffectDefinition(
+                        PhaseDomain.Execution,
+                        trigger,
+                        new AddedExecutionRequestOperation(new TargetingRule("TRIGGERING_UNIT", string.Empty), false),
+                        new TargetingRule("TRIGGERING_UNIT", string.Empty),
+                        timing,
+                        StackingMode.IndependentResolution,
+                        new EffectFrequency("ONCE", "EXECUTION"))
+                });
+        }
+
+        private static DirectiveDefinition PreFixAlignDirective()
+        {
+            EffectTiming timing = new EffectTiming(TimingKind.NamedBoundary, "END_OF_PLAYER_CONTROLLED_SOURCE_TRAVERSAL");
+            TriggerDescriptor trigger = new TriggerDescriptor(
+                EventFamily.Lifecycle,
+                "BOUNDARY_EFFECT_REQUESTED",
+                new List<TriggerQualifier>
+                {
+                    new TriggerQualifier("PARITY", "ODD"),
+                    new TriggerQualifier("REGISTER", "VALUE")
+                },
+                timing);
+
+            return new DirectiveDefinition(
+                new DirectiveID("WB-DIR-922"),
+                "Test rules.",
+                "TEST DIRECTIVE",
+                ContentCategory.Directive,
+                Rarity.Uncommon,
+                new List<string>(),
+                new List<EffectDefinition>
+                {
+                    new EffectDefinition(
+                        PhaseDomain.Execution,
+                        trigger,
+                        new QuantityChangeOperation(CoreRegister.Value, QuantityOperator.Add, OperandSpec.FromConstant(1)),
+                        new TargetingRule("NO_TARGET", string.Empty),
+                        timing,
+                        StackingMode.IndependentResolution,
+                        new EffectFrequency("ONCE", "EXECUTION"))
+                });
         }
 
         private static DependencyDefinition RescueDependency()

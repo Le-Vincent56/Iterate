@@ -5,7 +5,7 @@
     "effects": [
       {
         "phaseDomain": "EXECUTION",
-        "trigger": { "eventFamily": "QUANTITY", "eventSubtype": "QUANTITY_CHANGED", "qualifiers": [ { "kind": "ACTUAL_DELTA_SIGN", "value": "POSITIVE" }, { "kind": "REGISTER", "value": "VALUE" } ], "timing": { "kind": "BAND", "name": "IMMEDIATE_RESULT_REACTION" } },
+        "trigger": { "eventFamily": "QUANTITY", "eventSubtype": "QUANTITY_CHANGED", "qualifiers": [ { "kind": "ACTUAL_DELTA_SIGN", "value": "POSITIVE" }, { "kind": "REGISTER", "value": "VALUE" }, { "kind": "OPERATION_CLASS", "value": "PLAYER_INSTRUCTION" } ], "timing": { "kind": "BAND", "name": "IMMEDIATE_RESULT_REACTION" } },
         "operation": { "kind": "ADDED_EXECUTION_REQUEST", "target": { "kind": "TRIGGERING_UNIT", "argument": "" }, "cancelOnInvalid": false },
         "targeting": { "kind": "TRIGGERING_UNIT", "argument": "" },
         "timing": { "kind": "BAND", "name": "ADDED_EXECUTION_HANDLING" },
@@ -20,7 +20,7 @@
     "effects": [
       {
         "phaseDomain": "EXECUTION",
-        "trigger": { "eventFamily": "LIFECYCLE", "eventSubtype": "BOUNDARY_EFFECT_REQUESTED", "qualifiers": [ { "kind": "PARITY", "value": "ODD" }, { "kind": "REGISTER", "value": "VALUE" } ], "timing": { "kind": "NAMED_BOUNDARY", "name": "END_OF_PLAYER_CONTROLLED_SOURCE_TRAVERSAL" } },
+        "trigger": { "eventFamily": "REACTION", "eventSubtype": "BOUNDARY_EFFECT_REQUESTED", "qualifiers": [ { "kind": "PARITY", "value": "ODD" }, { "kind": "REGISTER", "value": "VALUE" } ], "timing": { "kind": "NAMED_BOUNDARY", "name": "END_OF_PLAYER_CONTROLLED_SOURCE_TRAVERSAL" } },
         "operation": { "kind": "QUANTITY_CHANGE", "register": "VALUE", "operator": "ADD", "operand": { "source": "CONSTANT", "constant": 1 } },
         "targeting": { "kind": "NO_TARGET", "argument": "" },
         "timing": { "kind": "NAMED_BOUNDARY", "name": "END_OF_PLAYER_CONTROLLED_SOURCE_TRAVERSAL" },

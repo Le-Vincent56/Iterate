@@ -10,16 +10,22 @@ namespace Iterate.Domain.Execution
     /// <summary>
     /// The per-execution effect engine: stores the interpreted effects sorted by stable instance
     /// identity at registration — so registration and enumeration order cannot influence resolution —
-    /// and matches typed occurrences at the scheduler's four boundaries, each candidate gated by its
-    /// participation kind. Ineligible effects are silently skipped — except a consumed selected-host
-    /// modification, which re-applies without re-consumption to later offers hosted by its recorded
-    /// instance; a candidate matching family, subtype, and band that fails a qualifier produces one
-    /// near-miss naming the first failed requirement; qualified effects are ordered by declared
-    /// precedence, then stable instance identity. The skip boundary offers rescue-kind effects only
-    /// and is silent for non-rescuable or exhausted candidates.
+    /// and matches typed occurrences at the scheduler's seven boundaries, each candidate gated by its
+    /// participation kind. Failed candidacies follow one tiering everywhere: a candidate whose
+    /// occurrence shape cannot legally qualify it is silent, a consumed allowance is silent — except
+    /// a selected-host modification, which re-applies without re-consumption to later offers hosted
+    /// by its recorded instance — and an eligible candidate that fails a requirement produces exactly
+    /// one near-miss naming the first failure, including the origin lock. Qualified effects are
+    /// ordered by declared precedence, then stable instance identity; qualified added-execution
+    /// creators are collected separately, awaiting the scheduler's commitment.
     /// </summary>
     public sealed class EffectEngine
     {
+        /// <summary>
+        /// The near-miss requirement prefix naming an origin-lock block.
+        /// </summary>
+        private const string OriginLockRequirement = "ORIGIN_LOCK:";
+
         private readonly List<ActiveEffect> _registered;
         private readonly FrequencyLedger _ledger;
         private readonly Dictionary<string, InstanceID> _selectedHosts;
@@ -77,7 +83,10 @@ namespace Iterate.Domain.Execution
         }
 
         /// <summary>
-        /// Matches reaction-band effects against a finalized quantity-change occurrence.
+        /// Matches reaction-band effects and added-execution creators against a finalized
+        /// quantity-change occurrence. Creators observe source-execution events only: a change that
+        /// is not the unit's primary operation cannot qualify one, silently — its targeting has no
+        /// declared meaning against an effect-caused event.
         /// </summary>
         /// <param name="occurrence">The quantity-change occurrence.</param>
         /// <returns>The captured batch, or the shared empty batch.</returns>
@@ -89,17 +98,170 @@ namespace Iterate.Domain.Execution
 
             List<ActiveEffect> qualified = null;
             List<EffectNearMiss> nearMisses = null;
+            List<ActiveEffect> creators = null;
 
             for (int i = 0; i < _registered.Count; i++)
             {
                 ActiveEffect effect = _registered[i];
-                if (effect.Kind != ActiveEffectKind.Reaction || effect.Trigger.EventSubtype != ExecutionEventSubtypes.QuantityChanged)
+                bool isCreator = effect.Kind == ActiveEffectKind.AddedExecution;
+                if (effect.Kind != ActiveEffectKind.Reaction && !isCreator)
+                    continue;
+
+                if (effect.Trigger.EventSubtype != ExecutionEventSubtypes.QuantityChanged)
+                    continue;
+
+                if (isCreator && !occurrence.FromPrimaryOperation)
                     continue;
 
                 if (!_ledger.IsEligible(effect))
                     continue;
 
+                if (isCreator && occurrence.BranchLineage.Contains(effect.Origin))
+                {
+                    nearMisses ??= new List<EffectNearMiss>();
+                    nearMisses.Add(new EffectNearMiss(effect, OriginLockRequirement + effect.Origin.ToString()));
+                    continue;
+                }
+
                 TriggerQualifier failed = FirstFailedQuantityQualifier(effect, occurrence);
+                if (failed != null)
+                {
+                    nearMisses ??= new List<EffectNearMiss>();
+                    nearMisses.Add(new EffectNearMiss(effect, failed.Kind + ":" + failed.Value));
+                    continue;
+                }
+
+                if (isCreator)
+                {
+                    creators ??= new List<ActiveEffect>();
+                    InsertQualified(creators, effect);
+                    continue;
+                }
+
+                qualified ??= new List<ActiveEffect>();
+                InsertQualified(qualified, effect);
+            }
+
+            return ToBatch(qualified, nearMisses, null, creators);
+        }
+
+        /// <summary>
+        /// Matches added-execution creators against a closed runtime unit at the post-unit band. An
+        /// unsuccessful closure cannot qualify a creator, silently — canon requires a successfully
+        /// resolving unit, so an unsuccessful one was never a candidate.
+        /// </summary>
+        /// <param name="occurrence">The post-unit occurrence.</param>
+        /// <returns>The captured batch, or the shared empty batch.</returns>
+        /// <exception cref="ArgumentException">Thrown when the occurrence is null.</exception>
+        public EffectMatchBatch MatchPostUnit(PostUnitOccurrence occurrence)
+        {
+            if (occurrence == null)
+                throw new ArgumentException("Matching requires an occurrence.", nameof(occurrence));
+
+            if (occurrence.FinalDisposition != EventDisposition.Resolved && occurrence.FinalDisposition != EventDisposition.Rescued)
+                return EffectMatchBatch.Empty;
+
+            List<EffectNearMiss> nearMisses = null;
+            List<ActiveEffect> creators = null;
+
+            for (int i = 0; i < _registered.Count; i++)
+            {
+                ActiveEffect effect = _registered[i];
+                if (effect.Kind != ActiveEffectKind.AddedExecution || effect.Trigger.EventSubtype != ExecutionEventSubtypes.RuntimeUnitCompleted)
+                    continue;
+
+                if (!_ledger.IsEligible(effect))
+                    continue;
+
+                if (occurrence.BranchLineage.Contains(effect.Origin))
+                {
+                    nearMisses ??= new List<EffectNearMiss>();
+                    nearMisses.Add(new EffectNearMiss(effect, OriginLockRequirement + effect.Origin.ToString()));
+                    continue;
+                }
+
+                TriggerQualifier failed = FirstFailedPostUnitQualifier(effect, occurrence);
+                if (failed != null)
+                {
+                    nearMisses ??= new List<EffectNearMiss>();
+                    nearMisses.Add(new EffectNearMiss(effect, failed.Kind + ":" + failed.Value));
+                    continue;
+                }
+
+                creators ??= new List<ActiveEffect>();
+                InsertQualified(creators, effect);
+            }
+
+            return ToBatch(null, nearMisses, null, creators);
+        }
+
+        /// <summary>
+        /// Matches added-execution creators against a successful Condition evaluation at the
+        /// post-unit band. An evaluation with no occupied child offers no legal host, so no creator
+        /// was ever a candidate — silent, and nothing is consumed.
+        /// </summary>
+        /// <param name="occurrence">The Condition-success occurrence.</param>
+        /// <returns>The captured batch, or the shared empty batch.</returns>
+        /// <exception cref="ArgumentException">Thrown when the occurrence is null.</exception>
+        public EffectMatchBatch MatchConditionSuccess(ConditionSuccessOccurrence occurrence)
+        {
+            if (occurrence == null)
+                throw new ArgumentException("Matching requires an occurrence.", nameof(occurrence));
+
+            if (occurrence.FirstOccupiedChild == null)
+                return EffectMatchBatch.Empty;
+
+            List<EffectNearMiss> nearMisses = null;
+            List<ActiveEffect> creators = null;
+
+            for (int i = 0; i < _registered.Count; i++)
+            {
+                ActiveEffect effect = _registered[i];
+                if (effect.Kind != ActiveEffectKind.AddedExecution || effect.Trigger.EventSubtype != ExecutionEventSubtypes.ConditionTrue)
+                    continue;
+
+                if (!_ledger.IsEligible(effect))
+                    continue;
+
+                if (occurrence.BranchLineage.Contains(effect.Origin))
+                {
+                    nearMisses ??= new List<EffectNearMiss>();
+                    nearMisses.Add(new EffectNearMiss(effect, OriginLockRequirement + effect.Origin.ToString()));
+                    continue;
+                }
+
+                creators ??= new List<ActiveEffect>();
+                InsertQualified(creators, effect);
+            }
+
+            return ToBatch(null, nearMisses, null, creators);
+        }
+
+        /// <summary>
+        /// Matches boundary effects declaring the reached boundary against its register snapshot.
+        /// Boundary effects resolve in place; they never create requests.
+        /// </summary>
+        /// <param name="occurrence">The boundary occurrence.</param>
+        /// <returns>The captured batch, or the shared empty batch.</returns>
+        /// <exception cref="ArgumentException">Thrown when the occurrence is null.</exception>
+        public EffectMatchBatch MatchBoundary(BoundaryOccurrence occurrence)
+        {
+            if (occurrence == null)
+                throw new ArgumentException("Matching requires an occurrence.", nameof(occurrence));
+
+            List<ActiveEffect> qualified = null;
+            List<EffectNearMiss> nearMisses = null;
+
+            for (int i = 0; i < _registered.Count; i++)
+            {
+                ActiveEffect effect = _registered[i];
+                if (effect.Kind != ActiveEffectKind.Boundary || effect.BoundaryName != occurrence.BoundaryName)
+                    continue;
+
+                if (!_ledger.IsEligible(effect))
+                    continue;
+
+                TriggerQualifier failed = FirstFailedBoundaryQualifier(effect, occurrence);
                 if (failed != null)
                 {
                     nearMisses ??= new List<EffectNearMiss>();
@@ -111,7 +273,7 @@ namespace Iterate.Domain.Execution
                 InsertQualified(qualified, effect);
             }
 
-            return ToBatch(qualified, nearMisses, null);
+            return ToBatch(qualified, nearMisses, null, null);
         }
 
         /// <summary>
@@ -145,7 +307,7 @@ namespace Iterate.Domain.Execution
                 InsertQualified(qualified, effect);
             }
 
-            return ToBatch(qualified, null, null);
+            return ToBatch(qualified, null, null, null);
         }
 
         /// <summary>
@@ -240,7 +402,7 @@ namespace Iterate.Domain.Execution
                 InsertQualified(qualified, effect);
             }
 
-            return ToBatch(qualified, nearMisses, reapplications);
+            return ToBatch(qualified, nearMisses, reapplications, null);
         }
 
         /// <summary>
@@ -273,6 +435,42 @@ namespace Iterate.Domain.Execution
             for (int i = 0; i < qualifiers.Count; i++)
             {
                 if (!EvaluateQuantityQualifier(qualifiers[i], occurrence))
+                    return qualifiers[i];
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Returns the first qualifier the post-unit occurrence fails, or null when all pass.
+        /// </summary>
+        /// <param name="effect">The candidate effect.</param>
+        /// <param name="occurrence">The post-unit occurrence.</param>
+        /// <returns>The first failing qualifier, or null.</returns>
+        private static TriggerQualifier FirstFailedPostUnitQualifier(ActiveEffect effect, PostUnitOccurrence occurrence)
+        {
+            IReadOnlyList<TriggerQualifier> qualifiers = effect.Trigger.Qualifiers;
+            for (int i = 0; i < qualifiers.Count; i++)
+            {
+                if (!EvaluatePostUnitQualifier(qualifiers[i], occurrence))
+                    return qualifiers[i];
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Returns the first qualifier the boundary occurrence fails, or null when all pass.
+        /// </summary>
+        /// <param name="effect">The candidate effect.</param>
+        /// <param name="occurrence">The boundary occurrence.</param>
+        /// <returns>The first failing qualifier, or null.</returns>
+        private static TriggerQualifier FirstFailedBoundaryQualifier(ActiveEffect effect, BoundaryOccurrence occurrence)
+        {
+            IReadOnlyList<TriggerQualifier> qualifiers = effect.Trigger.Qualifiers;
+            for (int i = 0; i < qualifiers.Count; i++)
+            {
+                if (!EvaluateBoundaryQualifier(qualifiers[i], effect.Trigger.Qualifiers, occurrence))
                     return qualifiers[i];
             }
 
@@ -343,6 +541,96 @@ namespace Iterate.Domain.Execution
 
                 default:
                     return false;
+            }
+        }
+
+        /// <summary>
+        /// Evaluates one qualifier against a closed unit's retained context. The Repeat-context
+        /// qualifier passes only when the unit executed inside an active Repeat iteration.
+        /// </summary>
+        /// <param name="qualifier">The qualifier to evaluate.</param>
+        /// <param name="occurrence">The post-unit occurrence.</param>
+        /// <returns>True when the occurrence satisfies the qualifier.</returns>
+        private static bool EvaluatePostUnitQualifier(TriggerQualifier qualifier, PostUnitOccurrence occurrence)
+        {
+            if (qualifier.Kind != "STRUCTURE_CONTEXT" || qualifier.Value != "INSIDE_REPEAT")
+                return false;
+
+            return occurrence.StructureContext != null && occurrence.StructureContext.RepeatIterationIdentity != null;
+        }
+
+        /// <summary>
+        /// Evaluates one qualifier against a boundary's register snapshot. The register qualifier
+        /// names what the boundary reads and always passes; the parity qualifier tests that named
+        /// register's snapshot.
+        /// </summary>
+        /// <param name="qualifier">The qualifier to evaluate.</param>
+        /// <param name="declared">The effect's full qualifier list, for resolving the named register.</param>
+        /// <param name="occurrence">The boundary occurrence.</param>
+        /// <returns>True when the occurrence satisfies the qualifier.</returns>
+        private static bool EvaluateBoundaryQualifier(
+            TriggerQualifier qualifier,
+            IReadOnlyList<TriggerQualifier> declared,
+            BoundaryOccurrence occurrence
+        )
+        {
+            switch (qualifier.Kind)
+            {
+                case "REGISTER":
+                    return true;
+
+                case "PARITY":
+                    if (qualifier.Value != "ODD")
+                        return false;
+
+                    int snapshot = SnapshotOf(DeclaredRegisterToken(declared), occurrence);
+                    return snapshot % 2 != 0;
+
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Returns the register token the effect's qualifier list names, or the Value token when none
+        /// is declared — the interpreter requires a register qualifier alongside parity, so the
+        /// fallback is unreachable for parity evaluation.
+        /// </summary>
+        /// <param name="declared">The effect's qualifier list.</param>
+        /// <returns>The declared register token.</returns>
+        private static string DeclaredRegisterToken(IReadOnlyList<TriggerQualifier> declared)
+        {
+            for (int i = 0; i < declared.Count; i++)
+            {
+                if (declared[i].Kind == "REGISTER")
+                    return declared[i].Value;
+            }
+
+            return "VALUE";
+        }
+
+        /// <summary>
+        /// Returns the boundary snapshot of the named register.
+        /// </summary>
+        /// <param name="registerToken">The controlled register token.</param>
+        /// <param name="occurrence">The boundary occurrence.</param>
+        /// <returns>The named register's snapshot.</returns>
+        /// <exception cref="ArgumentException">Thrown when the token is not a known register.</exception>
+        private static int SnapshotOf(string registerToken, BoundaryOccurrence occurrence)
+        {
+            switch (registerToken)
+            {
+                case "VALUE":
+                    return occurrence.Value;
+
+                case "SIGNAL":
+                    return occurrence.Signal;
+
+                case "SCORE":
+                    return occurrence.Score;
+
+                default:
+                    throw new ArgumentException($"Unknown register token {registerToken}.", nameof(registerToken));
             }
         }
 
@@ -434,25 +722,28 @@ namespace Iterate.Domain.Execution
 
         /// <summary>
         /// Wraps the collected lists in a batch, or returns the shared empty batch when nothing
-        /// qualified, near-missed, or re-applied.
+        /// qualified, near-missed, re-applied, or created.
         /// </summary>
         /// <param name="qualified">The qualified effects, or null.</param>
         /// <param name="nearMisses">The near-misses, or null.</param>
         /// <param name="reapplications">The selected-host re-applications, or null.</param>
+        /// <param name="creators">The qualified added-execution creators, or null.</param>
         /// <returns>The batch.</returns>
         private static EffectMatchBatch ToBatch(
             List<ActiveEffect> qualified,
             List<EffectNearMiss> nearMisses,
-            List<ActiveEffect> reapplications
+            List<ActiveEffect> reapplications,
+            List<ActiveEffect> creators
         )
         {
-            if (qualified == null && nearMisses == null && reapplications == null)
+            if (qualified == null && nearMisses == null && reapplications == null && creators == null)
                 return EffectMatchBatch.Empty;
 
             return new EffectMatchBatch(
                 qualified ?? (IReadOnlyList<ActiveEffect>)Array.Empty<ActiveEffect>(),
                 nearMisses ?? (IReadOnlyList<EffectNearMiss>)Array.Empty<EffectNearMiss>(),
-                reapplications ?? (IReadOnlyList<ActiveEffect>)Array.Empty<ActiveEffect>()
+                reapplications ?? (IReadOnlyList<ActiveEffect>)Array.Empty<ActiveEffect>(),
+                creators ?? (IReadOnlyList<ActiveEffect>)Array.Empty<ActiveEffect>()
             );
         }
     }

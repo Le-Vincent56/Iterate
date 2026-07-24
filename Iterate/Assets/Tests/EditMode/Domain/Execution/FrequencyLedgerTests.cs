@@ -8,9 +8,9 @@ using Iterate.Domain.Values;
 namespace Iterate.Domain.Execution.Tests
 {
     /// <summary>
-    /// Tests the per-execution <see cref="FrequencyLedger"/>: first-qualifying keys consume exactly
-    /// once per execution and reset on clear, every-qualifying effects never consume, and distinct
-    /// frequency keys consume independently.
+    /// Tests the per-execution <see cref="FrequencyLedger"/>: first-qualifying and once-per-execution
+    /// keys consume exactly once per execution and reset on clear, every-qualifying effects never
+    /// consume, and distinct frequency keys consume independently.
     /// </summary>
     public sealed class FrequencyLedgerTests
     {
@@ -39,6 +39,34 @@ namespace Iterate.Domain.Execution.Tests
             ledger.Consume(effect);
 
             Assert.IsTrue(ledger.IsEligible(effect));
+        }
+
+        [Test]
+        public void Once_EligibleFresh_ConsumedThenClearedRestores()
+        {
+            FrequencyLedger ledger = new FrequencyLedger();
+            ActiveEffect effect = Effect("WB-DIR-001", 0, 7, "ONCE");
+
+            Assert.IsTrue(ledger.IsEligible(effect));
+
+            ledger.Consume(effect);
+            Assert.IsFalse(ledger.IsEligible(effect));
+
+            ledger.Clear();
+            Assert.IsTrue(ledger.IsEligible(effect));
+        }
+
+        [Test]
+        public void Once_DistinctInstances_ConsumeIndependently()
+        {
+            FrequencyLedger ledger = new FrequencyLedger();
+            ActiveEffect first = Effect("WB-DIR-001", 0, 7, "ONCE");
+            ActiveEffect second = Effect("WB-DIR-001", 0, 8, "ONCE");
+
+            ledger.Consume(first);
+
+            Assert.IsFalse(ledger.IsEligible(first));
+            Assert.IsTrue(ledger.IsEligible(second));
         }
 
         [Test]
@@ -88,14 +116,12 @@ namespace Iterate.Domain.Execution.Tests
                 new List<TriggerQualifier> { new TriggerQualifier("REGISTER", "SIGNAL") },
                 timing);
 
-            return new ActiveEffect(
+            return ActiveEffect.ForReaction(
                 new InstanceID(instance),
                 definitionID,
                 effectIndex,
                 trigger,
-                ActiveEffectKind.Reaction,
                 new QuantityChangeOperation(CoreRegister.Value, QuantityOperator.Add, OperandSpec.FromConstant(1)),
-                null,
                 new EffectFrequency(allowance, "EXECUTION"));
         }
     }

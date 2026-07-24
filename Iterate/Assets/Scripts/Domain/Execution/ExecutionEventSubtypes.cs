@@ -157,5 +157,45 @@ namespace Iterate.Domain.Execution
         /// The disposition subtype marking a skipped source execution transformed to continue by a rescue.
         /// </summary>
         public const string SourceExecutionRescued = "SOURCE_EXECUTION_RESCUED";
+
+        /// <summary>
+        /// The added-execution subtype marking one distinct request created by a committed creator
+        /// effect.
+        /// </summary>
+        public const string AddedExecutionRequested = "ADDED_EXECUTION_REQUESTED";
+
+        /// <summary>
+        /// The added-execution subtype marking a requested descendant source execution beginning.
+        /// </summary>
+        public const string AddedExecutionStarted = "ADDED_EXECUTION_STARTED";
+
+        /// <summary>
+        /// The added-execution subtype marking a descendant source execution completing after its
+        /// runtime unit closes.
+        /// </summary>
+        public const string AddedExecutionCompleted = "ADDED_EXECUTION_COMPLETED";
+
+        /// <summary>
+        /// The added-execution subtype marking a committed request cancelled with a recorded reason,
+        /// its consumed allowance retained.
+        /// </summary>
+        public const string AddedExecutionCancelled = "ADDED_EXECUTION_CANCELLED";
+
+        /// <summary>
+        /// The reaction subtype marking a boundary effect requested at its named scheduling boundary.
+        /// </summary>
+        public const string BoundaryEffectRequested = "BOUNDARY_EFFECT_REQUESTED";
+
+        /// <summary>
+        /// The reaction subtype marking a boundary effect resolved without executing any source
+        /// object.
+        /// </summary>
+        public const string BoundaryEffectResolved = "BOUNDARY_EFFECT_RESOLVED";
+
+        /// <summary>
+        /// The lifecycle subtype naming runtime-unit completion; trigger vocabulary only at this
+        /// content — the scheduler emits no event with it.
+        /// </summary>
+        public const string RuntimeUnitCompleted = "RUNTIME_UNIT_COMPLETED";
     }
 }

@@ -21,6 +21,44 @@ namespace Iterate.Domain.Execution.Tests
         }
 
         [Test]
+        public void EvaluateBoundaryEffect_ConstantAddition_ComputesWithoutAPosition()
+        {
+            QuantityChangeOperation operation = new(CoreRegister.Value, QuantityOperator.Add, OperandSpec.FromConstant(1));
+
+            EvaluatedOperation result = OperationEvaluator.EvaluateBoundaryEffect(operation, Seeded());
+
+            Assert.AreEqual(CoreRegister.Value, result.Register);
+            Assert.AreEqual(QuantityOperationType.Increase, result.OperationType);
+            Assert.AreEqual(ExecutionEventSubtypes.QuantityChanged, result.Subtype);
+            Assert.AreEqual(1, result.RequestedAmount);
+            Assert.AreEqual(5, result.PriorValue);
+            Assert.AreEqual(6, result.FinalValue);
+            Assert.AreEqual(1, result.FinalDelta);
+        }
+
+        [Test]
+        public void EvaluateBoundaryEffect_RegisterOperand_Throws()
+        {
+            QuantityChangeOperation operation = new(CoreRegister.Value, QuantityOperator.Add, OperandSpec.FromRegister(CoreRegister.Signal));
+
+            Assert.Throws<ArgumentException>(() => OperationEvaluator.EvaluateBoundaryEffect(operation, Seeded()));
+        }
+
+        [Test]
+        public void EvaluateBoundaryEffect_LineNumberOperand_Throws()
+        {
+            QuantityChangeOperation operation = new(CoreRegister.Value, QuantityOperator.Add, OperandSpec.FromLineNumber());
+
+            Assert.Throws<ArgumentException>(() => OperationEvaluator.EvaluateBoundaryEffect(operation, Seeded()));
+        }
+
+        [Test]
+        public void EvaluateBoundaryEffect_NullOperation_Throws()
+        {
+            Assert.Throws<ArgumentException>(() => OperationEvaluator.EvaluateBoundaryEffect(null, Seeded()));
+        }
+
+        [Test]
         public void EvaluateCoreLine_Assign_ClassifiesAndComputes()
         {
             CoreLineOperation operation = new(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(1));

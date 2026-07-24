@@ -269,14 +269,32 @@ namespace Iterate.Domain.Trace.Tests
         }
 
         [Test]
-        public void OpenUnit_ClosedParentUnit_Throws()
+        public void OpenUnit_ClosedParentUnit_Succeeds()
         {
             ExecutionTraceBuilder builder = new();
             builder.Begin(Header());
             RuntimeUnitID u1 = builder.OpenUnit(CanonicalOpening());
             builder.CompleteUnit(u1, Closure());
 
-            Assert.Throws<ArgumentException>(() => builder.OpenUnit(AddedOpening(u1)));
+            RuntimeUnitID descendant = builder.OpenUnit(AddedOpening(u1));
+
+            Assert.That(descendant, Is.EqualTo(new RuntimeUnitID(2)));
+        }
+
+        [Test]
+        public void Finalize_ClosedParentUnit_StillDerivesDescendantUnits()
+        {
+            ExecutionTraceBuilder builder = new();
+            builder.Begin(Header());
+            RuntimeUnitID u1 = builder.OpenUnit(CanonicalOpening());
+            builder.CompleteUnit(u1, Closure());
+            RuntimeUnitID u2 = builder.OpenUnit(AddedOpening(u1));
+            builder.CompleteUnit(u2, Closure());
+
+            ExecutionRecord record = builder.Finalize(
+                ExecutionCompletionStatus.Completed, SafetyStatus.Normal, ZeroCounts(), FinalState());
+
+            Assert.That(record.Units[0].DescendantUnits, Is.EqualTo(new[] { u2 }));
         }
 
         [Test]

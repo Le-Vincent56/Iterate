@@ -304,7 +304,7 @@ namespace Iterate.Domain.Execution.Tests
         }
 
         [Test]
-        public void Interpret_LifecycleTriggerFamily_ThrowsNamingToken()
+        public void Interpret_QuantityChangeOnPostUnitPair_ThrowsNamingKind()
         {
             EffectDefinition effect = Effect(
                 Trigger(EventFamily.Lifecycle, "RUNTIME_UNIT_COMPLETED", "POST_UNIT_CONSEQUENCE_AND_EVIDENCE"),
@@ -314,11 +314,11 @@ namespace Iterate.Domain.Execution.Tests
 
             ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
 
-            StringAssert.Contains("RUNTIME_UNIT_COMPLETED", exception.Message);
+            StringAssert.Contains("QuantityChange", exception.Message);
         }
 
         [Test]
-        public void Interpret_StructureTriggerFamily_ThrowsNamingToken()
+        public void Interpret_ConditionTrueOnReactionBand_ThrowsNamingToken()
         {
             EffectDefinition effect = Effect(
                 Trigger(EventFamily.Structure, "CONDITION_TRUE", "IMMEDIATE_RESULT_REACTION"),
@@ -332,7 +332,7 @@ namespace Iterate.Domain.Execution.Tests
         }
 
         [Test]
-        public void Interpret_AddedExecutionRequestOperation_ThrowsNamingKind()
+        public void Interpret_QualifierFreeAddedExecutionRequest_YieldsAddedExecution()
         {
             EffectDefinition effect = Effect(
                 ReactionTrigger("QUANTITY_CHANGED", EventFamily.Quantity),
@@ -340,9 +340,12 @@ namespace Iterate.Domain.Execution.Tests
                 Frequency("EVERY_QUALIFYING_EVENT"));
             DependencyInstance dependency = Instance(1, Dependency("WB-DEP-947", effect));
 
-            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+            IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(dependency);
 
-            StringAssert.Contains("AddedExecutionRequest", exception.Message);
+            Assert.AreEqual(1, effects.Count);
+            Assert.AreEqual(ActiveEffectKind.AddedExecution, effects[0].Kind);
+            Assert.AreEqual("TRIGGERING_UNIT", effects[0].Request.Target.Kind);
+            Assert.IsNull(effects[0].Operation);
         }
 
         [Test]
@@ -357,6 +360,307 @@ namespace Iterate.Domain.Execution.Tests
             ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
 
             StringAssert.Contains("LineNumber", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_OverclockShape_YieldsAddedExecution()
+        {
+            DependencyInstance dependency = Instance(6, Dependency("WB-DIR-901", OverclockEffect(false)));
+
+            IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(dependency);
+
+            Assert.AreEqual(1, effects.Count);
+            ActiveEffect effect = effects[0];
+            Assert.AreEqual(ActiveEffectKind.AddedExecution, effect.Kind);
+            Assert.AreEqual("TRIGGERING_UNIT", effect.Request.Target.Kind);
+            Assert.IsFalse(effect.Request.CancelOnInvalid);
+            Assert.IsNull(effect.Operation);
+            Assert.IsNull(effect.BoundaryName);
+            Assert.AreEqual("ONCE", effect.Frequency.Allowance);
+        }
+
+        [Test]
+        public void Interpret_PreFixOverclockShape_StillInterprets()
+        {
+            EffectDefinition effect = Effect(
+                ReactionTrigger(
+                    "QUANTITY_CHANGED",
+                    EventFamily.Quantity,
+                    Qualifier("ACTUAL_DELTA_SIGN", "POSITIVE"),
+                    Qualifier("REGISTER", "VALUE")),
+                new AddedExecutionRequestOperation(new TargetingRule("TRIGGERING_UNIT", string.Empty), false),
+                new EffectFrequency("ONCE", "EXECUTION"));
+            DependencyInstance dependency = Instance(6, Dependency("WB-DIR-902", effect));
+
+            IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(dependency);
+
+            Assert.AreEqual(1, effects.Count);
+            Assert.AreEqual(ActiveEffectKind.AddedExecution, effects[0].Kind);
+        }
+
+        [Test]
+        public void Interpret_LoopUnrollerShape_YieldsAddedExecution()
+        {
+            DependencyInstance dependency = Instance(7, Dependency("WB-DEP-950", LoopUnrollerEffect()));
+
+            IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(dependency);
+
+            Assert.AreEqual(1, effects.Count);
+            ActiveEffect effect = effects[0];
+            Assert.AreEqual(ActiveEffectKind.AddedExecution, effect.Kind);
+            Assert.AreEqual("RUNTIME_UNIT_COMPLETED", effect.Trigger.EventSubtype);
+            Assert.AreEqual("TRIGGERING_UNIT", effect.Request.Target.Kind);
+            Assert.AreEqual("FIRST_QUALIFYING_EVENT", effect.Frequency.Allowance);
+        }
+
+        [Test]
+        public void Interpret_BranchPredictorShape_YieldsAddedExecution()
+        {
+            DependencyInstance dependency = Instance(8, Dependency("WB-DEP-951", BranchPredictorEffect()));
+
+            IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(dependency);
+
+            Assert.AreEqual(1, effects.Count);
+            ActiveEffect effect = effects[0];
+            Assert.AreEqual(ActiveEffectKind.AddedExecution, effect.Kind);
+            Assert.AreEqual("CONDITION_TRUE", effect.Trigger.EventSubtype);
+            Assert.AreEqual("FIRST_CONTAINED_INSTRUCTION", effect.Request.Target.Kind);
+        }
+
+        [Test]
+        public void Interpret_AlignShape_YieldsBoundary()
+        {
+            DependencyInstance dependency = Instance(9, Dependency("WB-DIR-903", AlignEffect()));
+
+            IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(dependency);
+
+            Assert.AreEqual(1, effects.Count);
+            ActiveEffect effect = effects[0];
+            Assert.AreEqual(ActiveEffectKind.Boundary, effect.Kind);
+            Assert.AreEqual("END_OF_PLAYER_CONTROLLED_SOURCE_TRAVERSAL", effect.BoundaryName);
+            Assert.IsNotNull(effect.Operation);
+            Assert.AreEqual(CoreRegister.Value, effect.Operation.Register);
+            Assert.IsNull(effect.Request);
+            Assert.AreEqual("ONCE", effect.Frequency.Allowance);
+        }
+
+        [Test]
+        public void Interpret_PreFixAlignFamily_ThrowsNamingPair()
+        {
+            EffectDefinition effect = Effect(
+                new TriggerDescriptor(
+                    EventFamily.Lifecycle,
+                    "BOUNDARY_EFFECT_REQUESTED",
+                    new List<TriggerQualifier> { Qualifier("PARITY", "ODD"), Qualifier("REGISTER", "VALUE") },
+                    new EffectTiming(TimingKind.NamedBoundary, "END_OF_PLAYER_CONTROLLED_SOURCE_TRAVERSAL")),
+                Operation(),
+                new EffectFrequency("ONCE", "EXECUTION"));
+            DependencyInstance dependency = Instance(1, Dependency("WB-DIR-904", effect));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("BOUNDARY_EFFECT_REQUESTED", exception.Message);
+            StringAssert.Contains("Lifecycle", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_Directive_YieldsDirectiveOrigin()
+        {
+            DirectiveInstance directive = new DirectiveInstance(new InstanceID(21), Directive("WB-DIR-905", OverclockEffect(false)));
+
+            IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(directive);
+
+            Assert.AreEqual(1, effects.Count);
+            Assert.AreEqual(new InstanceID(21), effects[0].Origin);
+            Assert.AreEqual("WB-DIR-905", effects[0].DefinitionID);
+            Assert.AreEqual(ActiveEffectKind.AddedExecution, effects[0].Kind);
+            Assert.AreEqual("WB-DIR-905:0#21", effects[0].FrequencyKey);
+        }
+
+        [Test]
+        public void Interpret_NullDirective_Throws()
+        {
+            Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret((DirectiveInstance)null));
+        }
+
+        [Test]
+        public void Interpret_OnceAllowanceOnReaction_Accepted()
+        {
+            EffectDefinition effect = Effect(
+                ReactionTrigger("QUANTITY_CHANGED", EventFamily.Quantity),
+                Operation(),
+                new EffectFrequency("ONCE", "EXECUTION"));
+            DependencyInstance dependency = Instance(1, Dependency("WB-DEP-952", effect));
+
+            IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(dependency);
+
+            Assert.AreEqual("ONCE", effects[0].Frequency.Allowance);
+        }
+
+        [Test]
+        public void Interpret_UpToNAllowance_ThrowsNamingToken()
+        {
+            EffectDefinition effect = Effect(
+                ReactionTrigger("QUANTITY_CHANGED", EventFamily.Quantity),
+                Operation(),
+                new EffectFrequency("UP_TO_N", "EXECUTION"));
+            DependencyInstance dependency = Instance(1, Dependency("WB-DEP-953", effect));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("UP_TO_N", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_CancelOnInvalidTrue_Throws()
+        {
+            DependencyInstance dependency = Instance(1, Dependency("WB-DIR-906", OverclockEffect(true)));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("CancelOnInvalid", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_LockedTargetTargeting_ThrowsNamingToken()
+        {
+            EffectDefinition effect = Effect(
+                ReactionTrigger("QUANTITY_CHANGED", EventFamily.Quantity),
+                new AddedExecutionRequestOperation(new TargetingRule("LOCKED_TARGET", string.Empty), false),
+                new EffectFrequency("ONCE", "EXECUTION"));
+            DependencyInstance dependency = Instance(1, Dependency("WB-DIR-907", effect));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("LOCKED_TARGET", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_MostRecentQualifyingUnitTargeting_ThrowsNamingToken()
+        {
+            EffectDefinition effect = Effect(
+                ReactionTrigger("QUANTITY_CHANGED", EventFamily.Quantity),
+                new AddedExecutionRequestOperation(new TargetingRule("MOST_RECENT_QUALIFYING_UNIT", string.Empty), false),
+                new EffectFrequency("ONCE", "EXECUTION"));
+            DependencyInstance dependency = Instance(1, Dependency("WB-DIR-908", effect));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("MOST_RECENT_QUALIFYING_UNIT", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_FirstContainedInstructionOnQuantityPair_ThrowsNamingToken()
+        {
+            EffectDefinition effect = Effect(
+                ReactionTrigger("QUANTITY_CHANGED", EventFamily.Quantity),
+                new AddedExecutionRequestOperation(new TargetingRule("FIRST_CONTAINED_INSTRUCTION", string.Empty), false),
+                new EffectFrequency("ONCE", "EXECUTION"));
+            DependencyInstance dependency = Instance(1, Dependency("WB-DIR-909", effect));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("FIRST_CONTAINED_INSTRUCTION", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_TargetLockUpdateOperation_ThrowsNamingKind()
+        {
+            EffectDefinition effect = Effect(
+                ReactionTrigger("QUANTITY_CHANGED", EventFamily.Quantity),
+                new TargetLockUpdateOperation(new TargetingRule("MOST_RECENT_QUALIFYING_UNIT", string.Empty)),
+                new EffectFrequency("EVERY_QUALIFYING_EVENT", "DECLARED_SCOPE"));
+            DependencyInstance dependency = Instance(1, Dependency("WB-DIR-910", effect));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("TargetLockUpdate", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_UnwiredBoundaryName_ThrowsNamingToken()
+        {
+            EffectDefinition effect = Effect(
+                new TriggerDescriptor(
+                    EventFamily.Reaction,
+                    "BOUNDARY_EFFECT_REQUESTED",
+                    new List<TriggerQualifier> { Qualifier("PARITY", "ODD"), Qualifier("REGISTER", "VALUE") },
+                    new EffectTiming(TimingKind.NamedBoundary, "BEFORE_DESIGNATED_CORE_OUTPUT")),
+                Operation(),
+                new EffectFrequency("ONCE", "EXECUTION"));
+            DependencyInstance dependency = Instance(1, Dependency("WB-DIR-911", effect));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("BEFORE_DESIGNATED_CORE_OUTPUT", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_StructureContextOnQuantityPair_ThrowsNamingToken()
+        {
+            EffectDefinition effect = Effect(
+                ReactionTrigger("QUANTITY_CHANGED", EventFamily.Quantity, Qualifier("STRUCTURE_CONTEXT", "INSIDE_REPEAT")),
+                new AddedExecutionRequestOperation(new TargetingRule("TRIGGERING_UNIT", string.Empty), false),
+                new EffectFrequency("ONCE", "EXECUTION"));
+            DependencyInstance dependency = Instance(1, Dependency("WB-DEP-954", effect));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("STRUCTURE_CONTEXT", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_ParityWithoutRegister_ThrowsNamingToken()
+        {
+            EffectDefinition effect = Effect(
+                new TriggerDescriptor(
+                    EventFamily.Reaction,
+                    "BOUNDARY_EFFECT_REQUESTED",
+                    new List<TriggerQualifier> { Qualifier("PARITY", "ODD") },
+                    new EffectTiming(TimingKind.NamedBoundary, "END_OF_PLAYER_CONTROLLED_SOURCE_TRAVERSAL")),
+                Operation(),
+                new EffectFrequency("ONCE", "EXECUTION"));
+            DependencyInstance dependency = Instance(1, Dependency("WB-DIR-912", effect));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("PARITY", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_QualifierOnConditionTruePair_ThrowsNamingToken()
+        {
+            EffectDefinition effect = Effect(
+                new TriggerDescriptor(
+                    EventFamily.Structure,
+                    "CONDITION_TRUE",
+                    new List<TriggerQualifier> { Qualifier("REGISTER", "VALUE") },
+                    new EffectTiming(TimingKind.Band, "POST_UNIT_CONSEQUENCE_AND_EVIDENCE")),
+                new AddedExecutionRequestOperation(new TargetingRule("FIRST_CONTAINED_INSTRUCTION", string.Empty), false),
+                new EffectFrequency("FIRST_QUALIFYING_EVENT", "EXECUTION"));
+            DependencyInstance dependency = Instance(1, Dependency("WB-DEP-955", effect));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("REGISTER", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_TriggeringUnitOnConditionTruePair_ThrowsNamingToken()
+        {
+            EffectDefinition effect = Effect(
+                new TriggerDescriptor(
+                    EventFamily.Structure,
+                    "CONDITION_TRUE",
+                    new List<TriggerQualifier>(),
+                    new EffectTiming(TimingKind.Band, "POST_UNIT_CONSEQUENCE_AND_EVIDENCE")),
+                new AddedExecutionRequestOperation(new TargetingRule("TRIGGERING_UNIT", string.Empty), false),
+                new EffectFrequency("FIRST_QUALIFYING_EVENT", "EXECUTION"));
+            DependencyInstance dependency = Instance(1, Dependency("WB-DEP-956", effect));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("TRIGGERING_UNIT", exception.Message);
         }
 
         /// <summary>
@@ -558,6 +862,94 @@ namespace Iterate.Domain.Execution.Tests
         private static EffectFrequency Frequency(string allowance)
         {
             return new EffectFrequency(allowance, "EXECUTION");
+        }
+
+        /// <summary>
+        /// Builds a frozen Directive definition carrying the given effects.
+        /// </summary>
+        /// <param name="id">The definition's surrogate-key identity.</param>
+        /// <param name="effects">The declarative effects.</param>
+        /// <returns>The frozen definition.</returns>
+        private static DirectiveDefinition Directive(string id, params EffectDefinition[] effects)
+        {
+            return new DirectiveDefinition(
+                new DirectiveID(id),
+                "Test rules.",
+                "TEST DIRECTIVE",
+                ContentCategory.Directive,
+                Rarity.Uncommon,
+                new List<string>(),
+                effects);
+        }
+
+        /// <summary>
+        /// The post-fix OVERCLOCK-shaped effect: the first positive player Value gain requests one
+        /// added execution of the triggering unit, once per execution.
+        /// </summary>
+        /// <param name="cancelOnInvalid">The operation's cancel-on-invalid flag.</param>
+        /// <returns>The effect definition.</returns>
+        private static EffectDefinition OverclockEffect(bool cancelOnInvalid)
+        {
+            return Effect(
+                ReactionTrigger(
+                    "QUANTITY_CHANGED",
+                    EventFamily.Quantity,
+                    Qualifier("ACTUAL_DELTA_SIGN", "POSITIVE"),
+                    Qualifier("REGISTER", "VALUE"),
+                    Qualifier("OPERATION_CLASS", "PLAYER_INSTRUCTION")),
+                new AddedExecutionRequestOperation(new TargetingRule("TRIGGERING_UNIT", string.Empty), cancelOnInvalid),
+                new EffectFrequency("ONCE", "EXECUTION"));
+        }
+
+        /// <summary>
+        /// The LOOP-UNROLLER-shaped effect: the first Repeat-context runtime-unit completion requests
+        /// one added execution of the triggering unit.
+        /// </summary>
+        /// <returns>The effect definition.</returns>
+        private static EffectDefinition LoopUnrollerEffect()
+        {
+            return Effect(
+                new TriggerDescriptor(
+                    EventFamily.Lifecycle,
+                    "RUNTIME_UNIT_COMPLETED",
+                    new List<TriggerQualifier> { Qualifier("STRUCTURE_CONTEXT", "INSIDE_REPEAT") },
+                    new EffectTiming(TimingKind.Band, "POST_UNIT_CONSEQUENCE_AND_EVIDENCE")),
+                new AddedExecutionRequestOperation(new TargetingRule("TRIGGERING_UNIT", string.Empty), false),
+                Frequency("FIRST_QUALIFYING_EVENT"));
+        }
+
+        /// <summary>
+        /// The BRANCH-PREDICTOR-shaped effect: the first successful Condition evaluation requests one
+        /// added execution of its first contained Instruction.
+        /// </summary>
+        /// <returns>The effect definition.</returns>
+        private static EffectDefinition BranchPredictorEffect()
+        {
+            return Effect(
+                new TriggerDescriptor(
+                    EventFamily.Structure,
+                    "CONDITION_TRUE",
+                    new List<TriggerQualifier>(),
+                    new EffectTiming(TimingKind.Band, "POST_UNIT_CONSEQUENCE_AND_EVIDENCE")),
+                new AddedExecutionRequestOperation(new TargetingRule("FIRST_CONTAINED_INSTRUCTION", string.Empty), false),
+                Frequency("FIRST_QUALIFYING_EVENT"));
+        }
+
+        /// <summary>
+        /// The post-fix ALIGN-shaped effect: at the end-of-player-traversal boundary, if Value is odd,
+        /// Value increases by 1, once per execution.
+        /// </summary>
+        /// <returns>The effect definition.</returns>
+        private static EffectDefinition AlignEffect()
+        {
+            return Effect(
+                new TriggerDescriptor(
+                    EventFamily.Reaction,
+                    "BOUNDARY_EFFECT_REQUESTED",
+                    new List<TriggerQualifier> { Qualifier("PARITY", "ODD"), Qualifier("REGISTER", "VALUE") },
+                    new EffectTiming(TimingKind.NamedBoundary, "END_OF_PLAYER_CONTROLLED_SOURCE_TRAVERSAL")),
+                Operation(),
+                new EffectFrequency("ONCE", "EXECUTION"));
         }
     }
 }

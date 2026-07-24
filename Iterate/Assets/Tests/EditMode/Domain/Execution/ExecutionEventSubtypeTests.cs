@@ -5,8 +5,8 @@ namespace Iterate.Domain.Execution.Tests
 {
     /// <summary>
     /// Tests that the event-subtype constants on <see cref="ExecutionEventSubtypes"/> hold the CAB
-    /// tokens verbatim (§7.6, §7.7, §7.8, §7.10, §7.11, §7.12), pinning the exact canonical strings so
-    /// evidence never derives them.
+    /// tokens verbatim (§7.5, §7.6, §7.7, §7.8, §7.10, §7.11, §7.12, §7.13), pinning the exact
+    /// canonical strings so evidence never derives them.
     /// </summary>
     public sealed class ExecutionEventSubtypeTests
     {
@@ -68,6 +68,28 @@ namespace Iterate.Domain.Execution.Tests
         {
             Assert.AreEqual("SOURCE_EXECUTION_SKIPPED", ExecutionEventSubtypes.SourceExecutionSkipped);
             Assert.AreEqual("SOURCE_EXECUTION_RESCUED", ExecutionEventSubtypes.SourceExecutionRescued);
+        }
+
+        [Test]
+        public void AddedExecutionTokens_AreCabVerbatim()
+        {
+            Assert.AreEqual("ADDED_EXECUTION_REQUESTED", ExecutionEventSubtypes.AddedExecutionRequested);
+            Assert.AreEqual("ADDED_EXECUTION_STARTED", ExecutionEventSubtypes.AddedExecutionStarted);
+            Assert.AreEqual("ADDED_EXECUTION_COMPLETED", ExecutionEventSubtypes.AddedExecutionCompleted);
+            Assert.AreEqual("ADDED_EXECUTION_CANCELLED", ExecutionEventSubtypes.AddedExecutionCancelled);
+        }
+
+        [Test]
+        public void BoundaryEffectTokens_AreCabVerbatim()
+        {
+            Assert.AreEqual("BOUNDARY_EFFECT_REQUESTED", ExecutionEventSubtypes.BoundaryEffectRequested);
+            Assert.AreEqual("BOUNDARY_EFFECT_RESOLVED", ExecutionEventSubtypes.BoundaryEffectResolved);
+        }
+
+        [Test]
+        public void RuntimeUnitCompletedToken_IsCabVerbatim()
+        {
+            Assert.AreEqual("RUNTIME_UNIT_COMPLETED", ExecutionEventSubtypes.RuntimeUnitCompleted);
         }
     }
 }

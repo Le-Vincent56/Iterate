@@ -163,5 +163,95 @@ namespace Iterate.Domain.Execution.Tests
             Assert.Throws<InvalidOperationException>(() => tallies.RecordTransformation());
             Assert.AreEqual(SafetyCeilings.TransformationsPerPendingOperation, tallies.TransformationsOnPendingOperation);
         }
+
+        [Test]
+        public void PreflightDescendant_DepthAtCeiling_TrueAndFalseBeyond()
+        {
+            ExecutionSafetyTallies tallies = new();
+            RuntimeUnitID root = new RuntimeUnitID(1);
+
+            Assert.IsTrue(tallies.PreflightDescendant(SafetyCeilings.AddedExecutionLineageDepth, root));
+            Assert.IsFalse(tallies.PreflightDescendant(SafetyCeilings.AddedExecutionLineageDepth + 1, root));
+        }
+
+        [Test]
+        public void PreflightDescendant_PerRootCeiling_FalseExactlyAtTheLimit()
+        {
+            ExecutionSafetyTallies tallies = new();
+            RuntimeUnitID root = new RuntimeUnitID(1);
+
+            for (int i = 0; i < SafetyCeilings.AddedExecutionsPerActivation - 1; i++)
+                tallies.RecordDescendant(1, root);
+
+            Assert.IsTrue(tallies.PreflightDescendant(1, root));
+            tallies.RecordDescendant(1, root);
+            Assert.IsFalse(tallies.PreflightDescendant(1, root));
+        }
+
+        [Test]
+        public void RecordDescendant_BeyondDepthBound_Throws()
+        {
+            ExecutionSafetyTallies tallies = new();
+            RuntimeUnitID root = new RuntimeUnitID(1);
+
+            Assert.Throws<InvalidOperationException>(
+                () => tallies.RecordDescendant(SafetyCeilings.AddedExecutionLineageDepth + 1, root));
+            Assert.AreEqual(0, tallies.AddedDescendants);
+        }
+
+        [Test]
+        public void RecordDescendant_BeyondPerRootBound_Throws()
+        {
+            ExecutionSafetyTallies tallies = new();
+            RuntimeUnitID root = new RuntimeUnitID(1);
+
+            for (int i = 0; i < SafetyCeilings.AddedExecutionsPerActivation; i++)
+                tallies.RecordDescendant(1, root);
+
+            Assert.Throws<InvalidOperationException>(() => tallies.RecordDescendant(1, root));
+            Assert.AreEqual(SafetyCeilings.AddedExecutionsPerActivation, tallies.AddedDescendants);
+        }
+
+        [Test]
+        public void RecordDescendant_IndependentRoots_CountSeparately()
+        {
+            ExecutionSafetyTallies tallies = new();
+            RuntimeUnitID rootA = new RuntimeUnitID(1);
+            RuntimeUnitID rootB = new RuntimeUnitID(2);
+
+            for (int i = 0; i < SafetyCeilings.AddedExecutionsPerActivation; i++)
+                tallies.RecordDescendant(1, rootA);
+
+            Assert.IsFalse(tallies.PreflightDescendant(1, rootA));
+            Assert.IsTrue(tallies.PreflightDescendant(1, rootB));
+            Assert.DoesNotThrow(() => tallies.RecordDescendant(1, rootB));
+            Assert.AreEqual(SafetyCeilings.AddedExecutionsPerActivation + 1, tallies.AddedDescendants);
+        }
+
+        [Test]
+        public void RecordDescendant_RaisesDepthHighWaterToMax()
+        {
+            ExecutionSafetyTallies tallies = new();
+            RuntimeUnitID root = new RuntimeUnitID(1);
+
+            tallies.RecordDescendant(2, root);
+            tallies.RecordDescendant(1, root);
+
+            Assert.AreEqual(2, tallies.LineageDepthHighWater);
+            Assert.AreEqual(2, tallies.AddedDescendants);
+        }
+
+        [Test]
+        public void ToCounts_CarriesBothAddedExecutionHighWaters()
+        {
+            ExecutionSafetyTallies tallies = new();
+            RuntimeUnitID root = new RuntimeUnitID(1);
+
+            tallies.RecordUnitOpened();
+            tallies.RecordDescendant(1, root);
+            tallies.RecordDescendant(2, root);
+
+            Assert.AreEqual(new SafetyCounts(2, 2, 1, 0, 0), tallies.ToCounts());
+        }
     }
 }

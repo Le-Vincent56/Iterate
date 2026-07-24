@@ -361,6 +361,226 @@ namespace Iterate.Domain.Execution.Tests
             return new InstructionInstance(new InstanceID(instance), AddValueInstruction(constant), null);
         }
 
+        /// <summary>
+        /// Assembles a request over a hand-built arrangement with extra active Directive pragmas
+        /// ahead of the standard effect-free fixture pragma, plus installed Dependency instances.
+        /// </summary>
+        /// <param name="arrangement">The source arrangement.</param>
+        /// <param name="initialState">The initial register state.</param>
+        /// <param name="ids">The instance-identity source for the standard pragma.</param>
+        /// <param name="installed">The installed Dependency instances.</param>
+        /// <param name="extraPragmas">The active Directive pragmas to interpret first.</param>
+        /// <returns>The assembled request.</returns>
+        public static ExecutionRequest RequestOver(
+            SourceArrangement arrangement,
+            InitialExecutionState initialState,
+            InstanceIDSource ids,
+            List<DependencyInstance> installed,
+            List<DirectiveInstance> extraPragmas)
+        {
+            List<DirectiveInstance> pragmas = new List<DirectiveInstance>();
+            for (int i = 0; i < extraPragmas.Count; i++)
+            {
+                pragmas.Add(extraPragmas[i]);
+            }
+
+            pragmas.Add(new DirectiveInstance(ids.Next(), StandardDirective()));
+            CompiledSource source = new CompiledSource(arrangement, pragmas, StandardCost());
+
+            return new ExecutionRequest(source, StandardConfiguration(), StandardStamps(), initialState, installed);
+        }
+
+        /// <summary>
+        /// An OVERCLOCK-shaped Directive instance (WB-DIR-001, post-fix): the first positive player
+        /// Value gain each execution requests one added execution of the triggering unit.
+        /// </summary>
+        /// <param name="instance">The instance identity value.</param>
+        /// <returns>The Directive instance.</returns>
+        public static DirectiveInstance OverclockPragma(int instance)
+        {
+            EffectTiming timing = new EffectTiming(TimingKind.Band, "IMMEDIATE_RESULT_REACTION");
+            TriggerDescriptor trigger = new TriggerDescriptor(
+                EventFamily.Quantity,
+                "QUANTITY_CHANGED",
+                new List<TriggerQualifier>
+                {
+                    new TriggerQualifier("ACTUAL_DELTA_SIGN", "POSITIVE"),
+                    new TriggerQualifier("REGISTER", "VALUE"),
+                    new TriggerQualifier("OPERATION_CLASS", "PLAYER_INSTRUCTION")
+                },
+                timing);
+
+            return DirectiveOver(instance, "WB-DIR-001", CreatorEffect(trigger, "TRIGGERING_UNIT", "ONCE", "EXECUTION"));
+        }
+
+        /// <summary>
+        /// An every-qualifying creator Directive instance: the same positive player Value-gain shape
+        /// without the once-per-execution allowance, so only the origin lock can stop it — the
+        /// termination probe.
+        /// </summary>
+        /// <param name="instance">The instance identity value.</param>
+        /// <returns>The Directive instance.</returns>
+        public static DirectiveInstance EveryQualifyingCreatorPragma(int instance)
+        {
+            EffectTiming timing = new EffectTiming(TimingKind.Band, "IMMEDIATE_RESULT_REACTION");
+            TriggerDescriptor trigger = new TriggerDescriptor(
+                EventFamily.Quantity,
+                "QUANTITY_CHANGED",
+                new List<TriggerQualifier>
+                {
+                    new TriggerQualifier("ACTUAL_DELTA_SIGN", "POSITIVE"),
+                    new TriggerQualifier("REGISTER", "VALUE"),
+                    new TriggerQualifier("OPERATION_CLASS", "PLAYER_INSTRUCTION")
+                },
+                timing);
+
+            return DirectiveOver(instance, "WB-DIR-901", CreatorEffect(trigger, "TRIGGERING_UNIT", "EVERY_QUALIFYING_EVENT", "DECLARED_SCOPE"));
+        }
+
+        /// <summary>
+        /// A LOOP-UNROLLER-shaped Dependency instance (WB-DEP-009): the first successful
+        /// Repeat-context unit closure each execution requests one added execution of that unit.
+        /// </summary>
+        /// <param name="instance">The instance identity value.</param>
+        /// <returns>The Dependency instance.</returns>
+        public static DependencyInstance LoopUnrollerInstance(int instance)
+        {
+            TriggerDescriptor trigger = new TriggerDescriptor(
+                EventFamily.Lifecycle,
+                "RUNTIME_UNIT_COMPLETED",
+                new List<TriggerQualifier> { new TriggerQualifier("STRUCTURE_CONTEXT", "INSIDE_REPEAT") },
+                new EffectTiming(TimingKind.Band, "POST_UNIT_CONSEQUENCE_AND_EVIDENCE"));
+
+            return DependencyOver(instance, "WB-DEP-009", CreatorEffect(trigger, "TRIGGERING_UNIT", "FIRST_QUALIFYING_EVENT", "EXECUTION"));
+        }
+
+        /// <summary>
+        /// A BRANCH-PREDICTOR-shaped Dependency instance (WB-DEP-010): the first successful Condition
+        /// evaluation each execution establishes a pending request for its first contained
+        /// Instruction.
+        /// </summary>
+        /// <param name="instance">The instance identity value.</param>
+        /// <returns>The Dependency instance.</returns>
+        public static DependencyInstance BranchPredictorInstance(int instance)
+        {
+            TriggerDescriptor trigger = new TriggerDescriptor(
+                EventFamily.Structure,
+                "CONDITION_TRUE",
+                new List<TriggerQualifier>(),
+                new EffectTiming(TimingKind.Band, "POST_UNIT_CONSEQUENCE_AND_EVIDENCE"));
+
+            return DependencyOver(instance, "WB-DEP-010", CreatorEffect(trigger, "FIRST_CONTAINED_INSTRUCTION", "FIRST_QUALIFYING_EVENT", "EXECUTION"));
+        }
+
+        /// <summary>
+        /// An ALIGN-shaped Directive instance (WB-DIR-002, post-fix): at the end-of-player-traversal
+        /// boundary, an odd Value gains 1, once per execution.
+        /// </summary>
+        /// <param name="instance">The instance identity value.</param>
+        /// <returns>The Directive instance.</returns>
+        public static DirectiveInstance AlignPragma(int instance)
+        {
+            EffectTiming timing = new EffectTiming(TimingKind.NamedBoundary, "END_OF_PLAYER_CONTROLLED_SOURCE_TRAVERSAL");
+            TriggerDescriptor trigger = new TriggerDescriptor(
+                EventFamily.Reaction,
+                "BOUNDARY_EFFECT_REQUESTED",
+                new List<TriggerQualifier>
+                {
+                    new TriggerQualifier("PARITY", "ODD"),
+                    new TriggerQualifier("REGISTER", "VALUE")
+                },
+                timing);
+
+            return DirectiveOver(instance, "WB-DIR-002", BoundaryEffect(trigger, timing, CoreRegister.Value, 1));
+        }
+
+        /// <summary>
+        /// A fixture boundary Directive that adds 1 to Signal at the end-of-player-traversal boundary
+        /// with no parity gate — the probe for source-less reaction resolution.
+        /// </summary>
+        /// <param name="instance">The instance identity value.</param>
+        /// <returns>The Directive instance.</returns>
+        public static DirectiveInstance SignalBoundaryPragma(int instance)
+        {
+            EffectTiming timing = new EffectTiming(TimingKind.NamedBoundary, "END_OF_PLAYER_CONTROLLED_SOURCE_TRAVERSAL");
+            TriggerDescriptor trigger = new TriggerDescriptor(
+                EventFamily.Reaction,
+                "BOUNDARY_EFFECT_REQUESTED",
+                new List<TriggerQualifier> { new TriggerQualifier("REGISTER", "SIGNAL") },
+                timing);
+
+            return DirectiveOver(instance, "WB-DIR-902", BoundaryEffect(trigger, timing, CoreRegister.Signal, 1));
+        }
+
+        /// <summary>
+        /// Builds an EXECUTION-domain boundary quantity-change effect resolving once per execution.
+        /// </summary>
+        /// <param name="trigger">The boundary trigger descriptor.</param>
+        /// <param name="timing">The named-boundary timing.</param>
+        /// <param name="register">The register the operation writes.</param>
+        /// <param name="constant">The constant operand.</param>
+        /// <returns>The effect definition.</returns>
+        private static EffectDefinition BoundaryEffect(
+            TriggerDescriptor trigger,
+            EffectTiming timing,
+            CoreRegister register,
+            int constant)
+        {
+            return new EffectDefinition(
+                PhaseDomain.Execution,
+                trigger,
+                new QuantityChangeOperation(register, QuantityOperator.Add, OperandSpec.FromConstant(constant)),
+                new TargetingRule("NO_TARGET", string.Empty),
+                timing,
+                StackingMode.IndependentResolution,
+                new EffectFrequency("ONCE", "EXECUTION"));
+        }
+
+        /// <summary>
+        /// Builds an EXECUTION-domain added-execution-request effect.
+        /// </summary>
+        /// <param name="trigger">The trigger descriptor.</param>
+        /// <param name="targeting">The added-execution targeting token.</param>
+        /// <param name="allowance">The frequency-allowance token.</param>
+        /// <param name="scope">The frequency-scope token.</param>
+        /// <returns>The effect definition.</returns>
+        private static EffectDefinition CreatorEffect(
+            TriggerDescriptor trigger,
+            string targeting,
+            string allowance,
+            string scope)
+        {
+            return new EffectDefinition(
+                PhaseDomain.Execution,
+                trigger,
+                new AddedExecutionRequestOperation(new TargetingRule(targeting, string.Empty), false),
+                new TargetingRule(targeting, string.Empty),
+                trigger.Timing,
+                StackingMode.IndependentResolution,
+                new EffectFrequency(allowance, scope));
+        }
+
+        /// <summary>
+        /// Wraps one effect in a Directive definition and instance.
+        /// </summary>
+        /// <param name="instance">The instance identity value.</param>
+        /// <param name="definitionID">The definition's surrogate-key identity.</param>
+        /// <param name="effect">The declared effect.</param>
+        /// <returns>The Directive instance.</returns>
+        private static DirectiveInstance DirectiveOver(int instance, string definitionID, EffectDefinition effect)
+        {
+            DirectiveDefinition definition = new DirectiveDefinition(
+                new DirectiveID(definitionID),
+                "Test rules.",
+                "TEST DIRECTIVE",
+                ContentCategory.Directive,
+                Rarity.Uncommon,
+                new List<string>(),
+                new List<EffectDefinition> { effect });
+
+            return new DirectiveInstance(new InstanceID(instance), definition);
+        }
+
         private static ExecutionRequest BuildRequest(SourceArrangement arrangement, InitialExecutionState initialState, InstanceIDSource ids)
         {
             DirectiveInstance pragma = new DirectiveInstance(ids.Next(), StandardDirective());
