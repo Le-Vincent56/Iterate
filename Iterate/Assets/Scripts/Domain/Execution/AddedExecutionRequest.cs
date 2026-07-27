@@ -9,8 +9,9 @@ namespace Iterate.Domain.Execution
     /// One committed added-execution request: the deterministic request identity, the creator effect
     /// origin and its definition key, the triggering and request evidence events, the locked host
     /// slot, the inherited Structure context, the branch lineage already extended with the creator,
-    /// the proposed added-execution depth, and the parent unit — null only while the request is
-    /// pending. The lineage depth and proposed depth encode one fact and must agree.
+    /// the proposed added-execution depth, the parent unit — null only while the request is
+    /// pending — and the retained Condition outcome the descendant's closure re-offers. The lineage
+    /// depth and proposed depth encode one fact and must agree.
     /// </summary>
     /// <param name="RequestIdentity">The deterministic request identity; non-empty.</param>
     /// <param name="CreatorOrigin">The creating effect instance's identity.</param>
@@ -22,6 +23,7 @@ namespace Iterate.Domain.Execution
     /// <param name="Lineage">The branch lineage including the creator; depth one or greater.</param>
     /// <param name="ProposedDepth">The descendant's added-execution depth; equals the lineage depth.</param>
     /// <param name="ParentUnit">The causing unit; null only while the request is pending.</param>
+    /// <param name="RetainedConditionResult">The enclosing Condition's retained evaluation outcome at capture, or null when the host executed outside one — the evaluation identity alone cannot distinguish a succeeding evaluation from a rescued false one.</param>
     public sealed record AddedExecutionRequest(
         string RequestIdentity,
         InstanceID CreatorOrigin,
@@ -32,7 +34,8 @@ namespace Iterate.Domain.Execution
         StructureContext InheritedContext,
         EffectOriginLineage Lineage,
         int ProposedDepth,
-        RuntimeUnitID? ParentUnit
+        RuntimeUnitID? ParentUnit,
+        ConditionOutcome? RetainedConditionResult
     )
     {
         /// <summary>

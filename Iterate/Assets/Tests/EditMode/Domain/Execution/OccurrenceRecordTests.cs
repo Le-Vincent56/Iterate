@@ -13,7 +13,9 @@ namespace Iterate.Domain.Execution.Tests
     /// Tests the typed occurrence records the effect engine matches against:
     /// <see cref="OperationOccurrence"/>'s operand-source and ownership/host pairing rules,
     /// <see cref="QuantityOccurrence"/>'s origin rules — a primary change carries its source
-    /// ownership, a reaction-caused change carries its effect origin, never both ways — and
+    /// ownership, a reaction-caused change carries its effect origin, never both ways — plus its
+    /// host-slot pairing (a lockable host slot exactly when the change is a primary-operation source
+    /// execution), <see cref="PostUnitOccurrence"/>'s four Patch facts, and
     /// <see cref="SkipOccurrence"/>'s depth, cause, and ownership/host validation.
     /// </summary>
     public sealed class OccurrenceRecordTests
@@ -212,6 +214,9 @@ namespace Iterate.Domain.Execution.Tests
         [Test]
         public void QuantityOccurrence_PrimaryChange_RoundTrips()
         {
+            StructureContext slotContext = RepeatContext();
+            SourceSlot hostSlot = InstructionSlot(60);
+
             QuantityOccurrence occurrence = new QuantityOccurrence(
                 new RuntimeUnitID(5),
                 new TraceEventID(21),
@@ -221,7 +226,9 @@ namespace Iterate.Domain.Execution.Tests
                 OwnershipClassification.PlayerOwned,
                 null,
                 true,
-                EffectOriginLineage.Empty);
+                EffectOriginLineage.Empty,
+                hostSlot,
+                slotContext);
 
             Assert.AreEqual(new RuntimeUnitID(5), occurrence.Unit);
             Assert.AreEqual(new TraceEventID(21), occurrence.Event);
@@ -231,6 +238,8 @@ namespace Iterate.Domain.Execution.Tests
             Assert.AreEqual(OwnershipClassification.PlayerOwned, occurrence.Ownership);
             Assert.IsNull(occurrence.EffectOrigin);
             Assert.IsTrue(occurrence.FromPrimaryOperation);
+            Assert.AreSame(hostSlot, occurrence.HostSlot);
+            Assert.AreSame(slotContext, occurrence.SlotContext);
         }
 
         [Test]
@@ -245,12 +254,124 @@ namespace Iterate.Domain.Execution.Tests
                 null,
                 new InstanceID(9),
                 false,
-                EffectOriginLineage.Empty);
+                EffectOriginLineage.Empty,
+                null,
+                null);
 
             Assert.AreEqual(2, occurrence.CausalDepth);
             Assert.IsNull(occurrence.Ownership);
             Assert.AreEqual(new InstanceID(9), occurrence.EffectOrigin);
             Assert.IsFalse(occurrence.FromPrimaryOperation);
+            Assert.IsNull(occurrence.HostSlot);
+            Assert.IsNull(occurrence.SlotContext);
+        }
+
+        [Test]
+        public void QuantityOccurrence_PrimaryTopLevel_AcceptsNullSlotContext()
+        {
+            QuantityOccurrence occurrence = new QuantityOccurrence(
+                new RuntimeUnitID(5),
+                new TraceEventID(21),
+                0,
+                CoreRegister.Score,
+                4,
+                OwnershipClassification.PlayerOwned,
+                null,
+                true,
+                EffectOriginLineage.Empty,
+                InstructionSlot(60),
+                null);
+
+            Assert.IsNotNull(occurrence.HostSlot);
+            Assert.IsNull(occurrence.SlotContext);
+        }
+
+        [Test]
+        public void QuantityOccurrence_PrimaryWithoutHostSlot_Throws()
+        {
+            Assert.Throws<ArgumentException>(() => new QuantityOccurrence(
+                new RuntimeUnitID(5),
+                new TraceEventID(21),
+                0,
+                CoreRegister.Score,
+                4,
+                OwnershipClassification.PlayerOwned,
+                null,
+                true,
+                EffectOriginLineage.Empty,
+                null,
+                null));
+        }
+
+        [Test]
+        public void QuantityOccurrence_CorePrimaryChange_RequiresNullHostSlot()
+        {
+            QuantityOccurrence occurrence = new QuantityOccurrence(
+                new RuntimeUnitID(5),
+                new TraceEventID(21),
+                0,
+                CoreRegister.Score,
+                4,
+                OwnershipClassification.CoreOwned,
+                null,
+                true,
+                EffectOriginLineage.Empty,
+                null,
+                null);
+
+            Assert.IsNull(occurrence.HostSlot);
+            Assert.IsTrue(occurrence.FromPrimaryOperation);
+        }
+
+        [Test]
+        public void QuantityOccurrence_CorePrimaryWithHostSlot_Throws()
+        {
+            Assert.Throws<ArgumentException>(() => new QuantityOccurrence(
+                new RuntimeUnitID(5),
+                new TraceEventID(21),
+                0,
+                CoreRegister.Score,
+                4,
+                OwnershipClassification.CoreOwned,
+                null,
+                true,
+                EffectOriginLineage.Empty,
+                InstructionSlot(60),
+                null));
+        }
+
+        [Test]
+        public void QuantityOccurrence_ReactionWithHostSlot_Throws()
+        {
+            Assert.Throws<ArgumentException>(() => new QuantityOccurrence(
+                new RuntimeUnitID(5),
+                new TraceEventID(30),
+                2,
+                CoreRegister.Value,
+                1,
+                null,
+                new InstanceID(9),
+                false,
+                EffectOriginLineage.Empty,
+                InstructionSlot(60),
+                null));
+        }
+
+        [Test]
+        public void QuantityOccurrence_SlotContextWithoutHostSlot_Throws()
+        {
+            Assert.Throws<ArgumentException>(() => new QuantityOccurrence(
+                new RuntimeUnitID(5),
+                new TraceEventID(30),
+                2,
+                CoreRegister.Value,
+                1,
+                null,
+                new InstanceID(9),
+                false,
+                EffectOriginLineage.Empty,
+                null,
+                RepeatContext()));
         }
 
         [Test]
@@ -265,7 +386,9 @@ namespace Iterate.Domain.Execution.Tests
                 OwnershipClassification.PlayerOwned,
                 null,
                 true,
-                EffectOriginLineage.Empty));
+                EffectOriginLineage.Empty,
+                InstructionSlot(60),
+                null));
         }
 
         [Test]
@@ -280,7 +403,9 @@ namespace Iterate.Domain.Execution.Tests
                 null,
                 null,
                 true,
-                EffectOriginLineage.Empty));
+                EffectOriginLineage.Empty,
+                InstructionSlot(60),
+                null));
         }
 
         [Test]
@@ -295,7 +420,9 @@ namespace Iterate.Domain.Execution.Tests
                 OwnershipClassification.PlayerOwned,
                 new InstanceID(9),
                 true,
-                EffectOriginLineage.Empty));
+                EffectOriginLineage.Empty,
+                InstructionSlot(60),
+                null));
         }
 
         [Test]
@@ -310,7 +437,9 @@ namespace Iterate.Domain.Execution.Tests
                 null,
                 null,
                 false,
-                EffectOriginLineage.Empty));
+                EffectOriginLineage.Empty,
+                null,
+                null));
         }
 
         [Test]
@@ -325,6 +454,8 @@ namespace Iterate.Domain.Execution.Tests
                 OwnershipClassification.PlayerOwned,
                 null,
                 true,
+                null,
+                InstructionSlot(60),
                 null));
         }
 
@@ -340,11 +471,14 @@ namespace Iterate.Domain.Execution.Tests
                 null,
                 new InstanceID(9),
                 false,
-                EffectOriginLineage.Empty);
+                EffectOriginLineage.Empty,
+                null,
+                null);
 
             Assert.IsNull(occurrence.Unit);
             Assert.AreEqual(new InstanceID(9), occurrence.EffectOrigin);
             Assert.AreEqual(EffectOriginLineage.Empty, occurrence.BranchLineage);
+            Assert.IsNull(occurrence.HostSlot);
         }
 
         [Test]
@@ -359,7 +493,9 @@ namespace Iterate.Domain.Execution.Tests
                 OwnershipClassification.PlayerOwned,
                 null,
                 true,
-                EffectOriginLineage.Empty));
+                EffectOriginLineage.Empty,
+                InstructionSlot(60),
+                null));
         }
 
         [Test]
@@ -376,7 +512,9 @@ namespace Iterate.Domain.Execution.Tests
                 OwnershipClassification.PlayerOwned,
                 null,
                 true,
-                lineage);
+                lineage,
+                InstructionSlot(60),
+                null);
 
             Assert.AreSame(lineage, occurrence.BranchLineage);
         }
@@ -393,7 +531,11 @@ namespace Iterate.Domain.Execution.Tests
                 OwnershipClassification.PlayerOwned,
                 new InstanceID(50),
                 context,
-                EffectOriginLineage.Empty);
+                EffectOriginLineage.Empty,
+                new SourcePosition(2),
+                false,
+                null,
+                false);
 
             Assert.AreEqual(new RuntimeUnitID(5), occurrence.Unit);
             Assert.AreEqual(new TraceEventID(30), occurrence.CompletionEvent);
@@ -402,6 +544,64 @@ namespace Iterate.Domain.Execution.Tests
             Assert.AreEqual(new InstanceID(50), occurrence.HostInstance);
             Assert.AreSame(context, occurrence.StructureContext);
             Assert.AreEqual(EffectOriginLineage.Empty, occurrence.BranchLineage);
+        }
+
+        [Test]
+        public void PostUnitOccurrence_Facts_RoundTrip()
+        {
+            PostUnitOccurrence occurrence = new PostUnitOccurrence(
+                new RuntimeUnitID(5),
+                new TraceEventID(30),
+                EventDisposition.Resolved,
+                OwnershipClassification.PlayerOwned,
+                new InstanceID(50),
+                null,
+                EffectOriginLineage.Empty,
+                new SourcePosition(4),
+                true,
+                ConditionOutcome.True,
+                true);
+
+            Assert.AreEqual(new SourcePosition(4), occurrence.Position);
+            Assert.IsTrue(occurrence.IsFinalOccupiedPlayerLine);
+            Assert.AreEqual(ConditionOutcome.True, occurrence.ConditionResult);
+            Assert.IsTrue(occurrence.AdjacentAfterSuccessfulScore);
+        }
+
+        [Test]
+        public void PostUnitOccurrence_RescuedFromFalse_CarriesFalseConditionResult()
+        {
+            PostUnitOccurrence occurrence = new PostUnitOccurrence(
+                new RuntimeUnitID(5),
+                new TraceEventID(30),
+                EventDisposition.Rescued,
+                OwnershipClassification.PlayerOwned,
+                new InstanceID(50),
+                null,
+                EffectOriginLineage.Empty,
+                new SourcePosition(4),
+                false,
+                ConditionOutcome.False,
+                false);
+
+            Assert.AreEqual(ConditionOutcome.False, occurrence.ConditionResult);
+        }
+
+        [Test]
+        public void PostUnitOccurrence_CoreOwnedFinalPlayerLine_Throws()
+        {
+            Assert.Throws<ArgumentException>(() => new PostUnitOccurrence(
+                new RuntimeUnitID(5),
+                new TraceEventID(30),
+                EventDisposition.Resolved,
+                OwnershipClassification.CoreOwned,
+                null,
+                null,
+                EffectOriginLineage.Empty,
+                new SourcePosition(4),
+                true,
+                null,
+                false));
         }
 
         [Test]
@@ -414,7 +614,11 @@ namespace Iterate.Domain.Execution.Tests
                 OwnershipClassification.CoreOwned,
                 null,
                 null,
-                EffectOriginLineage.Empty);
+                EffectOriginLineage.Empty,
+                new SourcePosition(1),
+                false,
+                null,
+                false);
 
             Assert.IsNull(occurrence.StructureContext);
         }
@@ -429,7 +633,11 @@ namespace Iterate.Domain.Execution.Tests
                 OwnershipClassification.PlayerOwned,
                 null,
                 null,
-                EffectOriginLineage.Empty));
+                EffectOriginLineage.Empty,
+                new SourcePosition(2),
+                false,
+                null,
+                false));
         }
 
         [Test]
@@ -442,7 +650,11 @@ namespace Iterate.Domain.Execution.Tests
                 OwnershipClassification.CoreOwned,
                 new InstanceID(50),
                 null,
-                EffectOriginLineage.Empty));
+                EffectOriginLineage.Empty,
+                new SourcePosition(2),
+                false,
+                null,
+                false));
         }
 
         [Test]
@@ -455,7 +667,11 @@ namespace Iterate.Domain.Execution.Tests
                 OwnershipClassification.CoreOwned,
                 null,
                 null,
-                null));
+                null,
+                new SourcePosition(2),
+                false,
+                null,
+                false));
         }
 
         [Test]
@@ -560,6 +776,31 @@ namespace Iterate.Domain.Execution.Tests
         public void BoundaryOccurrence_EmptyName_Throws()
         {
             Assert.Throws<ArgumentException>(() => new BoundaryOccurrence(string.Empty, 0, 0, 0));
+        }
+
+        /// <summary>
+        /// Builds a top-level Instruction slot carrying an instance with the given identity, for the
+        /// occurrences whose host-slot field records a lockable source execution.
+        /// </summary>
+        /// <param name="instanceID">The occupying instance's identity value.</param>
+        /// <returns>The Instruction slot.</returns>
+        private static SourceSlot InstructionSlot(int instanceID)
+        {
+            InstructionDefinition definition = new InstructionDefinition(
+                new InstructionID("WB-INS-001"),
+                "rules",
+                "TEST INSTRUCTION",
+                ContentCategory.Instruction,
+                Rarity.Starter,
+                new List<string>(),
+                1,
+                new QuantityChangeOperation(CoreRegister.Value, QuantityOperator.Add, OperandSpec.FromConstant(1)),
+                null,
+                new List<string>());
+
+            return SourceSlot.ForInstruction(
+                new SourcePosition(2),
+                new InstructionInstance(new InstanceID(instanceID), definition, null));
         }
 
         /// <summary>

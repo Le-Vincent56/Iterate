@@ -165,6 +165,12 @@ namespace Iterate.Domain.Execution
         public const string AddedExecutionRequested = "ADDED_EXECUTION_REQUESTED";
 
         /// <summary>
+        /// The added-execution subtype marking a creator's tracked target becoming the fixed locked
+        /// host at its observation window's close.
+        /// </summary>
+        public const string AddedExecutionTargetLocked = "ADDED_EXECUTION_TARGET_LOCKED";
+
+        /// <summary>
         /// The added-execution subtype marking a requested descendant source execution beginning.
         /// </summary>
         public const string AddedExecutionStarted = "ADDED_EXECUTION_STARTED";

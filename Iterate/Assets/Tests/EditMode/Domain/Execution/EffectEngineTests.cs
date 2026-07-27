@@ -658,6 +658,307 @@ namespace Iterate.Domain.Execution.Tests
             Assert.AreSame(EffectMatchBatch.Empty, boundary);
         }
 
+        [Test]
+        public void TargetLockUpdate_PrimaryPlayerScoreGain_CarriesLockCandidate()
+        {
+            EffectEngine engine = EngineOf(BurstLockEffect(70));
+
+            EffectMatchBatch batch = engine.MatchQuantityChange(PrimaryQuantityHosted(CoreRegister.Score, 4, OwnershipClassification.PlayerOwned, 60));
+
+            Assert.AreEqual(1, batch.TargetLockUpdates.Count);
+            Assert.AreEqual(new InstanceID(70), batch.TargetLockUpdates[0].Origin);
+            Assert.AreEqual(0, batch.Qualified.Count);
+        }
+
+        [Test]
+        public void TargetLockUpdate_SourceLessChange_IsStructurallySilent()
+        {
+            EffectEngine engine = EngineOf(BurstLockEffect(70));
+
+            EffectMatchBatch batch = engine.MatchQuantityChange(SourceLessQuantity(CoreRegister.Score, 4));
+
+            Assert.AreEqual(0, batch.TargetLockUpdates.Count);
+            Assert.AreEqual(0, batch.NearMisses.Count);
+        }
+
+        [Test]
+        public void CommitTargetLock_WritesLockReadableByOrigin()
+        {
+            EffectEngine engine = EngineOf(BurstLockEffect(70));
+            ActiveEffect update = engine.RegisteredEffects[0];
+
+            engine.CommitTargetLock(update, Lock(60));
+
+            TargetLock stored = engine.TargetLockFor(new InstanceID(70));
+            Assert.IsNotNull(stored);
+            Assert.AreEqual(new InstanceID(60), stored.HostInstance);
+        }
+
+        [Test]
+        public void CommitTargetLock_SecondCommit_OverwritesWithMostRecent()
+        {
+            EffectEngine engine = EngineOf(BurstLockEffect(70));
+            ActiveEffect update = engine.RegisteredEffects[0];
+
+            engine.CommitTargetLock(update, Lock(60));
+            engine.CommitTargetLock(update, Lock(62));
+
+            Assert.AreEqual(new InstanceID(62), engine.TargetLockFor(new InstanceID(70)).HostInstance);
+        }
+
+        [Test]
+        public void TargetLockFor_NeverWritten_ReturnsNull()
+        {
+            EffectEngine engine = EngineOf(BurstLockEffect(70));
+
+            Assert.IsNull(engine.TargetLockFor(new InstanceID(70)));
+        }
+
+        [Test]
+        public void TargetLockFor_ReadTwice_DoesNotConsumeTheLock()
+        {
+            EffectEngine engine = EngineOf(BurstLockEffect(70));
+            ActiveEffect update = engine.RegisteredEffects[0];
+            engine.CommitTargetLock(update, Lock(60));
+
+            Assert.IsNotNull(engine.TargetLockFor(new InstanceID(70)));
+            Assert.IsNotNull(engine.TargetLockFor(new InstanceID(70)));
+        }
+
+        [Test]
+        public void TwoBurstInstances_HoldIndependentLocks()
+        {
+            EffectEngine engine = EngineOf(BurstLockEffect(70), BurstLockEffect(71));
+            ActiveEffect first = engine.RegisteredEffects[0];
+            ActiveEffect second = engine.RegisteredEffects[1];
+
+            engine.CommitTargetLock(first, Lock(60));
+            engine.CommitTargetLock(second, Lock(62));
+
+            Assert.AreEqual(new InstanceID(60), engine.TargetLockFor(new InstanceID(70)).HostInstance);
+            Assert.AreEqual(new InstanceID(62), engine.TargetLockFor(new InstanceID(71)).HostInstance);
+        }
+
+        [Test]
+        public void CloseObservationWindow_ThenPlayerScoreGain_LockUpdateIsStructurallySilent()
+        {
+            EffectEngine engine = EngineOf(BurstLockEffect(70));
+            engine.CloseObservationWindow();
+
+            EffectMatchBatch batch = engine.MatchQuantityChange(PrimaryQuantityHosted(CoreRegister.Score, 4, OwnershipClassification.PlayerOwned, 60));
+
+            Assert.AreEqual(0, batch.TargetLockUpdates.Count, "a closed window silences the lock update — no candidate");
+            Assert.AreEqual(0, batch.NearMisses.Count, "the closed window is structural ineligibility, not a requirement failure");
+        }
+
+        [Test]
+        public void CloseObservationWindow_LeavesReactionKindsUnaffected()
+        {
+            EffectEngine engine = EngineOf(FeedbackPatchEffect(70, 60));
+            engine.CloseObservationWindow();
+
+            EffectMatchBatch batch = engine.MatchQuantityChange(PrimaryQuantityHosted(CoreRegister.Score, 3, OwnershipClassification.PlayerOwned, 60));
+
+            Assert.AreEqual(1, batch.Qualified.Count, "the window close silences only TargetLock-kind candidates");
+        }
+
+        [Test]
+        public void FeedbackPatch_OwnHostScoreGain_Qualifies()
+        {
+            EffectEngine engine = EngineOf(FeedbackPatchEffect(70, 60));
+
+            EffectMatchBatch batch = engine.MatchQuantityChange(PrimaryQuantityHosted(CoreRegister.Score, 3, OwnershipClassification.PlayerOwned, 60));
+
+            Assert.AreEqual(1, batch.Qualified.Count);
+        }
+
+        [Test]
+        public void FeedbackPatch_ForeignHostScoreGain_IsStructurallySilent()
+        {
+            EffectEngine engine = EngineOf(FeedbackPatchEffect(70, 60));
+
+            EffectMatchBatch batch = engine.MatchQuantityChange(PrimaryQuantityHosted(CoreRegister.Score, 3, OwnershipClassification.PlayerOwned, 61));
+
+            Assert.AreEqual(0, batch.Qualified.Count);
+            Assert.AreEqual(0, batch.NearMisses.Count);
+        }
+
+        [Test]
+        public void FeedbackPatch_OwnHostNegativeDelta_NearMissesDeltaSign()
+        {
+            EffectEngine engine = EngineOf(FeedbackPatchEffect(70, 60));
+
+            EffectMatchBatch batch = engine.MatchQuantityChange(PrimaryQuantityHosted(CoreRegister.Score, -1, OwnershipClassification.PlayerOwned, 60));
+
+            Assert.AreEqual(1, batch.NearMisses.Count);
+            Assert.AreEqual("ACTUAL_DELTA_SIGN:POSITIVE", batch.NearMisses[0].FailedRequirement);
+        }
+
+        [Test]
+        public void EchoPatch_EvenLineOwnHost_Qualifies()
+        {
+            EffectEngine engine = EngineOf(PostUnitPatchEffect(70, 60, "POSITIONAL", "EVEN_NUMBERED_LINE"));
+
+            EffectMatchBatch batch = engine.MatchPostUnit(PostUnitFacts(60, 4, false, null, false));
+
+            Assert.AreEqual(1, batch.Creators.Count);
+        }
+
+        [Test]
+        public void EchoPatch_OddLine_NearMissesEvenLine()
+        {
+            EffectEngine engine = EngineOf(PostUnitPatchEffect(70, 60, "POSITIONAL", "EVEN_NUMBERED_LINE"));
+
+            EffectMatchBatch batch = engine.MatchPostUnit(PostUnitFacts(60, 3, false, null, false));
+
+            Assert.AreEqual(1, batch.NearMisses.Count);
+            Assert.AreEqual("POSITIONAL:EVEN_NUMBERED_LINE", batch.NearMisses[0].FailedRequirement);
+        }
+
+        [Test]
+        public void EchoPatch_ForeignHost_IsStructurallySilent()
+        {
+            EffectEngine engine = EngineOf(PostUnitPatchEffect(70, 60, "POSITIONAL", "EVEN_NUMBERED_LINE"));
+
+            EffectMatchBatch batch = engine.MatchPostUnit(PostUnitFacts(61, 4, false, null, false));
+
+            Assert.AreEqual(0, batch.Creators.Count);
+            Assert.AreEqual(0, batch.NearMisses.Count);
+        }
+
+        [Test]
+        public void TerminalPatch_FinalPlayerLine_Qualifies()
+        {
+            EffectEngine engine = EngineOf(PostUnitPatchEffect(70, 60, "POSITIONAL", "FINAL_OCCUPIED_PLAYER_LINE"));
+
+            EffectMatchBatch batch = engine.MatchPostUnit(PostUnitFacts(60, 5, true, null, false));
+
+            Assert.AreEqual(1, batch.Creators.Count);
+        }
+
+        [Test]
+        public void TerminalPatch_NonFinalLine_NearMissesFinalLine()
+        {
+            EffectEngine engine = EngineOf(PostUnitPatchEffect(70, 60, "POSITIONAL", "FINAL_OCCUPIED_PLAYER_LINE"));
+
+            EffectMatchBatch batch = engine.MatchPostUnit(PostUnitFacts(60, 5, false, null, false));
+
+            Assert.AreEqual("POSITIONAL:FINAL_OCCUPIED_PLAYER_LINE", batch.NearMisses[0].FailedRequirement);
+        }
+
+        [Test]
+        public void TruePatch_InsideSucceedingCondition_Qualifies()
+        {
+            EffectEngine engine = EngineOf(PostUnitPatchEffect(70, 60, "STRUCTURE_CONTEXT", "INSIDE_SUCCEEDING_CONDITION"));
+
+            EffectMatchBatch batch = engine.MatchPostUnit(PostUnitFacts(60, 4, false, ConditionOutcome.True, false));
+
+            Assert.AreEqual(1, batch.Creators.Count);
+        }
+
+        [Test]
+        public void TruePatch_RescuedFromFalse_NearMissesSucceedingCondition()
+        {
+            EffectEngine engine = EngineOf(PostUnitPatchEffect(70, 60, "STRUCTURE_CONTEXT", "INSIDE_SUCCEEDING_CONDITION"));
+
+            EffectMatchBatch batch = engine.MatchPostUnit(PostUnitFacts(60, 4, false, ConditionOutcome.False, false));
+
+            Assert.AreEqual("STRUCTURE_CONTEXT:INSIDE_SUCCEEDING_CONDITION", batch.NearMisses[0].FailedRequirement);
+        }
+
+        [Test]
+        public void TruePatch_NotInsideCondition_NearMissesSucceedingCondition()
+        {
+            EffectEngine engine = EngineOf(PostUnitPatchEffect(70, 60, "STRUCTURE_CONTEXT", "INSIDE_SUCCEEDING_CONDITION"));
+
+            EffectMatchBatch batch = engine.MatchPostUnit(PostUnitFacts(60, 4, false, null, false));
+
+            Assert.AreEqual("STRUCTURE_CONTEXT:INSIDE_SUCCEEDING_CONDITION", batch.NearMisses[0].FailedRequirement);
+        }
+
+        [Test]
+        public void PipelinePatch_AdjacentAfterSuccessfulScore_Qualifies()
+        {
+            EffectEngine engine = EngineOf(PostUnitPatchEffect(70, 60, "STRUCTURE_CONTEXT", "ADJACENT_AFTER_SUCCESSFUL_SCORE"));
+
+            EffectMatchBatch batch = engine.MatchPostUnit(PostUnitFacts(60, 4, false, null, true));
+
+            Assert.AreEqual(1, batch.Creators.Count);
+        }
+
+        [Test]
+        public void PipelinePatch_NotAdjacent_NearMissesAdjacency()
+        {
+            EffectEngine engine = EngineOf(PostUnitPatchEffect(70, 60, "STRUCTURE_CONTEXT", "ADJACENT_AFTER_SUCCESSFUL_SCORE"));
+
+            EffectMatchBatch batch = engine.MatchPostUnit(PostUnitFacts(60, 4, false, null, false));
+
+            Assert.AreEqual("STRUCTURE_CONTEXT:ADJACENT_AFTER_SUCCESSFUL_SCORE", batch.NearMisses[0].FailedRequirement);
+        }
+
+        [Test]
+        public void BoundaryCreator_NoLock_IsSilentWithLedgerUntouched()
+        {
+            EffectEngine engine = EngineOf(BurstLockEffect(70), BurstBoundaryEffect(70));
+
+            EffectMatchBatch batch = engine.MatchBoundary(Boundary(PlayerTraversalBoundary, 7));
+
+            Assert.AreEqual(0, batch.Creators.Count);
+        }
+
+        [Test]
+        public void BoundaryCreator_WithLock_Qualifies()
+        {
+            EffectEngine engine = EngineOf(BurstLockEffect(70), BurstBoundaryEffect(70));
+            engine.CommitTargetLock(engine.RegisteredEffects[0], Lock(60));
+
+            EffectMatchBatch batch = engine.MatchBoundary(Boundary(PlayerTraversalBoundary, 7));
+
+            Assert.AreEqual(1, batch.Creators.Count);
+            Assert.AreEqual(new InstanceID(70), batch.Creators[0].Origin);
+        }
+
+        [Test]
+        public void PendingOperationBatch_OrdersOperationModificationBeforeQuantityChange()
+        {
+            // The OperationModification effect carries the *higher* instance identity, so identity
+            // order alone would place it second; only the CAB-EVT-543 rule puts it first.
+            EffectEngine engine = EngineOf(StandardLibrarySelectedHost(70), ConstantPatchEffect(80, 60));
+
+            EffectMatchBatch batch = engine.MatchPendingOperation(PendingHosted(60));
+
+            Assert.AreEqual(2, batch.Qualified.Count);
+            Assert.IsNotNull(batch.Qualified[0].OperationModification);
+            Assert.AreEqual(new InstanceID(80), batch.Qualified[0].Origin);
+            Assert.IsNull(batch.Qualified[1].OperationModification);
+            Assert.AreEqual(new InstanceID(70), batch.Qualified[1].Origin);
+        }
+
+        [Test]
+        public void CommitUnderUnit_SourceExecutionCreator_ConsumesThatUnitKey()
+        {
+            EffectEngine engine = EngineOf(PostUnitPatchEffect(70, 60, "POSITIONAL", "EVEN_NUMBERED_LINE"));
+            ActiveEffect echo = engine.RegisteredEffects[0];
+
+            engine.Commit(echo, new RuntimeUnitID(1));
+
+            // Re-offering the same unit's even-line closure finds the allowance consumed: silent, no near-miss.
+            EffectMatchBatch batch = engine.MatchPostUnit(PostUnitFacts(60, 4, false, null, false));
+            Assert.AreEqual(0, batch.Creators.Count);
+            Assert.AreEqual(0, batch.NearMisses.Count);
+        }
+
+        [Test]
+        public void ConstantPatch_ForeignHostPending_IsStructurallySilent()
+        {
+            EffectEngine engine = EngineOf(ConstantPatchEffect(70, 60));
+
+            EffectMatchBatch batch = engine.MatchPendingOperation(PendingHosted(61));
+
+            Assert.AreEqual(0, batch.Qualified.Count);
+            Assert.AreEqual(0, batch.NearMisses.Count);
+        }
+
         /// <summary>
         /// Interprets the given Dependency instances and assembles an engine over a fresh ledger.
         /// </summary>
@@ -666,6 +967,205 @@ namespace Iterate.Domain.Execution.Tests
         private static EffectEngine Engine(params DependencyInstance[] dependencies)
         {
             return new EffectEngine(Effects(dependencies), new FrequencyLedger());
+        }
+
+        /// <summary>
+        /// Assembles an engine directly over hand-built active effects and a fresh ledger, for the
+        /// host-socketed Patch and target-lock shapes the interpreter produces from an attached Patch.
+        /// </summary>
+        /// <param name="effects">The registered effects.</param>
+        /// <returns>The assembled engine.</returns>
+        private static EffectEngine EngineOf(params ActiveEffect[] effects)
+        {
+            return new EffectEngine(new List<ActiveEffect>(effects), new FrequencyLedger());
+        }
+
+        /// <summary>
+        /// A BURST-OUTPUT-shaped target-lock effect: every positive player Score gain updates the
+        /// tracked most-recent qualifying unit.
+        /// </summary>
+        /// <param name="origin">The owning instance's identity value.</param>
+        /// <returns>The target-lock effect.</returns>
+        private static ActiveEffect BurstLockEffect(int origin)
+        {
+            TriggerDescriptor trigger = ReactionTrigger(
+                EventFamily.Quantity,
+                "QUANTITY_CHANGED",
+                Qualifier("ACTUAL_DELTA_SIGN", "POSITIVE"),
+                Qualifier("REGISTER", "SCORE"),
+                Qualifier("OPERATION_CLASS", "PLAYER_INSTRUCTION"));
+
+            return ActiveEffect.ForTargetLock(
+                new InstanceID(origin),
+                "WB-DIR-003",
+                0,
+                trigger,
+                new TargetLockUpdateOperation(new TargetingRule("MOST_RECENT_QUALIFYING_UNIT", string.Empty)),
+                new EffectFrequency("EVERY_QUALIFYING_EVENT", "DECLARED_SCOPE"));
+        }
+
+        /// <summary>
+        /// A BURST-OUTPUT-shaped boundary creator: at the player-traversal boundary, one added
+        /// execution of the locked target.
+        /// </summary>
+        /// <param name="origin">The owning instance's identity value.</param>
+        /// <returns>The boundary creator effect.</returns>
+        private static ActiveEffect BurstBoundaryEffect(int origin)
+        {
+            TriggerDescriptor trigger = new TriggerDescriptor(
+                EventFamily.Reaction,
+                "BOUNDARY_EFFECT_REQUESTED",
+                new List<TriggerQualifier>(),
+                new EffectTiming(TimingKind.NamedBoundary, PlayerTraversalBoundary));
+
+            return ActiveEffect.ForBoundaryCreator(
+                new InstanceID(origin),
+                "WB-DIR-003",
+                1,
+                trigger,
+                new AddedExecutionRequestOperation(new TargetingRule("LOCKED_TARGET", string.Empty), true),
+                PlayerTraversalBoundary,
+                new EffectFrequency("ONCE", "EXECUTION"));
+        }
+
+        /// <summary>
+        /// A FEEDBACK-PATCH-shaped socketed reaction: the host's own positive Score gain adds 1 to
+        /// Value.
+        /// </summary>
+        /// <param name="origin">The Patch instance's identity value.</param>
+        /// <param name="host">The socketed host instance's identity value.</param>
+        /// <returns>The host-socketed reaction effect.</returns>
+        private static ActiveEffect FeedbackPatchEffect(int origin, int host)
+        {
+            TriggerDescriptor trigger = ReactionTrigger(
+                EventFamily.Quantity,
+                "QUANTITY_CHANGED",
+                Qualifier("ACTUAL_DELTA_SIGN", "POSITIVE"),
+                Qualifier("REGISTER", "SCORE"),
+                Qualifier("OPERATION_CLASS", "HOST_INSTRUCTION"));
+
+            return ActiveEffect.ForReaction(
+                new InstanceID(origin),
+                "WB-PAT-005",
+                0,
+                trigger,
+                new QuantityChangeOperation(CoreRegister.Value, QuantityOperator.Add, OperandSpec.FromConstant(1)),
+                new EffectFrequency("EVERY_QUALIFYING_EVENT", "DECLARED_SCOPE")).WithHostInstance(new InstanceID(host));
+        }
+
+        /// <summary>
+        /// A CONSTANT-PATCH-shaped socketed operand modification on the host's fixed-addition operation.
+        /// </summary>
+        /// <param name="origin">The Patch instance's identity value.</param>
+        /// <param name="host">The socketed host instance's identity value.</param>
+        /// <returns>The host-socketed operation-modification effect.</returns>
+        private static ActiveEffect ConstantPatchEffect(int origin, int host)
+        {
+            TriggerDescriptor trigger = new TriggerDescriptor(
+                EventFamily.Operation,
+                "PRIMARY_OPERATION_PENDING",
+                new List<TriggerQualifier> { Qualifier("OPERATION_CLASS", "FIXED_ADDITION") },
+                new EffectTiming(TimingKind.Band, "OPERATION_MODIFICATION_REPLACEMENT_OR_PREVENTION"));
+
+            return ActiveEffect.ForOperationModification(
+                new InstanceID(origin),
+                "WB-PAT-001",
+                0,
+                trigger,
+                new OperationModificationOperation(1),
+                new EffectFrequency("EVERY_QUALIFYING_EVENT", "DECLARED_SCOPE")).WithHostInstance(new InstanceID(host));
+        }
+
+        /// <summary>
+        /// A post-unit Patch creator socketed to a host, carrying one qualifier and own-host targeting.
+        /// </summary>
+        /// <param name="origin">The Patch instance's identity value.</param>
+        /// <param name="host">The socketed host instance's identity value.</param>
+        /// <param name="qualifierKind">The post-unit qualifier kind token.</param>
+        /// <param name="qualifierValue">The post-unit qualifier value token.</param>
+        /// <returns>The host-socketed creator effect.</returns>
+        private static ActiveEffect PostUnitPatchEffect(
+            int origin,
+            int host,
+            string qualifierKind,
+            string qualifierValue)
+        {
+            TriggerDescriptor trigger = new TriggerDescriptor(
+                EventFamily.Lifecycle,
+                "RUNTIME_UNIT_COMPLETED",
+                new List<TriggerQualifier> { Qualifier(qualifierKind, qualifierValue) },
+                new EffectTiming(TimingKind.Band, "POST_UNIT_CONSEQUENCE_AND_EVIDENCE"));
+
+            return ActiveEffect.ForAddedExecution(
+                new InstanceID(origin),
+                "WB-PAT-002",
+                0,
+                trigger,
+                new AddedExecutionRequestOperation(new TargetingRule("OWN_HOST", string.Empty), false),
+                new EffectFrequency("ONCE", "SOURCE_EXECUTION")).WithHostInstance(new InstanceID(host));
+        }
+
+        /// <summary>
+        /// A STANDARD-LIBRARY-shaped selected-host modification (a quantity-change modification, not an
+        /// operand adjustment), for the composition-order pin.
+        /// </summary>
+        /// <param name="origin">The owning instance's identity value.</param>
+        /// <returns>The modification effect.</returns>
+        private static ActiveEffect StandardLibrarySelectedHost(int origin)
+        {
+            TriggerDescriptor trigger = new TriggerDescriptor(
+                EventFamily.Operation,
+                "PRIMARY_OPERATION_PENDING",
+                new List<TriggerQualifier>
+                {
+                    Qualifier("OPERATION_CLASS", "FIXED_ADDITION"),
+                    Qualifier("OPERATION_CLASS", "PLAYER_INSTRUCTION"),
+                    Qualifier("REGISTER", "VALUE")
+                },
+                new EffectTiming(TimingKind.Band, "OPERATION_MODIFICATION_REPLACEMENT_OR_PREVENTION"));
+
+            return ActiveEffect.ForModification(
+                new InstanceID(origin),
+                "WB-DEP-001",
+                0,
+                trigger,
+                new QuantityChangeOperation(CoreRegister.Value, QuantityOperator.Add, OperandSpec.FromConstant(1)),
+                new EffectFrequency("FIRST_QUALIFYING_EVENT", "EXECUTION"));
+        }
+
+        /// <summary>
+        /// A player fixed <c>Value += n</c> pending occurrence hosted by a specific Instruction instance.
+        /// </summary>
+        /// <param name="host">The hosting instance's identity value.</param>
+        /// <returns>The pending occurrence.</returns>
+        private static OperationOccurrence PendingHosted(int host)
+        {
+            return new OperationOccurrence(
+                new RuntimeUnitID(1),
+                new TraceEventID(10),
+                0,
+                new InstanceID(host),
+                CoreRegister.Value,
+                CoreLineOperator.Add,
+                OperandSource.Constant,
+                null,
+                OwnershipClassification.PlayerOwned);
+        }
+
+        /// <summary>
+        /// A target-lock snapshot locking the given host instance's slot.
+        /// </summary>
+        /// <param name="host">The locked host instance's identity value.</param>
+        /// <returns>The target lock.</returns>
+        private static TargetLock Lock(int host)
+        {
+            return new TargetLock(
+                InstructionSlot(host),
+                new InstanceID(host),
+                null,
+                new TraceEventID(14),
+                new RuntimeUnitID(1),
+                null);
         }
 
         /// <summary>
@@ -812,7 +1312,84 @@ namespace Iterate.Domain.Execution.Tests
             int delta,
             OwnershipClassification ownership)
         {
-            return new QuantityOccurrence(new RuntimeUnitID(1), new TraceEventID(14), 0, register, delta, ownership, null, true, EffectOriginLineage.Empty);
+            SourceSlot hostSlot = ownership == OwnershipClassification.PlayerOwned ? InstructionSlot(50) : null;
+            return new QuantityOccurrence(new RuntimeUnitID(1), new TraceEventID(14), 0, register, delta, ownership, null, true, EffectOriginLineage.Empty, hostSlot, null);
+        }
+
+        /// <summary>
+        /// Builds a primary-operation quantity occurrence hosted by a specific Instruction slot, for
+        /// the target-lock and host-gate cases that key on the offering unit's host.
+        /// </summary>
+        /// <param name="register">The changed register.</param>
+        /// <param name="delta">The actual delta.</param>
+        /// <param name="ownership">The source ownership.</param>
+        /// <param name="host">The hosting instance's identity value.</param>
+        /// <returns>The occurrence.</returns>
+        private static QuantityOccurrence PrimaryQuantityHosted(
+            CoreRegister register,
+            int delta,
+            OwnershipClassification ownership,
+            int host)
+        {
+            return new QuantityOccurrence(
+                new RuntimeUnitID(1),
+                new TraceEventID(14),
+                0,
+                register,
+                delta,
+                ownership,
+                null,
+                true,
+                EffectOriginLineage.Empty,
+                InstructionSlot(host),
+                null);
+        }
+
+        /// <summary>
+        /// A source-less boundary-caused quantity occurrence, whose null host slot leaves a
+        /// target-lock candidate structurally ineligible.
+        /// </summary>
+        /// <param name="register">The changed register.</param>
+        /// <param name="delta">The actual delta.</param>
+        /// <returns>The occurrence.</returns>
+        private static QuantityOccurrence SourceLessQuantity(CoreRegister register, int delta)
+        {
+            return new QuantityOccurrence(
+                new RuntimeUnitID(1),
+                new TraceEventID(14),
+                0,
+                register,
+                delta,
+                null,
+                new InstanceID(80),
+                false,
+                EffectOriginLineage.Empty,
+                null,
+                null);
+        }
+
+        /// <summary>
+        /// Builds a top-level Instruction slot carrying an instance with the given identity.
+        /// </summary>
+        /// <param name="instanceID">The occupying instance's identity value.</param>
+        /// <returns>The Instruction slot.</returns>
+        private static SourceSlot InstructionSlot(int instanceID)
+        {
+            InstructionDefinition definition = new InstructionDefinition(
+                new InstructionID("WB-INS-001"),
+                "rules",
+                "TEST INSTRUCTION",
+                ContentCategory.Instruction,
+                Rarity.Starter,
+                new List<string>(),
+                1,
+                new QuantityChangeOperation(CoreRegister.Value, QuantityOperator.Add, OperandSpec.FromConstant(1)),
+                null,
+                new List<string>());
+
+            return SourceSlot.ForInstruction(
+                new SourcePosition(2),
+                new InstructionInstance(new InstanceID(instanceID), definition, null));
         }
 
         /// <summary>
@@ -829,7 +1406,8 @@ namespace Iterate.Domain.Execution.Tests
             OwnershipClassification ownership,
             EffectOriginLineage lineage)
         {
-            return new QuantityOccurrence(new RuntimeUnitID(2), new TraceEventID(15), 0, register, delta, ownership, null, true, lineage);
+            SourceSlot hostSlot = ownership == OwnershipClassification.PlayerOwned ? InstructionSlot(50) : null;
+            return new QuantityOccurrence(new RuntimeUnitID(2), new TraceEventID(15), 0, register, delta, ownership, null, true, lineage, hostSlot, null);
         }
 
         /// <summary>
@@ -844,7 +1422,7 @@ namespace Iterate.Domain.Execution.Tests
             int delta,
             int origin)
         {
-            return new QuantityOccurrence(new RuntimeUnitID(1), new TraceEventID(16), 2, register, delta, null, new InstanceID(origin), false, EffectOriginLineage.Empty);
+            return new QuantityOccurrence(new RuntimeUnitID(1), new TraceEventID(16), 2, register, delta, null, new InstanceID(origin), false, EffectOriginLineage.Empty, null, null);
         }
 
         /// <summary>
@@ -863,7 +1441,42 @@ namespace Iterate.Domain.Execution.Tests
                 OwnershipClassification.PlayerOwned,
                 new InstanceID(50),
                 context,
-                EffectOriginLineage.Empty);
+                EffectOriginLineage.Empty,
+                new SourcePosition(2),
+                false,
+                null,
+                false);
+        }
+
+        /// <summary>
+        /// Builds a player-owned resolved post-unit occurrence hosted by a specific instance and
+        /// carrying the four Patch facts, for the host-gate and qualifier cases.
+        /// </summary>
+        /// <param name="host">The hosting instance's identity value.</param>
+        /// <param name="position">The unit's source position.</param>
+        /// <param name="isFinalOccupiedPlayerLine">Whether the unit is the final occupied player line.</param>
+        /// <param name="conditionResult">The retained Condition result, or null when not inside one.</param>
+        /// <param name="adjacentAfterSuccessfulScore">Whether the captured adjacency snapshot qualified.</param>
+        /// <returns>The post-unit occurrence.</returns>
+        private static PostUnitOccurrence PostUnitFacts(
+            int host,
+            int position,
+            bool isFinalOccupiedPlayerLine,
+            ConditionOutcome? conditionResult,
+            bool adjacentAfterSuccessfulScore)
+        {
+            return new PostUnitOccurrence(
+                new RuntimeUnitID(1),
+                new TraceEventID(20),
+                EventDisposition.Resolved,
+                OwnershipClassification.PlayerOwned,
+                new InstanceID(host),
+                null,
+                EffectOriginLineage.Empty,
+                new SourcePosition(position),
+                isFinalOccupiedPlayerLine,
+                conditionResult,
+                adjacentAfterSuccessfulScore);
         }
 
         /// <summary>

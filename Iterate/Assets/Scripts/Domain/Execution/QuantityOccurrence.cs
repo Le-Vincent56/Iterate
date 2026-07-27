@@ -1,4 +1,5 @@
 using System;
+using Iterate.Domain.Compilation;
 using Iterate.Domain.Content;
 using Iterate.Domain.Trace;
 using Iterate.Domain.Values;
@@ -9,8 +10,9 @@ namespace Iterate.Domain.Execution
     /// One finalized quantity change offered to the effect engine: register, actual delta, and origin —
     /// a primary-operation change carries its source ownership, a reaction-caused change carries its
     /// effect origin, so an observing effect can never mistake one for the other — plus the offering
-    /// branch's lineage, which answers the origin lock. A boundary-caused change resolves outside any
-    /// unit and carries no containing unit.
+    /// branch's lineage and, when the change is a lockable player source execution, the host slot and
+    /// Structure context a target lock records. A boundary-caused change resolves outside any unit and
+    /// carries no containing unit.
     /// </summary>
     /// <param name="Unit">The runtime unit containing the change; null only for a boundary-caused change.</param>
     /// <param name="Event">The finalized quantity event this occurrence mirrors.</param>
@@ -21,6 +23,8 @@ namespace Iterate.Domain.Execution
     /// <param name="EffectOrigin">The causing effect's instance; non-null exactly when the change is not primary-operation-caused.</param>
     /// <param name="FromPrimaryOperation">Whether the change was produced by the unit's primary operation.</param>
     /// <param name="BranchLineage">The offering branch's effect-origin lineage; never null.</param>
+    /// <param name="HostSlot">The lockable player Instruction slot; non-null exactly when the change is a player-owned primary operation.</param>
+    /// <param name="SlotContext">The host slot's Structure context; non-null only when the host slot is, itself null at top level.</param>
     public sealed record QuantityOccurrence(
         RuntimeUnitID? Unit,
         TraceEventID Event,
@@ -30,7 +34,9 @@ namespace Iterate.Domain.Execution
         OwnershipClassification? Ownership,
         InstanceID? EffectOrigin,
         bool FromPrimaryOperation,
-        EffectOriginLineage BranchLineage
+        EffectOriginLineage BranchLineage,
+        SourceSlot HostSlot,
+        StructureContext SlotContext
     )
     {
         /// <summary>
@@ -59,6 +65,18 @@ namespace Iterate.Domain.Execution
         /// The offering branch's effect-origin lineage. Validated non-null at construction.
         /// </summary>
         public EffectOriginLineage BranchLineage { get; } = RequireLineage(BranchLineage);
+
+        /// <summary>
+        /// The lockable player Instruction slot. Validated at construction: non-null exactly when the
+        /// change is a player-owned primary operation.
+        /// </summary>
+        public SourceSlot HostSlot { get; } = RequireHostSlot(HostSlot, FromPrimaryOperation, Ownership);
+
+        /// <summary>
+        /// The host slot's Structure context. Validated at construction: non-null only when the host
+        /// slot is non-null.
+        /// </summary>
+        public StructureContext SlotContext { get; } = RequireSlotContext(SlotContext, HostSlot);
 
         /// <summary>
         /// Validates that a unit-less change carries the boundary-caused shape.
@@ -145,6 +163,49 @@ namespace Iterate.Domain.Execution
                 throw new ArgumentException("An occurrence requires a branch lineage.", nameof(branchLineage));
 
             return branchLineage;
+        }
+
+        /// <summary>
+        /// Validates that the host slot is present exactly when the change is a player-owned primary
+        /// operation — the only lockable source execution (CAB-EVT-435 excludes reactions, boundary
+        /// effects, and Core Instructions).
+        /// </summary>
+        /// <param name="hostSlot">The candidate host slot.</param>
+        /// <param name="fromPrimaryOperation">Whether the change is primary-operation-caused.</param>
+        /// <param name="ownership">The source ownership.</param>
+        /// <returns>The host slot unchanged.</returns>
+        /// <exception cref="ArgumentException">Thrown when presence and lockability disagree.</exception>
+        private static SourceSlot RequireHostSlot(
+            SourceSlot hostSlot,
+            bool fromPrimaryOperation,
+            OwnershipClassification? ownership
+        )
+        {
+            bool lockable = fromPrimaryOperation && ownership == OwnershipClassification.PlayerOwned;
+            if (lockable && hostSlot == null)
+                throw new ArgumentException("A player-owned primary-operation change requires its host slot.", nameof(hostSlot));
+
+            if (!lockable && hostSlot != null)
+                throw new ArgumentException("Only a player-owned primary-operation change carries a host slot.", nameof(hostSlot));
+
+            return hostSlot;
+        }
+
+        /// <summary>
+        /// Validates that a slot context is present only alongside a host slot. The host slot's own
+        /// pairing has already enforced the player-primary rule, so this guard only rejects a context
+        /// with no slot.
+        /// </summary>
+        /// <param name="slotContext">The candidate slot context.</param>
+        /// <param name="hostSlot">The validated host slot.</param>
+        /// <returns>The slot context unchanged.</returns>
+        /// <exception cref="ArgumentException">Thrown when a slot context accompanies no host slot.</exception>
+        private static StructureContext RequireSlotContext(StructureContext slotContext, SourceSlot hostSlot)
+        {
+            if (slotContext != null && hostSlot == null)
+                throw new ArgumentException("A slot context requires a host slot.", nameof(slotContext));
+
+            return slotContext;
         }
     }
 }

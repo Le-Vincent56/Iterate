@@ -114,7 +114,8 @@ namespace Iterate.Domain.Execution.Tests
                 null,
                 EffectOriginLineage.Empty.Append(new InstanceID(9)),
                 1,
-                new RuntimeUnitID(1));
+                new RuntimeUnitID(1),
+                null);
         }
     }
 }

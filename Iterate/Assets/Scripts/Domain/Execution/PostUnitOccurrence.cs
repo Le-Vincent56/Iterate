@@ -1,4 +1,5 @@
 using System;
+using Iterate.Domain.Compilation;
 using Iterate.Domain.Trace;
 using Iterate.Domain.Values;
 
@@ -7,7 +8,10 @@ namespace Iterate.Domain.Execution
     /// <summary>
     /// One closed runtime unit offered to the effect engine at the post-unit consequence-and-evidence
     /// band: the unit, its completion event, the final disposition, ownership with the owning host
-    /// instance, the Structure context it executed within, and the offering branch's lineage.
+    /// instance, the Structure context it executed within, the offering branch's lineage, and the four
+    /// facts the Patch post-unit qualifiers read — the unit's source position, whether it is the final
+    /// occupied player line, the retained Condition result it executed inside, and whether it opened
+    /// adjacent to a successful Score-increasing player Instruction.
     /// </summary>
     /// <param name="Unit">The closed runtime unit.</param>
     /// <param name="CompletionEvent">The unit's completion event.</param>
@@ -16,6 +20,10 @@ namespace Iterate.Domain.Execution
     /// <param name="HostInstance">The owning host instance; non-null exactly when player-owned.</param>
     /// <param name="StructureContext">The Structure context, or null when top-level.</param>
     /// <param name="BranchLineage">The offering branch's effect-origin lineage; never null.</param>
+    /// <param name="Position">The unit's source position, or null for a source-less unit.</param>
+    /// <param name="IsFinalOccupiedPlayerLine">Whether the unit is the final occupied player-controlled line.</param>
+    /// <param name="ConditionResult">The retained enclosing Condition result, or null when not inside one.</param>
+    /// <param name="AdjacentAfterSuccessfulScore">Whether the unit opened adjacent to a successful Score-increasing player Instruction.</param>
     public sealed record PostUnitOccurrence(
         RuntimeUnitID Unit,
         TraceEventID CompletionEvent,
@@ -23,7 +31,11 @@ namespace Iterate.Domain.Execution
         OwnershipClassification Ownership,
         InstanceID? HostInstance,
         StructureContext StructureContext,
-        EffectOriginLineage BranchLineage
+        EffectOriginLineage BranchLineage,
+        SourcePosition? Position,
+        bool IsFinalOccupiedPlayerLine,
+        ConditionOutcome? ConditionResult,
+        bool AdjacentAfterSuccessfulScore
     )
     {
         /// <summary>
@@ -36,6 +48,12 @@ namespace Iterate.Domain.Execution
         /// The offering branch's effect-origin lineage. Validated non-null at construction.
         /// </summary>
         public EffectOriginLineage BranchLineage { get; } = RequireLineage(BranchLineage);
+
+        /// <summary>
+        /// Whether the unit is the final occupied player-controlled line. Validated at construction:
+        /// a Core-owned unit is never a player line.
+        /// </summary>
+        public bool IsFinalOccupiedPlayerLine { get; } = RequireFinalLinePairing(Ownership, IsFinalOccupiedPlayerLine);
 
         /// <summary>
         /// Validates that the host instance is present exactly when the unit is player-owned.
@@ -56,6 +74,24 @@ namespace Iterate.Domain.Execution
                 throw new ArgumentException("A Core-owned occurrence carries no host instance.", nameof(hostInstance));
 
             return hostInstance;
+        }
+
+        /// <summary>
+        /// Validates that only a player-owned unit is the final occupied player line.
+        /// </summary>
+        /// <param name="ownership">The unit's ownership classification.</param>
+        /// <param name="isFinalOccupiedPlayerLine">Whether the unit is the final occupied player line.</param>
+        /// <returns>The flag unchanged.</returns>
+        /// <exception cref="ArgumentException">Thrown when a Core-owned unit claims the final player line.</exception>
+        private static bool RequireFinalLinePairing(
+            OwnershipClassification ownership,
+            bool isFinalOccupiedPlayerLine
+        )
+        {
+            if (isFinalOccupiedPlayerLine && ownership != OwnershipClassification.PlayerOwned)
+                throw new ArgumentException("A Core-owned unit is never the final occupied player line.", nameof(isFinalOccupiedPlayerLine));
+
+            return isFinalOccupiedPlayerLine;
         }
 
         /// <summary>

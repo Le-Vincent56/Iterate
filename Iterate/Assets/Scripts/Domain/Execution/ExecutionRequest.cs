@@ -10,9 +10,10 @@ namespace Iterate.Domain.Execution
     /// The immutable, fully-validated request the Execution Engine consumes: the locked compiled source,
     /// the Process execution configuration, the reproduction revision stamps, the initial register
     /// state, and the installed Dependency instances. Construction enforces the content contract —
-    /// every slot kind the arrangement can carry is executable, and every active Directive pragma's and
-    /// installed Dependency's EXECUTION effects must be interpretable — so unsupported content fails at
-    /// the boundary rather than mis-executing, and interpretation runs exactly once.
+    /// every slot kind the arrangement can carry is executable, and every active Directive pragma's,
+    /// installed Dependency's, and attached Patch's EXECUTION effects must be interpretable — so
+    /// unsupported content fails at the boundary rather than mis-executing, and interpretation runs
+    /// exactly once.
     /// </summary>
     /// <param name="Source">The locked compiled source; non-null.</param>
     /// <param name="Configuration">The Process execution configuration; non-null.</param>
@@ -55,9 +56,10 @@ namespace Iterate.Domain.Execution
 
         /// <summary>
         /// The interpreted EXECUTION effects of the compilation's active Directive pragmas in
-        /// activation order, then every installed Dependency in installation order, computed once at
-        /// construction so request validation and engine registration share one result. An
-        /// uninterpretable pragma or installed Dependency fails the request here.
+        /// activation order, then every installed Dependency in installation order, then every
+        /// attached Patch in arrangement position order, computed once at construction so request
+        /// validation and engine registration share one result. An uninterpretable pragma, installed
+        /// Dependency, or attached Patch fails the request here.
         /// </summary>
         public IReadOnlyList<ActiveEffect> InterpretedEffects { get; } = InterpretAll(Source, InstalledDependencies);
 
@@ -134,11 +136,12 @@ namespace Iterate.Domain.Execution
         }
 
         /// <summary>
-        /// Interprets the compilation's active Directive pragmas in activation order, then every
-        /// installed Dependency's EXECUTION effects in installation order, rejecting the request
-        /// before any state is touched when one is uninterpretable.
+        /// Interprets the compilation's active Directive pragmas in activation order, every installed
+        /// Dependency's EXECUTION effects in installation order, then every arrangement slot's attached
+        /// Patch in position order, rejecting the request before any state is touched when one is
+        /// uninterpretable.
         /// </summary>
-        /// <param name="source">The locked compiled source carrying the pragmas.</param>
+        /// <param name="source">The locked compiled source carrying the pragmas and arrangement.</param>
         /// <param name="installedDependencies">The installed Dependency instances.</param>
         /// <returns>The interpreted effects; empty when nothing is declared.</returns>
         /// <exception cref="ArgumentException">Thrown when a component is null or content is uninterpretable.</exception>
@@ -164,6 +167,20 @@ namespace Iterate.Domain.Execution
             for (int i = 0; i < installedDependencies.Count; i++)
             {
                 IReadOnlyList<ActiveEffect> interpreted = EffectInterpreter.Interpret(installedDependencies[i]);
+                for (int j = 0; j < interpreted.Count; j++)
+                {
+                    effects.Add(interpreted[j]);
+                }
+            }
+
+            IReadOnlyList<SourceSlot> slots = source.Arrangement.Slots;
+            for (int i = 0; i < slots.Count; i++)
+            {
+                SourceSlot slot = slots[i];
+                if (slot.Kind != SourceSlotKind.Instruction && slot.Kind != SourceSlotKind.ContainedInstruction)
+                    continue;
+
+                IReadOnlyList<ActiveEffect> interpreted = EffectInterpreter.Interpret(slot.Instruction);
                 for (int j = 0; j < interpreted.Count; j++)
                 {
                     effects.Add(interpreted[j]);

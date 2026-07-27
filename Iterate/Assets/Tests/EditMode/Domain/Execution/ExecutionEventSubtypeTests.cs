@@ -80,6 +80,14 @@ namespace Iterate.Domain.Execution.Tests
         }
 
         [Test]
+        public void AddedExecutionTargetLockedToken_IsCabVerbatim()
+        {
+            Assert.AreEqual(
+                "ADDED_EXECUTION_TARGET_LOCKED",
+                ExecutionEventSubtypes.AddedExecutionTargetLocked);
+        }
+
+        [Test]
         public void BoundaryEffectTokens_AreCabVerbatim()
         {
             Assert.AreEqual("BOUNDARY_EFFECT_REQUESTED", ExecutionEventSubtypes.BoundaryEffectRequested);

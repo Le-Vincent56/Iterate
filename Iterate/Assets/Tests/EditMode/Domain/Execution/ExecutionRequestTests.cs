@@ -13,7 +13,9 @@ namespace Iterate.Domain.Execution.Tests
     /// Tests that <see cref="ExecutionRequest"/> validates its five components fully at construction and
     /// enforces the content contract at the boundary: all six source slot kinds construct, while a null
     /// source and an installed Dependency the effect interpreter cannot honor are rejected rather than
-    /// silently mis-executed.
+    /// silently mis-executed. Interpretation order is pragmas, then installed Dependencies, then the
+    /// arrangement's attached Patches in position order, with an uninterpretable Patch failing
+    /// construction like any other installed content.
     /// </summary>
     public sealed class ExecutionRequestTests
     {
@@ -181,6 +183,66 @@ namespace Iterate.Domain.Execution.Tests
             Assert.IsFalse(request.InterpretedEffects[4].IsModification);
         }
 
+        [Test]
+        public void Constructor_PatchedHosts_InterpretAfterDependenciesInArrangementOrder()
+        {
+            CompiledSource source = new CompiledSource(
+                PatchedArrangement(),
+                new List<DirectiveInstance>(),
+                new CompilationCostBreakdown(CompilationClassification.Initial, 0, true, 0, new List<CostModifierEntry>(), 0, false));
+            List<DependencyInstance> installed = new List<DependencyInstance>
+            {
+                new DependencyInstance(new InstanceID(12), ReactionDependency("WB-DEP-926"))
+            };
+
+            ExecutionRequest request = new(
+                source, ValidConfiguration(), ValidStamps(), ZeroInitialState(), installed);
+
+            Assert.AreEqual(3, request.InterpretedEffects.Count);
+            Assert.AreEqual(new InstanceID(12), request.InterpretedEffects[0].Origin);
+            Assert.AreEqual(new InstanceID(61), request.InterpretedEffects[1].Origin);
+            Assert.AreEqual(new InstanceID(51), request.InterpretedEffects[1].HostInstance);
+            Assert.AreEqual(new InstanceID(63), request.InterpretedEffects[2].Origin);
+            Assert.AreEqual(new InstanceID(53), request.InterpretedEffects[2].HostInstance);
+        }
+
+        [Test]
+        public void Constructor_ContainedPatchedInstruction_IsInterpreted()
+        {
+            CompiledSource source = new CompiledSource(
+                ContainedPatchedArrangement(),
+                new List<DirectiveInstance>(),
+                new CompilationCostBreakdown(CompilationClassification.Initial, 0, true, 0, new List<CostModifierEntry>(), 0, false));
+
+            ExecutionRequest request = new(
+                source, ValidConfiguration(), ValidStamps(), ZeroInitialState(), NoDependencies());
+
+            Assert.AreEqual(1, request.InterpretedEffects.Count);
+            Assert.AreEqual(new InstanceID(65), request.InterpretedEffects[0].Origin);
+            Assert.AreEqual(new InstanceID(5), request.InterpretedEffects[0].HostInstance);
+        }
+
+        [Test]
+        public void Constructor_UnpatchedArrangement_YieldsNoPatchEffects()
+        {
+            ExecutionRequest request = new(
+                CompiledFrom(CoreAndInstructionArrangement()), ValidConfiguration(), ValidStamps(), ZeroInitialState(), NoDependencies());
+
+            Assert.AreEqual(0, request.InterpretedEffects.Count);
+        }
+
+        [Test]
+        public void Constructor_UninterpretablePatch_Throws()
+        {
+            CompiledSource source = new CompiledSource(
+                UninterpretablePatchArrangement(),
+                new List<DirectiveInstance>(),
+                new CompilationCostBreakdown(CompilationClassification.Initial, 0, true, 0, new List<CostModifierEntry>(), 0, false));
+
+            Assert.Throws<ArgumentException>(() => _ = new ExecutionRequest(
+                source, ValidConfiguration(), ValidStamps(), ZeroInitialState(), NoDependencies()));
+        }
+
         private static ProcessThresholds ValidThresholds()
         {
             return new ProcessThresholds(new ScoreValue(20), new ScoreValue(30), new ScoreValue(36));
@@ -247,6 +309,120 @@ namespace Iterate.Domain.Execution.Tests
                 SourceSlot.ForContainedInstruction(new SourcePosition(3), structure, contained),
                 SourceSlot.ForContainedEmpty(new SourcePosition(4), structure)
             });
+        }
+
+        /// <summary>
+        /// A Core line, an unpatched Instruction, then two patched Instructions at ascending
+        /// positions, so arrangement order is observable in the interpreted list.
+        /// </summary>
+        /// <returns>The arrangement.</returns>
+        private static SourceArrangement PatchedArrangement()
+        {
+            CoreLine core = new("core-01", new CoreLineOperation(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(1)));
+
+            return new SourceArrangement(new List<SourceSlot>
+            {
+                SourceSlot.ForCore(new SourcePosition(1), core),
+                SourceSlot.ForInstruction(new SourcePosition(2), new InstructionInstance(new InstanceID(50), _instructionDefinition, null)),
+                SourceSlot.ForInstruction(new SourcePosition(3), PatchedHost(51, 61)),
+                SourceSlot.ForInstruction(new SourcePosition(4), PatchedHost(53, 63))
+            });
+        }
+
+        /// <summary>
+        /// A Structure whose contained Instruction carries a Patch, so contained hosts are shown to
+        /// participate.
+        /// </summary>
+        /// <returns>The arrangement.</returns>
+        private static SourceArrangement ContainedPatchedArrangement()
+        {
+            CoreLine core = new("core-01", new CoreLineOperation(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(1)));
+            StructureInstance structure = new(new InstanceID(4), _repeatDefinition);
+
+            return new SourceArrangement(new List<SourceSlot>
+            {
+                SourceSlot.ForCore(new SourcePosition(1), core),
+                SourceSlot.ForStructureHeader(new SourcePosition(2), structure),
+                SourceSlot.ForContainedInstruction(new SourcePosition(3), structure, PatchedHost(5, 65)),
+                SourceSlot.ForContainedEmpty(new SourcePosition(4), structure)
+            });
+        }
+
+        /// <summary>
+        /// An arrangement whose patched host carries a Patch declaring a socketed shape with no
+        /// host-referential declaration, which the interpreter refuses.
+        /// </summary>
+        /// <returns>The arrangement.</returns>
+        private static SourceArrangement UninterpretablePatchArrangement()
+        {
+            EffectDefinition effect = new(
+                PhaseDomain.Execution,
+                new TriggerDescriptor(
+                    EventFamily.Lifecycle,
+                    "RUNTIME_UNIT_COMPLETED",
+                    new List<TriggerQualifier> { new TriggerQualifier("POSITIONAL", "EVEN_NUMBERED_LINE") },
+                    new EffectTiming(TimingKind.Band, "POST_UNIT_CONSEQUENCE_AND_EVIDENCE")),
+                new AddedExecutionRequestOperation(new TargetingRule("OWN_HOST", string.Empty), false),
+                new TargetingRule("NO_TARGET", string.Empty),
+                new EffectTiming(TimingKind.Band, "ADDED_EXECUTION_HANDLING"),
+                StackingMode.IndependentResolution,
+                new EffectFrequency("ONCE", "SOURCE_EXECUTION"));
+
+            InstructionInstance host = new(
+                new InstanceID(55),
+                _instructionDefinition,
+                new PatchInstance(new InstanceID(67), PatchWith("WB-PAT-908", effect)));
+
+            return new SourceArrangement(new List<SourceSlot>
+            {
+                SourceSlot.ForInstruction(new SourcePosition(1), host)
+            });
+        }
+
+        /// <summary>
+        /// Builds an Instruction instance carrying an ECHO-PATCH-shaped socketed Patch.
+        /// </summary>
+        /// <param name="hostInstanceID">The host's instance identity value.</param>
+        /// <param name="patchInstanceID">The Patch's instance identity value.</param>
+        /// <returns>The patched Instruction instance.</returns>
+        private static InstructionInstance PatchedHost(int hostInstanceID, int patchInstanceID)
+        {
+            EffectDefinition effect = new(
+                PhaseDomain.Execution,
+                new TriggerDescriptor(
+                    EventFamily.Lifecycle,
+                    "RUNTIME_UNIT_COMPLETED",
+                    new List<TriggerQualifier> { new TriggerQualifier("POSITIONAL", "EVEN_NUMBERED_LINE") },
+                    new EffectTiming(TimingKind.Band, "POST_UNIT_CONSEQUENCE_AND_EVIDENCE")),
+                new AddedExecutionRequestOperation(new TargetingRule("OWN_HOST", string.Empty), false),
+                new TargetingRule("OWN_HOST", string.Empty),
+                new EffectTiming(TimingKind.Band, "ADDED_EXECUTION_HANDLING"),
+                StackingMode.IndependentResolution,
+                new EffectFrequency("ONCE", "SOURCE_EXECUTION"));
+
+            return new InstructionInstance(
+                new InstanceID(hostInstanceID),
+                _instructionDefinition,
+                new PatchInstance(new InstanceID(patchInstanceID), PatchWith("WB-PAT-002", effect)));
+        }
+
+        /// <summary>
+        /// Builds a frozen Patch definition carrying one effect.
+        /// </summary>
+        /// <param name="id">The definition's surrogate-key identity.</param>
+        /// <param name="effect">The declarative effect.</param>
+        /// <returns>The frozen definition.</returns>
+        private static PatchDefinition PatchWith(string id, EffectDefinition effect)
+        {
+            return new PatchDefinition(
+                new PatchID(id),
+                "rules",
+                "TEST PATCH",
+                ContentCategory.Patch,
+                Rarity.Common,
+                Array.Empty<string>(),
+                new PatchHostEligibility("ORDINARY_INSTRUCTION_HOSTS"),
+                new List<EffectDefinition> { effect });
         }
 
         private static List<DependencyInstance> NoDependencies()

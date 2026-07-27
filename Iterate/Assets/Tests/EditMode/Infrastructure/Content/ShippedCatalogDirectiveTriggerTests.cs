@@ -16,7 +16,9 @@ namespace Iterate.Infrastructure.Content.Tests
     /// frozen catalog: WB-DIR-001's trigger must carry the player-Instruction operation-class
     /// qualifier (CAB §12.10), WB-DIR-002's trigger must observe the REACTION family that owns
     /// BOUNDARY_EFFECT_REQUESTED (CAB §7.12), and WB-DEP-009/010's already-correct added-execution
-    /// trigger pairs are pinned so no mismatch ships silently.
+    /// trigger pairs are pinned so no mismatch ships silently. WB-DIR-003's two effects are pinned in
+    /// full: the target-lock update observing player Score gains, and the boundary request observing
+    /// the same REACTION family that owns BOUNDARY_EFFECT_REQUESTED.
     /// </summary>
     public sealed class ShippedCatalogDirectiveTriggerTests
     {
@@ -51,6 +53,44 @@ namespace Iterate.Infrastructure.Content.Tests
 
             Assert.AreEqual(EventFamily.Reaction, trigger.EventFamily);
             Assert.AreEqual("BOUNDARY_EFFECT_REQUESTED", trigger.EventSubtype);
+        }
+
+        [Test]
+        public void BurstOutputLockUpdate_ObservesPlayerScoreGains()
+        {
+            IReadOnlyList<EffectDefinition> effects = DirectiveExecutionEffects("WB-DIR-003", 2);
+
+            EffectDefinition lockUpdate = effects[0];
+            Assert.AreEqual(EventFamily.Quantity, lockUpdate.Trigger.EventFamily);
+            Assert.AreEqual("QUANTITY_CHANGED", lockUpdate.Trigger.EventSubtype);
+            Assert.AreEqual(3, lockUpdate.Trigger.Qualifiers.Count);
+            AssertHasQualifier(lockUpdate.Trigger, "ACTUAL_DELTA_SIGN", "POSITIVE");
+            AssertHasQualifier(lockUpdate.Trigger, "REGISTER", "SCORE");
+            AssertHasQualifier(lockUpdate.Trigger, "OPERATION_CLASS", "PLAYER_INSTRUCTION");
+
+            TargetLockUpdateOperation operation = lockUpdate.Operation as TargetLockUpdateOperation;
+            Assert.IsNotNull(operation, "WB-DIR-003 effect 0 is not a target-lock update.");
+            Assert.AreEqual("MOST_RECENT_QUALIFYING_UNIT", operation.Selection.Kind);
+        }
+
+        [Test]
+        public void BurstOutputBoundaryRequest_ObservesReactionFamily()
+        {
+            IReadOnlyList<EffectDefinition> effects = DirectiveExecutionEffects("WB-DIR-003", 2);
+
+            EffectDefinition boundaryRequest = effects[1];
+            Assert.AreEqual(EventFamily.Reaction, boundaryRequest.Trigger.EventFamily);
+            Assert.AreEqual("BOUNDARY_EFFECT_REQUESTED", boundaryRequest.Trigger.EventSubtype);
+            Assert.AreEqual(TimingKind.NamedBoundary, boundaryRequest.Trigger.Timing.Kind);
+            Assert.AreEqual(
+                "END_OF_PLAYER_CONTROLLED_SOURCE_TRAVERSAL",
+                boundaryRequest.Trigger.Timing.Name);
+
+            AddedExecutionRequestOperation operation =
+                boundaryRequest.Operation as AddedExecutionRequestOperation;
+            Assert.IsNotNull(operation, "WB-DIR-003 effect 1 is not an added-execution request.");
+            Assert.AreEqual("LOCKED_TARGET", operation.Target.Kind);
+            Assert.IsTrue(operation.CancelOnInvalid, "WB-DIR-003 effect 1 must cancel on an invalid host.");
         }
 
         [Test]
@@ -106,6 +146,33 @@ namespace Iterate.Infrastructure.Content.Tests
             Assert.AreEqual(1, executionEffects, $"{id}: expected exactly one EXECUTION effect.");
             Assert.IsNotNull(found, $"{id}: EXECUTION effect carries no trigger.");
             return found;
+        }
+
+        /// <summary>
+        /// Resolves the named shipped Directive and returns its EXECUTION-domain effects in
+        /// declaration order, asserting the expected count so a record gaining or losing an effect
+        /// fails here rather than shifting an index assertion silently.
+        /// </summary>
+        /// <param name="id">The Directive's surrogate-key identity string.</param>
+        /// <param name="expectedCount">The number of EXECUTION effects the record must declare.</param>
+        /// <returns>The EXECUTION effects in declaration order.</returns>
+        private IReadOnlyList<EffectDefinition> DirectiveExecutionEffects(string id, int expectedCount)
+        {
+            Assert.IsTrue(_catalog.TryGetDirective(new DirectiveID(id), out DirectiveDefinition directive));
+
+            List<EffectDefinition> executionEffects = new();
+            for (int i = 0; i < directive.Effects.Count; i++)
+            {
+                EffectDefinition effect = directive.Effects[i];
+                if (effect.PhaseDomain == PhaseDomain.Execution)
+                    executionEffects.Add(effect);
+            }
+
+            Assert.AreEqual(
+                expectedCount,
+                executionEffects.Count,
+                $"{id}: unexpected EXECUTION effect count.");
+            return executionEffects;
         }
 
         /// <summary>

@@ -44,7 +44,8 @@ namespace Iterate.Domain.Execution.Tests
                 null,
                 lineage,
                 1,
-                new RuntimeUnitID(3));
+                new RuntimeUnitID(3),
+                ConditionOutcome.True);
 
             Assert.AreEqual("WB-DIR-001:0#9@e7", request.RequestIdentity);
             Assert.AreEqual(new InstanceID(9), request.CreatorOrigin);
@@ -56,6 +57,15 @@ namespace Iterate.Domain.Execution.Tests
             Assert.AreSame(lineage, request.Lineage);
             Assert.AreEqual(1, request.ProposedDepth);
             Assert.AreEqual(new RuntimeUnitID(3), request.ParentUnit);
+            Assert.AreEqual(ConditionOutcome.True, request.RetainedConditionResult);
+        }
+
+        [Test]
+        public void RetainedConditionResult_RoundTripsEachOutcome()
+        {
+            Assert.AreEqual(ConditionOutcome.True, Request(retainedConditionResult: ConditionOutcome.True).RetainedConditionResult);
+            Assert.AreEqual(ConditionOutcome.False, Request(retainedConditionResult: ConditionOutcome.False).RetainedConditionResult);
+            Assert.IsNull(Request().RetainedConditionResult);
         }
 
         [Test]
@@ -199,6 +209,7 @@ namespace Iterate.Domain.Execution.Tests
         /// <param name="useDefaultLineage">Whether to substitute the standard one-entry lineage.</param>
         /// <param name="proposedDepth">The proposed added-execution depth.</param>
         /// <param name="parentUnit">The parent unit, or null while pending.</param>
+        /// <param name="retainedConditionResult">The retained Condition outcome, or null outside one.</param>
         /// <returns>The constructed request.</returns>
         private static AddedExecutionRequest Request(
             string identity = "WB-DIR-001:0#9@e7",
@@ -208,7 +219,8 @@ namespace Iterate.Domain.Execution.Tests
             EffectOriginLineage lineage = null,
             bool useDefaultLineage = true,
             int proposedDepth = 1,
-            RuntimeUnitID? parentUnit = null)
+            RuntimeUnitID? parentUnit = null,
+            ConditionOutcome? retainedConditionResult = null)
         {
             if (useDefaultSlot && slot == null)
                 slot = InstructionSlot();
@@ -225,7 +237,8 @@ namespace Iterate.Domain.Execution.Tests
                 null,
                 lineage,
                 proposedDepth,
-                parentUnit);
+                parentUnit,
+                retainedConditionResult);
         }
 
         /// <summary>

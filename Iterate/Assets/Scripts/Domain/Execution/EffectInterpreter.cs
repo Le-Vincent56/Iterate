@@ -6,13 +6,15 @@ using Iterate.Domain.Values;
 namespace Iterate.Domain.Execution
 {
     /// <summary>
-    /// The closed, fail-fast interpreter turning installed Dependencies' and active Directives'
-    /// declarative EXECUTION effects into <see cref="ActiveEffect"/>s. Admits exactly the vocabulary
-    /// this engine can honor — the seven trigger pairs keyed to their bands or named boundary, the
-    /// closed per-pair qualifier vocabulary, constant-operand quantity changes, the RESCUED-resolving
-    /// rescue operation, added-execution request operations with their pair-bound targeting and
-    /// cancel-on-invalid false, and the three allowances — and throws on everything else so the
-    /// engine never silently under-executes installed content.
+    /// The closed, fail-fast interpreter turning installed Dependencies', active Directives', and
+    /// attached Patches' declarative EXECUTION effects into <see cref="ActiveEffect"/>s. Admits exactly
+    /// the vocabulary this engine can honor — the seven trigger pairs keyed to their bands or named
+    /// boundary, the closed per-pair qualifier vocabulary split by whether the effect is host-socketed,
+    /// constant-operand quantity changes, host operand adjustments, the RESCUED-resolving rescue
+    /// operation, added-execution request operations with their pair-bound targeting and cancel-on-
+    /// invalid flag, target-lock updates selecting the most recent qualifying unit, the three
+    /// allowances, and the three reset scopes — and throws on everything else so the engine never
+    /// silently under-executes installed content.
     /// </summary>
     public static class EffectInterpreter
     {
@@ -57,6 +59,26 @@ namespace Iterate.Domain.Execution
         private const string FirstContainedInstructionTargeting = "FIRST_CONTAINED_INSTRUCTION";
 
         /// <summary>
+        /// The targeting token a host-socketed effect declares to name its own host.
+        /// </summary>
+        private const string OwnHostTargeting = "OWN_HOST";
+
+        /// <summary>
+        /// The added-execution targeting token selecting whatever the creator's target lock holds.
+        /// </summary>
+        private const string LockedTargetTargeting = "LOCKED_TARGET";
+
+        /// <summary>
+        /// The only target-lock selection token this engine resolves.
+        /// </summary>
+        private const string MostRecentQualifyingUnitSelection = "MOST_RECENT_QUALIFYING_UNIT";
+
+        /// <summary>
+        /// The operation-class qualifier value restricting a socketed reaction to its own host.
+        /// </summary>
+        private const string HostInstructionQualifier = "HOST_INSTRUCTION";
+
+        /// <summary>
         /// Interprets every EXECUTION-domain effect the Dependency declares, skipping other phase
         /// domains, and returns the interpreted effects in declaration order.
         /// </summary>
@@ -68,7 +90,7 @@ namespace Iterate.Domain.Execution
             if (dependency == null)
                 throw new ArgumentException("Interpretation requires a Dependency instance.", nameof(dependency));
 
-            return InterpretDeclared(dependency.InstanceID, dependency.Definition.ID.Value, dependency.Definition.Effects);
+            return InterpretDeclared(dependency.InstanceID, dependency.Definition.ID.Value, dependency.Definition.Effects, null);
         }
 
         /// <summary>
@@ -83,21 +105,48 @@ namespace Iterate.Domain.Execution
             if (directive == null)
                 throw new ArgumentException("Interpretation requires a Directive instance.", nameof(directive));
 
-            return InterpretDeclared(directive.InstanceID, directive.Definition.ID.Value, directive.Definition.Effects);
+            return InterpretDeclared(directive.InstanceID, directive.Definition.ID.Value, directive.Definition.Effects, null);
         }
 
         /// <summary>
-        /// Interprets a declared effect list against the closed vocabulary under one owning origin.
+        /// Interprets every EXECUTION-domain effect the host's attached Patch declares, socketing each
+        /// produced effect to the host. The effect origin is the Patch instance and the definition
+        /// identity the Patch definition, so two attachments of one definition stay distinct origins.
+        /// </summary>
+        /// <param name="host">The Instruction instance whose socket is read.</param>
+        /// <returns>The interpreted effects; empty when the host carries no Patch.</returns>
+        /// <exception cref="ArgumentException">Thrown when the host is null or an EXECUTION effect is uninterpretable.</exception>
+        public static IReadOnlyList<ActiveEffect> Interpret(InstructionInstance host)
+        {
+            if (host == null)
+                throw new ArgumentException("Interpretation requires an Instruction instance.", nameof(host));
+
+            PatchInstance attached = host.AttachedPatch;
+            if (attached == null)
+                return new List<ActiveEffect>();
+
+            return InterpretDeclared(
+                attached.InstanceID,
+                attached.Definition.ID.Value,
+                attached.Definition.Effects,
+                host.InstanceID);
+        }
+
+        /// <summary>
+        /// Interprets a declared effect list against the closed vocabulary under one owning origin,
+        /// socketing every produced effect when a host instance is supplied.
         /// </summary>
         /// <param name="origin">The owning content instance's identity.</param>
         /// <param name="definitionID">The owning definition's identity.</param>
         /// <param name="declared">The declared effects.</param>
+        /// <param name="hostInstance">The socketed host instance, or null for unsocketed content.</param>
         /// <returns>The interpreted effects in declaration order.</returns>
         /// <exception cref="ArgumentException">Thrown when an EXECUTION effect is uninterpretable.</exception>
         private static IReadOnlyList<ActiveEffect> InterpretDeclared(
             InstanceID origin,
             string definitionID,
-            IReadOnlyList<EffectDefinition> declared
+            IReadOnlyList<EffectDefinition> declared,
+            InstanceID? hostInstance
         )
         {
             List<ActiveEffect> effects = new List<ActiveEffect>(declared.Count);
@@ -107,7 +156,8 @@ namespace Iterate.Domain.Execution
                 if (effect.PhaseDomain != PhaseDomain.Execution)
                     continue;
 
-                effects.Add(InterpretExecutionEffect(origin, definitionID, i, effect));
+                ActiveEffect interpreted = InterpretExecutionEffect(origin, definitionID, i, effect, hostInstance.HasValue);
+                effects.Add(hostInstance.HasValue ? interpreted.WithHostInstance(hostInstance.Value) : interpreted);
             }
 
             return effects;
@@ -120,13 +170,15 @@ namespace Iterate.Domain.Execution
         /// <param name="definitionID">The owning definition's identity.</param>
         /// <param name="effectIndex">The effect's index within the definition.</param>
         /// <param name="effect">The declared effect.</param>
+        /// <param name="socketed">Whether the effect is declared by a Patch attached to a host.</param>
         /// <returns>The interpreted effect.</returns>
         /// <exception cref="ArgumentException">Thrown when any token falls outside the closed vocabulary.</exception>
         private static ActiveEffect InterpretExecutionEffect(
             InstanceID origin,
             string definitionID,
             int effectIndex,
-            EffectDefinition effect
+            EffectDefinition effect,
+            bool socketed
         )
         {
             TriggerDescriptor trigger = effect.Trigger;
@@ -139,32 +191,58 @@ namespace Iterate.Domain.Execution
             if (trigger.EventFamily == EventFamily.Operation && subtype == ExecutionEventSubtypes.PrimaryOperationPending)
             {
                 RequireBand(definitionID, trigger, ModificationBand);
-                RequireQuantityVocabularyQualifiers(definitionID, trigger);
+                RequireQuantityVocabularyQualifiers(definitionID, trigger, socketed);
+                if (socketed)
+                    RequireOwnHostTargeting(definitionID, effect, "modification");
+
+                if (effect.Operation is OperationModificationOperation operandChange)
+                {
+                    if (!socketed)
+                        throw new ArgumentException($"An EXECUTION-domain effect of '{definitionID}' declares an OperationModification operation without a host socket; only an attached Patch may declare it.");
+
+                    return ActiveEffect.ForOperationModification(origin, definitionID, effectIndex, trigger, operandChange, frequency);
+                }
+
                 return ActiveEffect.ForModification(origin, definitionID, effectIndex, trigger, RequireConstantQuantityChange(definitionID, effect.Operation), frequency);
             }
 
             if (trigger.EventFamily == EventFamily.Operation && subtype == ExecutionEventSubtypes.PrimaryOperationResolved)
             {
                 RequireBand(definitionID, trigger, ReactionBand);
-                RequireQuantityVocabularyQualifiers(definitionID, trigger);
+                RequireQuantityVocabularyQualifiers(definitionID, trigger, socketed);
                 return ActiveEffect.ForReaction(origin, definitionID, effectIndex, trigger, RequireConstantQuantityChange(definitionID, effect.Operation), frequency);
             }
 
             if (trigger.EventFamily == EventFamily.Quantity && subtype == ExecutionEventSubtypes.QuantityChanged)
             {
                 RequireBand(definitionID, trigger, ReactionBand);
-                RequireQuantityVocabularyQualifiers(definitionID, trigger);
+                RequireQuantityVocabularyQualifiers(definitionID, trigger, socketed);
+                if (effect.Operation is TargetLockUpdateOperation lockUpdate)
+                {
+                    if (socketed)
+                        throw new ArgumentException($"An EXECUTION-domain effect of '{definitionID}' declares a TargetLockUpdate operation on a host-socketed Patch; only Dependencies and Directives may declare it.");
+
+                    if (lockUpdate.Selection.Kind != MostRecentQualifyingUnitSelection)
+                        throw new ArgumentException($"An EXECUTION-domain effect of '{definitionID}' declares target-lock selection '{lockUpdate.Selection.Kind}'; only '{MostRecentQualifyingUnitSelection}' is interpretable.");
+
+                    return ActiveEffect.ForTargetLock(origin, definitionID, effectIndex, trigger, lockUpdate, frequency);
+                }
+
                 if (effect.Operation is AddedExecutionRequestOperation)
                 {
                     AddedExecutionRequestOperation request = RequireAddedExecutionRequest(definitionID, effect.Operation, TriggeringUnitTargeting);
                     return ActiveEffect.ForAddedExecution(origin, definitionID, effectIndex, trigger, request, frequency);
                 }
 
+                if (socketed)
+                    RequireHostInstructionQualifier(definitionID, trigger);
+
                 return ActiveEffect.ForReaction(origin, definitionID, effectIndex, trigger, RequireConstantQuantityChange(definitionID, effect.Operation), frequency);
             }
 
             if (trigger.EventFamily == EventFamily.Disposition && subtype == ExecutionEventSubtypes.SourceExecutionSkipped)
             {
+                RequireUnsocketed(definitionID, socketed, "the rescue trigger pair");
                 RequireBand(definitionID, trigger, PreOperationBand);
                 RequireNoQualifiers(definitionID, trigger, "the rescue trigger pair");
                 return ActiveEffect.ForRescue(origin, definitionID, effectIndex, trigger, RequireRescueOperation(definitionID, effect.Operation), frequency);
@@ -173,13 +251,18 @@ namespace Iterate.Domain.Execution
             if (trigger.EventFamily == EventFamily.Lifecycle && subtype == ExecutionEventSubtypes.RuntimeUnitCompleted)
             {
                 RequireBand(definitionID, trigger, PostUnitBand);
-                RequirePostUnitQualifiers(definitionID, trigger);
-                AddedExecutionRequestOperation request = RequireAddedExecutionRequest(definitionID, effect.Operation, TriggeringUnitTargeting);
+                RequirePostUnitQualifiers(definitionID, trigger, socketed);
+                if (socketed)
+                    RequireOwnHostTargeting(definitionID, effect, "added-execution creator");
+
+                string requiredTargeting = socketed ? OwnHostTargeting : TriggeringUnitTargeting;
+                AddedExecutionRequestOperation request = RequireAddedExecutionRequest(definitionID, effect.Operation, requiredTargeting);
                 return ActiveEffect.ForAddedExecution(origin, definitionID, effectIndex, trigger, request, frequency);
             }
 
             if (trigger.EventFamily == EventFamily.Structure && subtype == ExecutionEventSubtypes.ConditionTrue)
             {
+                RequireUnsocketed(definitionID, socketed, "the CONDITION_TRUE trigger pair");
                 RequireBand(definitionID, trigger, PostUnitBand);
                 RequireNoQualifiers(definitionID, trigger, "the CONDITION_TRUE trigger pair");
                 AddedExecutionRequestOperation request = RequireAddedExecutionRequest(definitionID, effect.Operation, FirstContainedInstructionTargeting);
@@ -188,12 +271,74 @@ namespace Iterate.Domain.Execution
 
             if (trigger.EventFamily == EventFamily.Reaction && subtype == ExecutionEventSubtypes.BoundaryEffectRequested)
             {
+                RequireUnsocketed(definitionID, socketed, "the boundary trigger pair");
                 string boundaryName = RequireWiredBoundary(definitionID, trigger);
                 RequireBoundaryQualifiers(definitionID, trigger);
+                if (effect.Operation is AddedExecutionRequestOperation)
+                {
+                    AddedExecutionRequestOperation request = RequireBoundaryCreatorRequest(definitionID, effect.Operation);
+                    return ActiveEffect.ForBoundaryCreator(origin, definitionID, effectIndex, trigger, request, boundaryName, frequency);
+                }
+
                 return ActiveEffect.ForBoundary(origin, definitionID, effectIndex, trigger, RequireConstantQuantityChange(definitionID, effect.Operation), boundaryName, frequency);
             }
 
             throw new ArgumentException($"An EXECUTION-domain effect of '{definitionID}' carries an unsupported trigger pair '{trigger.EventFamily}/{subtype}'.");
+        }
+
+        /// <summary>
+        /// Validates that a trigger pair no Patch may declare was not declared by one.
+        /// </summary>
+        /// <param name="definitionID">The owning definition's identity.</param>
+        /// <param name="socketed">Whether the effect is host-socketed.</param>
+        /// <param name="pairDescription">The pair named in the failure message.</param>
+        /// <exception cref="ArgumentException">Thrown when the effect is host-socketed.</exception>
+        private static void RequireUnsocketed(
+            string definitionID,
+            bool socketed,
+            string pairDescription
+        )
+        {
+            if (socketed)
+                throw new ArgumentException($"An EXECUTION-domain effect of '{definitionID}' declares {pairDescription} on a host-socketed Patch; the pair is not interpretable from a Patch.");
+        }
+
+        /// <summary>
+        /// Validates that a host-socketed shape declares its host-locality through own-host targeting
+        /// rather than leaving it to be inferred from the effect's Patch provenance.
+        /// </summary>
+        /// <param name="definitionID">The owning definition's identity.</param>
+        /// <param name="effect">The declared effect.</param>
+        /// <param name="shapeDescription">The shape named in the failure message.</param>
+        /// <exception cref="ArgumentException">Thrown when the effect declares no own-host targeting.</exception>
+        private static void RequireOwnHostTargeting(
+            string definitionID,
+            EffectDefinition effect,
+            string shapeDescription
+        )
+        {
+            string declared = effect.Targeting == null ? "none" : effect.Targeting.Kind;
+            if (declared != OwnHostTargeting)
+                throw new ArgumentException($"An EXECUTION-domain effect of '{definitionID}' declares a host-socketed {shapeDescription} whose targeting '{declared}' is not host-referential; socketed shapes of this kind require '{OwnHostTargeting}' targeting.");
+        }
+
+        /// <summary>
+        /// Validates that a host-socketed quantity reaction declares its host-locality through the
+        /// host-Instruction operation-class qualifier.
+        /// </summary>
+        /// <param name="definitionID">The owning definition's identity.</param>
+        /// <param name="trigger">The trigger descriptor.</param>
+        /// <exception cref="ArgumentException">Thrown when the qualifier is absent.</exception>
+        private static void RequireHostInstructionQualifier(string definitionID, TriggerDescriptor trigger)
+        {
+            for (int i = 0; i < trigger.Qualifiers.Count; i++)
+            {
+                TriggerQualifier qualifier = trigger.Qualifiers[i];
+                if (qualifier.Kind == "OPERATION_CLASS" && qualifier.Value == HostInstructionQualifier)
+                    return;
+            }
+
+            throw new ArgumentException($"An EXECUTION-domain effect of '{definitionID}' declares a host-socketed quantity reaction with no host-referential declaration; socketed quantity reactions require the 'OPERATION_CLASS'/'{HostInstructionQualifier}' qualifier.");
         }
 
         /// <summary>
@@ -239,12 +384,18 @@ namespace Iterate.Domain.Execution
 
         /// <summary>
         /// Validates every trigger qualifier against the closed operation/quantity vocabulary shared
-        /// by the pending-operation, resolved-operation, and quantity-change pairs.
+        /// by the pending-operation, resolved-operation, and quantity-change pairs. The host-Instruction
+        /// operation class is admitted only for host-socketed effects.
         /// </summary>
         /// <param name="definitionID">The owning definition's identity.</param>
         /// <param name="trigger">The trigger descriptor.</param>
+        /// <param name="socketed">Whether the effect is declared by a Patch attached to a host.</param>
         /// <exception cref="ArgumentException">Thrown when any qualifier is outside the closed vocabulary.</exception>
-        private static void RequireQuantityVocabularyQualifiers(string definitionID, TriggerDescriptor trigger)
+        private static void RequireQuantityVocabularyQualifiers(
+            string definitionID,
+            TriggerDescriptor trigger,
+            bool socketed
+        )
         {
             for (int i = 0; i < trigger.Qualifiers.Count; i++)
             {
@@ -253,7 +404,8 @@ namespace Iterate.Domain.Execution
                 switch (qualifier.Kind)
                 {
                     case "OPERATION_CLASS":
-                        known = qualifier.Value is "FIXED_ADDITION" or "PLAYER_INSTRUCTION" or "VALUE_ADD_SIGNAL";
+                        known = qualifier.Value is "FIXED_ADDITION" or "PLAYER_INSTRUCTION" or "VALUE_ADD_SIGNAL"
+                            || (socketed && qualifier.Value == HostInstructionQualifier);
                         break;
 
                     case "REGISTER":
@@ -275,18 +427,34 @@ namespace Iterate.Domain.Execution
         }
 
         /// <summary>
-        /// Validates the post-unit pair's qualifiers: only the Repeat-context structure qualifier is
-        /// evaluable at a unit closure.
+        /// Validates the post-unit pair's qualifiers per value: the Repeat-context qualifier is
+        /// evaluable only for unsocketed content, and the four host-context qualifiers only for a
+        /// host-socketed Patch.
         /// </summary>
         /// <param name="definitionID">The owning definition's identity.</param>
         /// <param name="trigger">The trigger descriptor.</param>
+        /// <param name="socketed">Whether the effect is declared by a Patch attached to a host.</param>
         /// <exception cref="ArgumentException">Thrown when any qualifier is outside the pair's vocabulary.</exception>
-        private static void RequirePostUnitQualifiers(string definitionID, TriggerDescriptor trigger)
+        private static void RequirePostUnitQualifiers(
+            string definitionID,
+            TriggerDescriptor trigger,
+            bool socketed
+        )
         {
             for (int i = 0; i < trigger.Qualifiers.Count; i++)
             {
                 TriggerQualifier qualifier = trigger.Qualifiers[i];
-                if (qualifier.Kind != "STRUCTURE_CONTEXT" || qualifier.Value != "INSIDE_REPEAT")
+                bool known;
+                if (qualifier.Kind == "STRUCTURE_CONTEXT" && qualifier.Value == "INSIDE_REPEAT")
+                    known = !socketed;
+                else if (qualifier.Kind == "POSITIONAL" && qualifier.Value is "EVEN_NUMBERED_LINE" or "FINAL_OCCUPIED_PLAYER_LINE")
+                    known = socketed;
+                else if (qualifier.Kind == "STRUCTURE_CONTEXT" && qualifier.Value is "INSIDE_SUCCEEDING_CONDITION" or "ADJACENT_AFTER_SUCCESSFUL_SCORE")
+                    known = socketed;
+                else
+                    known = false;
+
+                if (!known)
                     throw new ArgumentException($"An EXECUTION-domain effect of '{definitionID}' carries an unsupported qualifier '{qualifier.Kind}/{qualifier.Value}' on the post-unit trigger pair.");
             }
         }
@@ -409,18 +577,40 @@ namespace Iterate.Domain.Execution
                 throw new ArgumentException($"An EXECUTION-domain effect of '{definitionID}' declares added-execution targeting '{request.Target.Kind}'; only '{requiredTargeting}' is interpretable on this trigger pair.");
 
             if (request.CancelOnInvalid)
-                throw new ArgumentException($"An EXECUTION-domain effect of '{definitionID}' declares CancelOnInvalid = true; only false is interpretable.");
+                throw new ArgumentException($"An EXECUTION-domain effect of '{definitionID}' declares CancelOnInvalid = true; only false is interpretable on this trigger pair.");
 
             return request;
         }
 
         /// <summary>
-        /// Validates that the frequency is present with an allowance from the closed set.
+        /// Validates that the boundary pair's added-execution request targets the creator's target
+        /// lock and cancels on an invalid host — the only shape at which cancel-on-invalid is
+        /// interpretable.
+        /// </summary>
+        /// <param name="definitionID">The owning definition's identity.</param>
+        /// <param name="operation">The declared operation.</param>
+        /// <returns>The operation as an added-execution request.</returns>
+        /// <exception cref="ArgumentException">Thrown when the targeting or cancel flag is unsupported.</exception>
+        private static AddedExecutionRequestOperation RequireBoundaryCreatorRequest(string definitionID, EffectOperation operation)
+        {
+            AddedExecutionRequestOperation request = (AddedExecutionRequestOperation)operation;
+            if (request.Target.Kind != LockedTargetTargeting)
+                throw new ArgumentException($"An EXECUTION-domain effect of '{definitionID}' declares added-execution targeting '{request.Target.Kind}'; only '{LockedTargetTargeting}' is interpretable on the boundary trigger pair.");
+
+            if (!request.CancelOnInvalid)
+                throw new ArgumentException($"An EXECUTION-domain effect of '{definitionID}' declares CancelOnInvalid = false against '{LockedTargetTargeting}'; a locked-target request must cancel on an invalid host.");
+
+            return request;
+        }
+
+        /// <summary>
+        /// Validates that the frequency is present with an allowance and a reset scope from the closed
+        /// sets.
         /// </summary>
         /// <param name="definitionID">The owning definition's identity.</param>
         /// <param name="frequency">The declared frequency.</param>
         /// <returns>The frequency unchanged.</returns>
-        /// <exception cref="ArgumentException">Thrown when the frequency is absent or its allowance unsupported.</exception>
+        /// <exception cref="ArgumentException">Thrown when the frequency is absent or its allowance or scope unsupported.</exception>
         private static EffectFrequency RequireKnownFrequency(string definitionID, EffectFrequency frequency)
         {
             if (frequency == null)
@@ -428,6 +618,9 @@ namespace Iterate.Domain.Execution
 
             if (frequency.Allowance != "FIRST_QUALIFYING_EVENT" && frequency.Allowance != "EVERY_QUALIFYING_EVENT" && frequency.Allowance != "ONCE")
                 throw new ArgumentException($"An EXECUTION-domain effect of '{definitionID}' carries an unsupported allowance '{frequency.Allowance}'.");
+
+            if (frequency.Scope != "EXECUTION" && frequency.Scope != "DECLARED_SCOPE" && frequency.Scope != "SOURCE_EXECUTION")
+                throw new ArgumentException($"An EXECUTION-domain effect of '{definitionID}' carries an unsupported reset scope '{frequency.Scope}'.");
 
             return frequency;
         }

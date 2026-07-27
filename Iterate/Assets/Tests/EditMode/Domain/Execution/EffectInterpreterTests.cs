@@ -564,17 +564,17 @@ namespace Iterate.Domain.Execution.Tests
         }
 
         [Test]
-        public void Interpret_TargetLockUpdateOperation_ThrowsNamingKind()
+        public void Interpret_TargetLockSelectionNotMostRecent_ThrowsNamingToken()
         {
             EffectDefinition effect = Effect(
                 ReactionTrigger("QUANTITY_CHANGED", EventFamily.Quantity),
-                new TargetLockUpdateOperation(new TargetingRule("MOST_RECENT_QUALIFYING_UNIT", string.Empty)),
+                new TargetLockUpdateOperation(new TargetingRule("TRIGGERING_UNIT", string.Empty)),
                 new EffectFrequency("EVERY_QUALIFYING_EVENT", "DECLARED_SCOPE"));
             DependencyInstance dependency = Instance(1, Dependency("WB-DIR-910", effect));
 
             ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
 
-            StringAssert.Contains("TargetLockUpdate", exception.Message);
+            StringAssert.Contains("TRIGGERING_UNIT", exception.Message);
         }
 
         [Test]
@@ -661,6 +661,343 @@ namespace Iterate.Domain.Execution.Tests
             ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
 
             StringAssert.Contains("TRIGGERING_UNIT", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_UnpatchedHost_YieldsEmpty()
+        {
+            InstructionInstance host = Host(50, null);
+
+            IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(host);
+
+            Assert.AreEqual(0, effects.Count);
+        }
+
+        [Test]
+        public void Interpret_NullHost_Throws()
+        {
+            Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret((InstructionInstance)null));
+        }
+
+        [Test]
+        public void Interpret_ConstantPatchShape_YieldsSocketedOperationModification()
+        {
+            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-001", ConstantPatchEffect())));
+
+            IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(host);
+
+            Assert.AreEqual(1, effects.Count);
+            Assert.AreEqual(ActiveEffectKind.Modification, effects[0].Kind);
+            Assert.AreEqual(1, effects[0].OperationModification.OperandDelta);
+            Assert.IsNull(effects[0].Operation);
+        }
+
+        [Test]
+        public void Interpret_PatchEffect_CarriesPatchOriginAndHostInstance()
+        {
+            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-001", ConstantPatchEffect())));
+
+            IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(host);
+
+            Assert.AreEqual(new InstanceID(60), effects[0].Origin);
+            Assert.AreEqual(new InstanceID(50), effects[0].HostInstance);
+            Assert.AreEqual("WB-PAT-001", effects[0].DefinitionID);
+        }
+
+        [Test]
+        public void Interpret_TwoAttachmentsOfOneDefinition_YieldDistinctOriginsAndKeys()
+        {
+            PatchDefinition definition = Patch("WB-PAT-001", ConstantPatchEffect());
+            InstructionInstance first = Host(50, PatchAttachment(60, definition));
+            InstructionInstance second = Host(51, PatchAttachment(61, definition));
+
+            IReadOnlyList<ActiveEffect> firstEffects = EffectInterpreter.Interpret(first);
+            IReadOnlyList<ActiveEffect> secondEffects = EffectInterpreter.Interpret(second);
+
+            Assert.AreNotEqual(firstEffects[0].Origin, secondEffects[0].Origin);
+            Assert.AreEqual("WB-PAT-001:0#60", firstEffects[0].FrequencyKey);
+            Assert.AreEqual("WB-PAT-001:0#61", secondEffects[0].FrequencyKey);
+        }
+
+        [Test]
+        public void Interpret_EchoPatchShape_YieldsSocketedAddedExecution()
+        {
+            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-002", EchoPatchEffect())));
+
+            IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(host);
+
+            Assert.AreEqual(ActiveEffectKind.AddedExecution, effects[0].Kind);
+            Assert.AreEqual("OWN_HOST", effects[0].Request.Target.Kind);
+            Assert.IsNull(effects[0].BoundaryName);
+            Assert.AreEqual(new InstanceID(50), effects[0].HostInstance);
+        }
+
+        [Test]
+        public void Interpret_TerminalPatchShape_YieldsSocketedAddedExecution()
+        {
+            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-003", PostUnitPatchEffect("POSITIONAL", "FINAL_OCCUPIED_PLAYER_LINE"))));
+
+            IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(host);
+
+            Assert.AreEqual(ActiveEffectKind.AddedExecution, effects[0].Kind);
+            Assert.AreEqual(new InstanceID(50), effects[0].HostInstance);
+        }
+
+        [Test]
+        public void Interpret_TruePatchShape_YieldsSocketedAddedExecution()
+        {
+            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-004", PostUnitPatchEffect("STRUCTURE_CONTEXT", "INSIDE_SUCCEEDING_CONDITION"))));
+
+            IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(host);
+
+            Assert.AreEqual(ActiveEffectKind.AddedExecution, effects[0].Kind);
+            Assert.AreEqual(new InstanceID(50), effects[0].HostInstance);
+        }
+
+        [Test]
+        public void Interpret_PipelinePatchShape_YieldsSocketedAddedExecution()
+        {
+            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-006", PostUnitPatchEffect("STRUCTURE_CONTEXT", "ADJACENT_AFTER_SUCCESSFUL_SCORE"))));
+
+            IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(host);
+
+            Assert.AreEqual(ActiveEffectKind.AddedExecution, effects[0].Kind);
+            Assert.AreEqual(new InstanceID(50), effects[0].HostInstance);
+        }
+
+        [Test]
+        public void Interpret_FeedbackPatchShape_YieldsSocketedReaction()
+        {
+            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-005", FeedbackPatchEffect())));
+
+            IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(host);
+
+            Assert.AreEqual(ActiveEffectKind.Reaction, effects[0].Kind);
+            Assert.IsNotNull(effects[0].Operation);
+            Assert.AreEqual(new InstanceID(50), effects[0].HostInstance);
+        }
+
+        [Test]
+        public void Interpret_BurstOutputLockShape_YieldsTargetLock()
+        {
+            DirectiveInstance directive = DirectiveInstanceOf(70, Directive("WB-DIR-003", BurstLockEffect()));
+
+            IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(directive);
+
+            Assert.AreEqual(ActiveEffectKind.TargetLock, effects[0].Kind);
+            Assert.AreEqual("MOST_RECENT_QUALIFYING_UNIT", effects[0].TargetLockUpdate.Selection.Kind);
+            Assert.IsNull(effects[0].HostInstance);
+        }
+
+        [Test]
+        public void Interpret_BurstOutputBoundaryShape_YieldsBoundaryCreator()
+        {
+            DirectiveInstance directive = DirectiveInstanceOf(70, Directive("WB-DIR-003", BurstBoundaryEffect(true)));
+
+            IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(directive);
+
+            Assert.AreEqual(ActiveEffectKind.AddedExecution, effects[0].Kind);
+            Assert.AreEqual("END_OF_PLAYER_CONTROLLED_SOURCE_TRAVERSAL", effects[0].BoundaryName);
+            Assert.AreEqual("LOCKED_TARGET", effects[0].Request.Target.Kind);
+            Assert.IsTrue(effects[0].Request.CancelOnInvalid);
+        }
+
+        [Test]
+        public void Interpret_BurstOutputDirective_YieldsBothEffectsInDeclarationOrder()
+        {
+            DirectiveInstance directive = DirectiveInstanceOf(
+                70,
+                Directive("WB-DIR-003", BurstLockEffect(), BurstBoundaryEffect(true)));
+
+            IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(directive);
+
+            Assert.AreEqual(2, effects.Count);
+            Assert.AreEqual(ActiveEffectKind.TargetLock, effects[0].Kind);
+            Assert.AreEqual(0, effects[0].EffectIndex);
+            Assert.AreEqual(ActiveEffectKind.AddedExecution, effects[1].Kind);
+            Assert.AreEqual(1, effects[1].EffectIndex);
+        }
+
+        [Test]
+        public void Interpret_LockedTargetWithoutCancelOnInvalid_ThrowsNamingToken()
+        {
+            DirectiveInstance directive = DirectiveInstanceOf(70, Directive("WB-DIR-913", BurstBoundaryEffect(false)));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(directive));
+
+            StringAssert.Contains("CancelOnInvalid", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_OperationModificationOnDependency_ThrowsNamingKind()
+        {
+            DependencyInstance dependency = Instance(1, Dependency("WB-DEP-957", ConstantPatchEffect()));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("OperationModification", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_HostInstructionQualifierOnDependency_ThrowsNamingToken()
+        {
+            DependencyInstance dependency = Instance(1, Dependency("WB-DEP-958", FeedbackPatchEffect()));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("HOST_INSTRUCTION", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_EvenLineQualifierOnDependency_ThrowsNamingToken()
+        {
+            DependencyInstance dependency = Instance(1, Dependency("WB-DEP-959", EchoPatchEffect()));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("EVEN_NUMBERED_LINE", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_OwnHostTargetingOnDependency_ThrowsNamingToken()
+        {
+            EffectDefinition effect = TargetedEffect(
+                new TriggerDescriptor(
+                    EventFamily.Lifecycle,
+                    "RUNTIME_UNIT_COMPLETED",
+                    new List<TriggerQualifier> { Qualifier("STRUCTURE_CONTEXT", "INSIDE_REPEAT") },
+                    new EffectTiming(TimingKind.Band, "POST_UNIT_CONSEQUENCE_AND_EVIDENCE")),
+                new AddedExecutionRequestOperation(new TargetingRule("OWN_HOST", string.Empty), false),
+                new EffectFrequency("ONCE", "SOURCE_EXECUTION"),
+                new TargetingRule("OWN_HOST", string.Empty));
+            DependencyInstance dependency = Instance(1, Dependency("WB-DEP-960", effect));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("OWN_HOST", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_TargetLockUpdateOnPatch_ThrowsNamingKind()
+        {
+            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-901", BurstLockEffect())));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(host));
+
+            StringAssert.Contains("TargetLockUpdate", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_BoundaryPairOnPatch_ThrowsNamingSocketing()
+        {
+            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-902", BurstBoundaryEffect(true))));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(host));
+
+            StringAssert.Contains("host-socketed", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_TriggeringUnitOnPatchPostUnit_ThrowsNamingToken()
+        {
+            EffectDefinition effect = TargetedEffect(
+                PostUnitTrigger("POSITIONAL", "EVEN_NUMBERED_LINE"),
+                new AddedExecutionRequestOperation(new TargetingRule("TRIGGERING_UNIT", string.Empty), false),
+                new EffectFrequency("ONCE", "SOURCE_EXECUTION"),
+                new TargetingRule("TRIGGERING_UNIT", string.Empty));
+            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-903", effect)));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(host));
+
+            StringAssert.Contains("TRIGGERING_UNIT", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_InsideRepeatQualifierOnPatch_ThrowsNamingToken()
+        {
+            EffectDefinition effect = TargetedEffect(
+                PostUnitTrigger("STRUCTURE_CONTEXT", "INSIDE_REPEAT"),
+                new AddedExecutionRequestOperation(new TargetingRule("OWN_HOST", string.Empty), false),
+                new EffectFrequency("ONCE", "SOURCE_EXECUTION"),
+                new TargetingRule("OWN_HOST", string.Empty));
+            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-904", effect)));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(host));
+
+            StringAssert.Contains("INSIDE_REPEAT", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_SocketedPostUnitWithoutHostReference_ThrowsNamingShape()
+        {
+            EffectDefinition effect = TargetedEffect(
+                PostUnitTrigger("POSITIONAL", "EVEN_NUMBERED_LINE"),
+                new AddedExecutionRequestOperation(new TargetingRule("OWN_HOST", string.Empty), false),
+                new EffectFrequency("ONCE", "SOURCE_EXECUTION"),
+                new TargetingRule("NO_TARGET", string.Empty));
+            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-905", effect)));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(host));
+
+            StringAssert.Contains("host-referential", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_SocketedQuantityReactionWithoutHostQualifier_ThrowsNamingShape()
+        {
+            EffectDefinition effect = TargetedEffect(
+                ReactionTrigger(
+                    "QUANTITY_CHANGED",
+                    EventFamily.Quantity,
+                    Qualifier("ACTUAL_DELTA_SIGN", "POSITIVE"),
+                    Qualifier("REGISTER", "SCORE")),
+                Operation(),
+                new EffectFrequency("EVERY_QUALIFYING_EVENT", "DECLARED_SCOPE"),
+                new TargetingRule("NO_TARGET", string.Empty));
+            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-906", effect)));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(host));
+
+            StringAssert.Contains("host-referential", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_CancelOnInvalidTrueOnPatchPostUnit_Throws()
+        {
+            EffectDefinition effect = TargetedEffect(
+                PostUnitTrigger("POSITIONAL", "EVEN_NUMBERED_LINE"),
+                new AddedExecutionRequestOperation(new TargetingRule("OWN_HOST", string.Empty), true),
+                new EffectFrequency("ONCE", "SOURCE_EXECUTION"),
+                new TargetingRule("OWN_HOST", string.Empty));
+            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-907", effect)));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(host));
+
+            StringAssert.Contains("CancelOnInvalid", exception.Message);
+        }
+
+        [Test]
+        public void Interpret_SourceExecutionScope_Accepted()
+        {
+            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-002", EchoPatchEffect())));
+
+            IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(host);
+
+            Assert.AreEqual("SOURCE_EXECUTION", effects[0].Frequency.Scope);
+        }
+
+        [Test]
+        public void Interpret_UnknownScope_ThrowsNamingToken()
+        {
+            EffectDefinition effect = Effect(
+                ReactionTrigger("QUANTITY_CHANGED", EventFamily.Quantity),
+                Operation(),
+                new EffectFrequency("ONCE", "COMPILATION"));
+            DependencyInstance dependency = Instance(1, Dependency("WB-DEP-961", effect));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(dependency));
+
+            StringAssert.Contains("COMPILATION", exception.Message);
         }
 
         /// <summary>
@@ -933,6 +1270,211 @@ namespace Iterate.Domain.Execution.Tests
                     new EffectTiming(TimingKind.Band, "POST_UNIT_CONSEQUENCE_AND_EVIDENCE")),
                 new AddedExecutionRequestOperation(new TargetingRule("FIRST_CONTAINED_INSTRUCTION", string.Empty), false),
                 Frequency("FIRST_QUALIFYING_EVENT"));
+        }
+
+        /// <summary>
+        /// Builds an EXECUTION-domain effect with an explicit targeting rule, for the socketed shapes
+        /// whose host-locality is declared rather than inferred.
+        /// </summary>
+        /// <param name="trigger">The trigger descriptor.</param>
+        /// <param name="operation">The effect operation.</param>
+        /// <param name="frequency">The effect frequency.</param>
+        /// <param name="targeting">The effect's targeting rule.</param>
+        /// <returns>The effect definition.</returns>
+        private static EffectDefinition TargetedEffect(
+            TriggerDescriptor trigger,
+            EffectOperation operation,
+            EffectFrequency frequency,
+            TargetingRule targeting)
+        {
+            return new EffectDefinition(
+                PhaseDomain.Execution,
+                trigger,
+                operation,
+                targeting,
+                trigger?.Timing,
+                StackingMode.IndependentResolution,
+                frequency);
+        }
+
+        /// <summary>
+        /// Builds the post-unit trigger pair carrying exactly one qualifier.
+        /// </summary>
+        /// <param name="qualifierKind">The qualifier kind token.</param>
+        /// <param name="qualifierValue">The qualifier value token.</param>
+        /// <returns>The trigger descriptor.</returns>
+        private static TriggerDescriptor PostUnitTrigger(string qualifierKind, string qualifierValue)
+        {
+            return new TriggerDescriptor(
+                EventFamily.Lifecycle,
+                "RUNTIME_UNIT_COMPLETED",
+                new List<TriggerQualifier> { Qualifier(qualifierKind, qualifierValue) },
+                new EffectTiming(TimingKind.Band, "POST_UNIT_CONSEQUENCE_AND_EVIDENCE"));
+        }
+
+        /// <summary>
+        /// Builds a frozen Patch definition carrying the given effects.
+        /// </summary>
+        /// <param name="id">The definition's surrogate-key identity.</param>
+        /// <param name="effects">The declarative effects.</param>
+        /// <returns>The frozen definition.</returns>
+        private static PatchDefinition Patch(string id, params EffectDefinition[] effects)
+        {
+            return new PatchDefinition(
+                new PatchID(id),
+                "Test rules.",
+                "TEST PATCH",
+                ContentCategory.Patch,
+                Rarity.Common,
+                new List<string>(),
+                new PatchHostEligibility("ORDINARY_INSTRUCTION_HOSTS"),
+                effects);
+        }
+
+        /// <summary>
+        /// Wraps a Patch definition in an instance with the given identity.
+        /// </summary>
+        /// <param name="instanceID">The instance identity value.</param>
+        /// <param name="definition">The frozen definition.</param>
+        /// <returns>The Patch instance.</returns>
+        private static PatchInstance PatchAttachment(int instanceID, PatchDefinition definition)
+        {
+            return new PatchInstance(new InstanceID(instanceID), definition);
+        }
+
+        /// <summary>
+        /// Builds a host Instruction instance, patched or unpatched.
+        /// </summary>
+        /// <param name="instanceID">The host's instance identity value.</param>
+        /// <param name="attachedPatch">The socketed Patch instance, or null when unpatched.</param>
+        /// <returns>The Instruction instance.</returns>
+        private static InstructionInstance Host(int instanceID, PatchInstance attachedPatch)
+        {
+            InstructionDefinition definition = new InstructionDefinition(
+                new InstructionID("WB-INS-001"),
+                "Test rules.",
+                "TEST INSTRUCTION",
+                ContentCategory.Instruction,
+                Rarity.Starter,
+                new List<string>(),
+                1,
+                Operation(),
+                null,
+                new List<string>());
+
+            return new InstructionInstance(new InstanceID(instanceID), definition, attachedPatch);
+        }
+
+        /// <summary>
+        /// Wraps a Directive definition in an instance with the given identity.
+        /// </summary>
+        /// <param name="instanceID">The instance identity value.</param>
+        /// <param name="definition">The frozen definition.</param>
+        /// <returns>The Directive instance.</returns>
+        private static DirectiveInstance DirectiveInstanceOf(int instanceID, DirectiveDefinition definition)
+        {
+            return new DirectiveInstance(new InstanceID(instanceID), definition);
+        }
+
+        /// <summary>
+        /// The CONSTANT-PATCH-shaped effect: a fixed-addition pending operation on the Patch's own
+        /// host gains 1 at the modification band.
+        /// </summary>
+        /// <returns>The effect definition.</returns>
+        private static EffectDefinition ConstantPatchEffect()
+        {
+            return TargetedEffect(
+                new TriggerDescriptor(
+                    EventFamily.Operation,
+                    "PRIMARY_OPERATION_PENDING",
+                    new List<TriggerQualifier> { Qualifier("OPERATION_CLASS", "FIXED_ADDITION") },
+                    new EffectTiming(TimingKind.Band, "OPERATION_MODIFICATION_REPLACEMENT_OR_PREVENTION")),
+                new OperationModificationOperation(1),
+                new EffectFrequency("EVERY_QUALIFYING_EVENT", "DECLARED_SCOPE"),
+                new TargetingRule("OWN_HOST", string.Empty));
+        }
+
+        /// <summary>
+        /// The ECHO-PATCH-shaped effect: an even-numbered-line host executes one additional time,
+        /// once per source execution.
+        /// </summary>
+        /// <returns>The effect definition.</returns>
+        private static EffectDefinition EchoPatchEffect()
+        {
+            return PostUnitPatchEffect("POSITIONAL", "EVEN_NUMBERED_LINE");
+        }
+
+        /// <summary>
+        /// Builds a post-unit Patch creator carrying one qualifier and own-host targeting, the shape
+        /// ECHO, TERMINAL, TRUE, and PIPELINE PATCH share.
+        /// </summary>
+        /// <param name="qualifierKind">The qualifier kind token.</param>
+        /// <param name="qualifierValue">The qualifier value token.</param>
+        /// <returns>The effect definition.</returns>
+        private static EffectDefinition PostUnitPatchEffect(string qualifierKind, string qualifierValue)
+        {
+            return TargetedEffect(
+                PostUnitTrigger(qualifierKind, qualifierValue),
+                new AddedExecutionRequestOperation(new TargetingRule("OWN_HOST", string.Empty), false),
+                new EffectFrequency("ONCE", "SOURCE_EXECUTION"),
+                new TargetingRule("OWN_HOST", string.Empty));
+        }
+
+        /// <summary>
+        /// The FEEDBACK-PATCH-shaped effect: the Patch's own host increasing Score adds 1 to Value at
+        /// the immediate-reaction band.
+        /// </summary>
+        /// <returns>The effect definition.</returns>
+        private static EffectDefinition FeedbackPatchEffect()
+        {
+            return TargetedEffect(
+                ReactionTrigger(
+                    "QUANTITY_CHANGED",
+                    EventFamily.Quantity,
+                    Qualifier("ACTUAL_DELTA_SIGN", "POSITIVE"),
+                    Qualifier("REGISTER", "SCORE"),
+                    Qualifier("OPERATION_CLASS", "HOST_INSTRUCTION")),
+                Operation(),
+                new EffectFrequency("EVERY_QUALIFYING_EVENT", "DECLARED_SCOPE"),
+                new TargetingRule("NO_TARGET", string.Empty));
+        }
+
+        /// <summary>
+        /// The BURST-OUTPUT-shaped target-lock effect: every positive player Score gain updates the
+        /// tracked most-recent qualifying unit.
+        /// </summary>
+        /// <returns>The effect definition.</returns>
+        private static EffectDefinition BurstLockEffect()
+        {
+            return TargetedEffect(
+                ReactionTrigger(
+                    "QUANTITY_CHANGED",
+                    EventFamily.Quantity,
+                    Qualifier("ACTUAL_DELTA_SIGN", "POSITIVE"),
+                    Qualifier("REGISTER", "SCORE"),
+                    Qualifier("OPERATION_CLASS", "PLAYER_INSTRUCTION")),
+                new TargetLockUpdateOperation(new TargetingRule("MOST_RECENT_QUALIFYING_UNIT", string.Empty)),
+                new EffectFrequency("EVERY_QUALIFYING_EVENT", "DECLARED_SCOPE"),
+                new TargetingRule("MOST_RECENT_QUALIFYING_UNIT", string.Empty));
+        }
+
+        /// <summary>
+        /// The post-fix BURST-OUTPUT-shaped boundary creator: at the end-of-player-traversal
+        /// boundary, one added execution of the locked target.
+        /// </summary>
+        /// <param name="cancelOnInvalid">The operation's cancel-on-invalid flag.</param>
+        /// <returns>The effect definition.</returns>
+        private static EffectDefinition BurstBoundaryEffect(bool cancelOnInvalid)
+        {
+            return TargetedEffect(
+                new TriggerDescriptor(
+                    EventFamily.Reaction,
+                    "BOUNDARY_EFFECT_REQUESTED",
+                    new List<TriggerQualifier>(),
+                    new EffectTiming(TimingKind.NamedBoundary, "END_OF_PLAYER_CONTROLLED_SOURCE_TRAVERSAL")),
+                new AddedExecutionRequestOperation(new TargetingRule("LOCKED_TARGET", string.Empty), cancelOnInvalid),
+                new EffectFrequency("ONCE", "EXECUTION"),
+                new TargetingRule("LOCKED_TARGET", string.Empty));
         }
 
         /// <summary>

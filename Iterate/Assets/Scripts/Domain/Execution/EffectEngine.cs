@@ -10,14 +10,17 @@ namespace Iterate.Domain.Execution
     /// <summary>
     /// The per-execution effect engine: stores the interpreted effects sorted by stable instance
     /// identity at registration — so registration and enumeration order cannot influence resolution —
-    /// and matches typed occurrences at the scheduler's seven boundaries, each candidate gated by its
+    /// and matches typed occurrences at the scheduler's boundaries, each candidate gated by its
     /// participation kind. Failed candidacies follow one tiering everywhere: a candidate whose
-    /// occurrence shape cannot legally qualify it is silent, a consumed allowance is silent — except
-    /// a selected-host modification, which re-applies without re-consumption to later offers hosted
-    /// by its recorded instance — and an eligible candidate that fails a requirement produces exactly
-    /// one near-miss naming the first failure, including the origin lock. Qualified effects are
-    /// ordered by declared precedence, then stable instance identity; qualified added-execution
-    /// creators are collected separately, awaiting the scheduler's commitment.
+    /// occurrence shape cannot legally qualify it is silent (structural ineligibility, including a
+    /// host-referential effect observing another host's event and a target-lock effect observing a
+    /// non-lockable change), a consumed allowance is silent — except a selected-host modification,
+    /// which re-applies without re-consumption to later offers hosted by its recorded instance — and
+    /// an eligible candidate that fails a requirement produces exactly one near-miss naming the first
+    /// failure, including the origin lock. Qualified reactions are ordered by declared precedence then
+    /// stable identity; pending-operation modifications order operand adjustments before
+    /// quantity-change modifications; qualified added-execution creators and target-lock
+    /// updates are collected separately, awaiting the scheduler's commitment.
     /// </summary>
     public sealed class EffectEngine
     {
@@ -26,9 +29,21 @@ namespace Iterate.Domain.Execution
         /// </summary>
         private const string OriginLockRequirement = "ORIGIN_LOCK:";
 
+        /// <summary>
+        /// The targeting token a host-socketed creator declares to name its own host.
+        /// </summary>
+        private const string OwnHostTargeting = "OWN_HOST";
+
+        /// <summary>
+        /// The operation-class qualifier value a host-socketed quantity reaction declares.
+        /// </summary>
+        private const string HostInstructionClass = "HOST_INSTRUCTION";
+
         private readonly List<ActiveEffect> _registered;
         private readonly FrequencyLedger _ledger;
         private readonly Dictionary<string, InstanceID> _selectedHosts;
+        private readonly Dictionary<InstanceID, TargetLock> _targetLocks;
+        private bool _observationWindowClosed;
 
         /// <summary>
         /// The registered effects, sorted by owning instance identity then effect index.
@@ -49,13 +64,14 @@ namespace Iterate.Domain.Execution
             }
 
             _selectedHosts = new Dictionary<string, InstanceID>();
+            _targetLocks = new Dictionary<InstanceID, TargetLock>();
         }
 
         /// <summary>
-        /// Matches modification-band effects against a pending-operation occurrence. A consumed
-        /// selected-host modification whose recorded host matches the occurrence re-applies when its
-        /// qualifiers pass; when they fail it stays silent — consumed effects never produce
-        /// near-miss noise.
+        /// Matches modification-band effects against a pending-operation occurrence, ordering operand
+        /// adjustments before quantity-change modifications (CAB-EVT-543). A consumed selected-host
+        /// modification whose recorded host matches the occurrence re-applies when its qualifiers pass;
+        /// when they fail it stays silent — consumed effects never produce near-miss noise.
         /// </summary>
         /// <param name="occurrence">The pending-operation occurrence.</param>
         /// <returns>The captured batch, or the shared empty batch.</returns>
@@ -65,7 +81,7 @@ namespace Iterate.Domain.Execution
             if (occurrence == null)
                 throw new ArgumentException("Matching requires an occurrence.", nameof(occurrence));
 
-            return MatchOperation(occurrence, ActiveEffectKind.Modification, ExecutionEventSubtypes.PrimaryOperationPending);
+            return MatchOperation(occurrence, ActiveEffectKind.Modification, ExecutionEventSubtypes.PrimaryOperationPending, true);
         }
 
         /// <summary>
@@ -79,14 +95,14 @@ namespace Iterate.Domain.Execution
             if (occurrence == null)
                 throw new ArgumentException("Matching requires an occurrence.", nameof(occurrence));
 
-            return MatchOperation(occurrence, ActiveEffectKind.Reaction, ExecutionEventSubtypes.PrimaryOperationResolved);
+            return MatchOperation(occurrence, ActiveEffectKind.Reaction, ExecutionEventSubtypes.PrimaryOperationResolved, false);
         }
 
         /// <summary>
-        /// Matches reaction-band effects and added-execution creators against a finalized
-        /// quantity-change occurrence. Creators observe source-execution events only: a change that
-        /// is not the unit's primary operation cannot qualify one, silently — its targeting has no
-        /// declared meaning against an effect-caused event.
+        /// Matches reaction-band effects, added-execution creators, and target-lock updates against a
+        /// finalized quantity-change occurrence. Creators observe source-execution events only; a
+        /// target-lock effect observes a lockable player source execution only (a null host slot leaves
+        /// it structurally ineligible); a host-referential reaction observes its own host only.
         /// </summary>
         /// <param name="occurrence">The quantity-change occurrence.</param>
         /// <returns>The captured batch, or the shared empty batch.</returns>
@@ -99,12 +115,14 @@ namespace Iterate.Domain.Execution
             List<ActiveEffect> qualified = null;
             List<EffectNearMiss> nearMisses = null;
             List<ActiveEffect> creators = null;
+            List<ActiveEffect> targetLockUpdates = null;
 
             for (int i = 0; i < _registered.Count; i++)
             {
                 ActiveEffect effect = _registered[i];
                 bool isCreator = effect.Kind == ActiveEffectKind.AddedExecution;
-                if (effect.Kind != ActiveEffectKind.Reaction && !isCreator)
+                bool isLockUpdate = effect.Kind == ActiveEffectKind.TargetLock;
+                if (effect.Kind != ActiveEffectKind.Reaction && !isCreator && !isLockUpdate)
                     continue;
 
                 if (effect.Trigger.EventSubtype != ExecutionEventSubtypes.QuantityChanged)
@@ -113,9 +131,15 @@ namespace Iterate.Domain.Execution
                 if (isCreator && !occurrence.FromPrimaryOperation)
                     continue;
 
-                if (!_ledger.IsEligible(effect))
+                if (isLockUpdate && (_observationWindowClosed || occurrence.HostSlot == null))
                     continue;
 
+                if (IsHostReferential(effect) && !QuantityHostMatches(effect, occurrence))
+                    continue;
+
+                if (!_ledger.IsEligible(effect, occurrence.Unit))
+                    continue;
+                
                 if (isCreator && occurrence.BranchLineage.Contains(effect.Origin))
                 {
                     nearMisses ??= new List<EffectNearMiss>();
@@ -131,6 +155,13 @@ namespace Iterate.Domain.Execution
                     continue;
                 }
 
+                if (isLockUpdate)
+                {
+                    targetLockUpdates ??= new List<ActiveEffect>();
+                    InsertQualified(targetLockUpdates, effect);
+                    continue;
+                }
+
                 if (isCreator)
                 {
                     creators ??= new List<ActiveEffect>();
@@ -142,13 +173,14 @@ namespace Iterate.Domain.Execution
                 InsertQualified(qualified, effect);
             }
 
-            return ToBatch(qualified, nearMisses, null, creators);
+            return ToBatch(qualified, nearMisses, null, creators, targetLockUpdates);
         }
 
         /// <summary>
         /// Matches added-execution creators against a closed runtime unit at the post-unit band. An
-        /// unsuccessful closure cannot qualify a creator, silently — canon requires a successfully
-        /// resolving unit, so an unsuccessful one was never a candidate.
+        /// unsuccessful closure cannot qualify a creator, silently. A host-referential creator (an
+        /// own-host Patch creator) observes its own host's closure only; the four Patch qualifiers
+        /// evaluate against the unit's retained facts.
         /// </summary>
         /// <param name="occurrence">The post-unit occurrence.</param>
         /// <returns>The captured batch, or the shared empty batch.</returns>
@@ -170,7 +202,10 @@ namespace Iterate.Domain.Execution
                 if (effect.Kind != ActiveEffectKind.AddedExecution || effect.Trigger.EventSubtype != ExecutionEventSubtypes.RuntimeUnitCompleted)
                     continue;
 
-                if (!_ledger.IsEligible(effect))
+                if (IsHostReferential(effect) && !PostUnitHostMatches(effect, occurrence))
+                    continue;
+
+                if (!_ledger.IsEligible(effect, occurrence.Unit))
                     continue;
 
                 if (occurrence.BranchLineage.Contains(effect.Origin))
@@ -192,7 +227,7 @@ namespace Iterate.Domain.Execution
                 InsertQualified(creators, effect);
             }
 
-            return ToBatch(null, nearMisses, null, creators);
+            return ToBatch(null, nearMisses, null, creators, null);
         }
 
         /// <summary>
@@ -234,12 +269,14 @@ namespace Iterate.Domain.Execution
                 InsertQualified(creators, effect);
             }
 
-            return ToBatch(null, nearMisses, null, creators);
+            return ToBatch(null, nearMisses, null, creators, null);
         }
 
         /// <summary>
-        /// Matches boundary effects declaring the reached boundary against its register snapshot.
-        /// Boundary effects resolve in place; they never create requests.
+        /// Matches effects declaring the reached boundary against its register snapshot: boundary
+        /// quantity effects resolve in place, while a boundary creator qualifies only when a target
+        /// lock is held for its origin (CAB-EVT-436 "no qualifying event → no request") and carries no
+        /// qualifiers.
         /// </summary>
         /// <param name="occurrence">The boundary occurrence.</param>
         /// <returns>The captured batch, or the shared empty batch.</returns>
@@ -251,14 +288,30 @@ namespace Iterate.Domain.Execution
 
             List<ActiveEffect> qualified = null;
             List<EffectNearMiss> nearMisses = null;
+            List<ActiveEffect> creators = null;
 
             for (int i = 0; i < _registered.Count; i++)
             {
                 ActiveEffect effect = _registered[i];
-                if (effect.Kind != ActiveEffectKind.Boundary || effect.BoundaryName != occurrence.BoundaryName)
+                bool isQuantityBoundary = effect.Kind == ActiveEffectKind.Boundary && effect.BoundaryName == occurrence.BoundaryName;
+                bool isBoundaryCreator = effect.Kind == ActiveEffectKind.AddedExecution && effect.BoundaryName == occurrence.BoundaryName;
+                if (!isQuantityBoundary && !isBoundaryCreator)
                     continue;
 
-                if (!_ledger.IsEligible(effect))
+                if (isBoundaryCreator)
+                {
+                    if (!_targetLocks.ContainsKey(effect.Origin))
+                        continue;
+
+                    if (!_ledger.IsEligible(effect, null))
+                        continue;
+
+                    creators ??= new List<ActiveEffect>();
+                    InsertQualified(creators, effect);
+                    continue;
+                }
+
+                if (!_ledger.IsEligible(effect, null))
                     continue;
 
                 TriggerQualifier failed = FirstFailedBoundaryQualifier(effect, occurrence);
@@ -273,7 +326,7 @@ namespace Iterate.Domain.Execution
                 InsertQualified(qualified, effect);
             }
 
-            return ToBatch(qualified, nearMisses, null, null);
+            return ToBatch(qualified, nearMisses, null, creators, null);
         }
 
         /// <summary>
@@ -300,18 +353,19 @@ namespace Iterate.Domain.Execution
                 if (effect.Kind != ActiveEffectKind.Rescue || effect.Trigger.EventSubtype != ExecutionEventSubtypes.SourceExecutionSkipped)
                     continue;
 
-                if (!_ledger.IsEligible(effect))
+                if (!_ledger.IsEligible(effect, occurrence.Unit))
                     continue;
 
                 qualified ??= new List<ActiveEffect>();
                 InsertQualified(qualified, effect);
             }
 
-            return ToBatch(qualified, null, null, null);
+            return ToBatch(qualified, null, null, null, null);
         }
 
         /// <summary>
-        /// Consumes the effect's frequency allowance — commitment is the only consumption point.
+        /// Consumes the effect's frequency allowance with no triggering unit in scope — commitment is
+        /// the only consumption point.
         /// </summary>
         /// <param name="effect">The committing effect.</param>
         /// <exception cref="ArgumentException">Thrown when the effect is null.</exception>
@@ -321,8 +375,20 @@ namespace Iterate.Domain.Execution
         }
 
         /// <summary>
-        /// Consumes a modification's frequency allowance exactly like <see cref="Commit"/>, then
-        /// records the committing occurrence's host instance as the effect's selected host when the
+        /// Consumes the effect's frequency allowance against the triggering unit, so a
+        /// source-execution-scoped creator consumes once per source execution of that unit.
+        /// </summary>
+        /// <param name="effect">The committing effect.</param>
+        /// <param name="triggeringUnit">The unit whose event caused the commitment, or null when source-less.</param>
+        /// <exception cref="ArgumentException">Thrown when the effect is null.</exception>
+        public void Commit(ActiveEffect effect, RuntimeUnitID? triggeringUnit)
+        {
+            _ledger.Consume(effect, triggeringUnit);
+        }
+
+        /// <summary>
+        /// Consumes a modification's frequency allowance exactly like <see cref="Commit(ActiveEffect)"/>,
+        /// then records the committing occurrence's host instance as the effect's selected host when the
         /// effect is a selected-host modification with a non-null host.
         /// </summary>
         /// <param name="effect">The committing modification effect.</param>
@@ -341,28 +407,73 @@ namespace Iterate.Domain.Execution
         }
 
         /// <summary>
-        /// Drops all registered state and recorded selected hosts — the execution-expiration cleanup.
+        /// Consumes a target-lock update's frequency allowance and stores its snapshot keyed by the
+        /// effect's origin, overwriting any prior lock. The update's every-qualifying allowance makes
+        /// each qualifying commitment overwrite, so the stored value is always the most recent
+        /// qualifying host (CAB-EVT-435). The lock is written at quantity-change commitment, which
+        /// precedes the unit's closure; at this content nothing fails a unit after its primary
+        /// operation resolves, so lock-at-commitment equals lock-at-successful-resolution — child viii
+        /// (abort semantics) must revisit this when a post-operation failure becomes representable.
+        /// </summary>
+        /// <param name="effect">The committing target-lock update.</param>
+        /// <param name="lock">The occurrence-derived lock snapshot.</param>
+        /// <exception cref="ArgumentException">Thrown when the effect is null.</exception>
+        public void CommitTargetLock(ActiveEffect effect, TargetLock @lock)
+        {
+            if (effect == null)
+                throw new ArgumentException("Committing a target lock requires an effect.", nameof(effect));
+
+            _ledger.Consume(effect);
+            _targetLocks[effect.Origin] = @lock;
+        }
+
+        /// <summary>
+        /// Returns the target lock held for a creator's origin, or null when none is held. A read;
+        /// the lock is not consumed.
+        /// </summary>
+        /// <param name="origin">The creator's origin instance.</param>
+        /// <returns>The held lock, or null.</returns>
+        public TargetLock TargetLockFor(InstanceID origin) => _targetLocks.GetValueOrDefault(origin);
+        
+        /// <summary>
+        /// Closes the player-source observation window: from now on TargetLock-kind candidates are
+        /// tier-1 structurally ineligible in <see cref="MatchQuantityChange"/> — silent, no near-miss,
+        /// ledger untouched. The scheduler calls this when boundary resolution begins, so the Burst
+        /// branch's own player Score gain cannot re-qualify the every-qualifying lock update and
+        /// overwrite a not-yet-read lock. Reset by <see cref="Clear"/> with the rest of the
+        /// execution-scoped state.
+        /// </summary>
+        public void CloseObservationWindow() => _observationWindowClosed = true;
+
+        /// <summary>
+        /// Drops all registered state, recorded selected hosts, and target locks — the
+        /// execution-expiration cleanup.
         /// </summary>
         public void Clear()
         {
             _registered.Clear();
             _selectedHosts.Clear();
+            _targetLocks.Clear();
+            _observationWindowClosed = false;
         }
 
         /// <summary>
         /// Matches operation-boundary effects of one participation kind against an operation
-        /// occurrence. At the modification band, a ledger-ineligible selected-host effect whose
-        /// recorded host equals the occurrence's host re-applies when its qualifiers pass and stays
-        /// silent when they fail — the eligibility exception's guard.
+        /// occurrence. A host-referential effect (CONSTANT PATCH) observes its own host only. At the
+        /// modification band, a ledger-ineligible selected-host effect whose recorded host equals the
+        /// occurrence's host re-applies when its qualifiers pass and stays silent when they fail, and
+        /// qualified modifications order operand adjustments before quantity-change modifications.
         /// </summary>
         /// <param name="occurrence">The operation occurrence.</param>
         /// <param name="wantKind">The participation kind this boundary offers.</param>
         /// <param name="subtype">The trigger subtype this boundary offers.</param>
+        /// <param name="modificationOrder">Whether qualified effects order operand adjustments first.</param>
         /// <returns>The captured batch, or the shared empty batch.</returns>
         private EffectMatchBatch MatchOperation(
             OperationOccurrence occurrence,
             ActiveEffectKind wantKind,
-            string subtype
+            string subtype,
+            bool modificationOrder
         )
         {
             List<ActiveEffect> qualified = null;
@@ -375,7 +486,10 @@ namespace Iterate.Domain.Execution
                 if (effect.Kind != wantKind || effect.Trigger.EventSubtype != subtype)
                     continue;
 
-                if (!_ledger.IsEligible(effect))
+                if (IsHostReferential(effect) && !OperationHostMatches(effect, occurrence))
+                    continue;
+
+                if (!_ledger.IsEligible(effect, occurrence.Unit))
                 {
                     if (wantKind == ActiveEffectKind.Modification
                         && SelectedHostEffects.IsSelectedHost(effect.DefinitionID)
@@ -384,7 +498,7 @@ namespace Iterate.Domain.Execution
                         && FirstFailedOperationQualifier(effect, occurrence) == null)
                     {
                         reapplications ??= new List<ActiveEffect>();
-                        InsertQualified(reapplications, effect);
+                        InsertModification(reapplications, effect);
                     }
 
                     continue;
@@ -399,10 +513,79 @@ namespace Iterate.Domain.Execution
                 }
 
                 qualified ??= new List<ActiveEffect>();
-                InsertQualified(qualified, effect);
+                if (modificationOrder)
+                    InsertModification(qualified, effect);
+                else
+                    InsertQualified(qualified, effect);
             }
 
-            return ToBatch(qualified, nearMisses, reapplications, null);
+            return ToBatch(qualified, nearMisses, reapplications, null, null);
+        }
+
+        /// <summary>
+        /// Returns whether the effect declares host-referential locality: an operand-adjustment
+        /// modification or an own-host creator (both declare OWN_HOST targeting) or a quantity reaction
+        /// carrying the host-Instruction operation class. The gate keys on the declaration, never on
+        /// the socketed <see cref="ActiveEffect.HostInstance"/> being present.
+        /// </summary>
+        /// <param name="effect">The candidate effect.</param>
+        /// <returns>True when the effect declares host-referential locality.</returns>
+        private static bool IsHostReferential(ActiveEffect effect)
+        {
+            if (effect.OperationModification != null)
+                return true;
+
+            if (effect.Request != null && effect.Request.Target.Kind == OwnHostTargeting)
+                return true;
+
+            IReadOnlyList<TriggerQualifier> qualifiers = effect.Trigger.Qualifiers;
+            for (int i = 0; i < qualifiers.Count; i++)
+            {
+                if (qualifiers[i].Kind == "OPERATION_CLASS" && qualifiers[i].Value == HostInstructionClass)
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Returns whether an operation occurrence's host matches the effect's socketed host.
+        /// </summary>
+        /// <param name="effect">The host-referential effect.</param>
+        /// <param name="occurrence">The operation occurrence.</param>
+        /// <returns>True when both hosts are present and equal.</returns>
+        private static bool OperationHostMatches(ActiveEffect effect, OperationOccurrence occurrence)
+        {
+            return occurrence.HostInstance != null
+                && effect.HostInstance != null
+                && occurrence.HostInstance.Value == effect.HostInstance.Value;
+        }
+
+        /// <summary>
+        /// Returns whether a quantity occurrence's host slot carries the effect's socketed host.
+        /// </summary>
+        /// <param name="effect">The host-referential effect.</param>
+        /// <param name="occurrence">The quantity occurrence.</param>
+        /// <returns>True when the host slot's occupant matches the effect's host.</returns>
+        private static bool QuantityHostMatches(ActiveEffect effect, QuantityOccurrence occurrence)
+        {
+            return occurrence.HostSlot != null
+                && occurrence.HostSlot.Instruction != null
+                && effect.HostInstance != null
+                && occurrence.HostSlot.Instruction.InstanceID == effect.HostInstance.Value;
+        }
+
+        /// <summary>
+        /// Returns whether a post-unit occurrence's host matches the effect's socketed host.
+        /// </summary>
+        /// <param name="effect">The host-referential effect.</param>
+        /// <param name="occurrence">The post-unit occurrence.</param>
+        /// <returns>True when both hosts are present and equal.</returns>
+        private static bool PostUnitHostMatches(ActiveEffect effect, PostUnitOccurrence occurrence)
+        {
+            return occurrence.HostInstance != null
+                && effect.HostInstance != null
+                && occurrence.HostInstance.Value == effect.HostInstance.Value;
         }
 
         /// <summary>
@@ -517,9 +700,9 @@ namespace Iterate.Domain.Execution
         }
 
         /// <summary>
-        /// Evaluates one qualifier against a quantity occurrence's finalized facts. Tokens that are
-        /// not facts of a quantity change evaluate false; unknown tokens are unreachable behind the
-        /// interpreter's closed vocabulary.
+        /// Evaluates one qualifier against a quantity occurrence's finalized facts. The host-Instruction
+        /// operation class passes for a primary-operation change (the host gate has already matched the
+        /// host); tokens that are not facts of a quantity change evaluate false.
         /// </summary>
         /// <param name="qualifier">The qualifier to evaluate.</param>
         /// <param name="occurrence">The quantity occurrence.</param>
@@ -535,9 +718,17 @@ namespace Iterate.Domain.Execution
                     return qualifier.Value == "POSITIVE" && occurrence.ActualDelta > 0;
 
                 case "OPERATION_CLASS":
-                    return qualifier.Value == "PLAYER_INSTRUCTION"
-                        && occurrence.FromPrimaryOperation
-                        && occurrence.Ownership == OwnershipClassification.PlayerOwned;
+                    switch (qualifier.Value)
+                    {
+                        case "PLAYER_INSTRUCTION":
+                            return occurrence.FromPrimaryOperation && occurrence.Ownership == OwnershipClassification.PlayerOwned;
+
+                        case "HOST_INSTRUCTION":
+                            return occurrence.FromPrimaryOperation;
+
+                        default:
+                            return false;
+                    }
 
                 default:
                     return false;
@@ -545,18 +736,31 @@ namespace Iterate.Domain.Execution
         }
 
         /// <summary>
-        /// Evaluates one qualifier against a closed unit's retained context. The Repeat-context
-        /// qualifier passes only when the unit executed inside an active Repeat iteration.
+        /// Evaluates one qualifier against a closed unit's retained facts: the Repeat-context qualifier
+        /// and the four Patch qualifiers (even line, final player line, inherited succeeding Condition,
+        /// and adjacency after a successful Score-increasing player Instruction).
         /// </summary>
         /// <param name="qualifier">The qualifier to evaluate.</param>
         /// <param name="occurrence">The post-unit occurrence.</param>
         /// <returns>True when the occurrence satisfies the qualifier.</returns>
         private static bool EvaluatePostUnitQualifier(TriggerQualifier qualifier, PostUnitOccurrence occurrence)
         {
-            if (qualifier.Kind != "STRUCTURE_CONTEXT" || qualifier.Value != "INSIDE_REPEAT")
-                return false;
+            if (qualifier.Kind == "STRUCTURE_CONTEXT" && qualifier.Value == "INSIDE_REPEAT")
+                return occurrence.StructureContext != null && occurrence.StructureContext.RepeatIterationIdentity != null;
 
-            return occurrence.StructureContext != null && occurrence.StructureContext.RepeatIterationIdentity != null;
+            if (qualifier.Kind == "POSITIONAL" && qualifier.Value == "EVEN_NUMBERED_LINE")
+                return occurrence.Position != null && occurrence.Position.Value.LineNumber % 2 == 0;
+
+            if (qualifier.Kind == "POSITIONAL" && qualifier.Value == "FINAL_OCCUPIED_PLAYER_LINE")
+                return occurrence.IsFinalOccupiedPlayerLine;
+
+            if (qualifier.Kind == "STRUCTURE_CONTEXT" && qualifier.Value == "INSIDE_SUCCEEDING_CONDITION")
+                return occurrence.ConditionResult == ConditionOutcome.True;
+
+            if (qualifier.Kind == "STRUCTURE_CONTEXT" && qualifier.Value == "ADJACENT_AFTER_SUCCESSFUL_SCORE")
+                return occurrence.AdjacentAfterSuccessfulScore;
+
+            return false;
         }
 
         /// <summary>
@@ -691,6 +895,23 @@ namespace Iterate.Domain.Execution
         }
 
         /// <summary>
+        /// Inserts a qualified modification sorted by composition group — operand adjustments before
+        /// quantity-change modifications (CAB-EVT-543) — then instance identity.
+        /// </summary>
+        /// <param name="qualified">The qualified list.</param>
+        /// <param name="effect">The effect to insert.</param>
+        private static void InsertModification(List<ActiveEffect> qualified, ActiveEffect effect)
+        {
+            int index = qualified.Count;
+            while (index > 0 && CompareModification(qualified[index - 1], effect) > 0)
+            {
+                index--;
+            }
+
+            qualified.Insert(index, effect);
+        }
+
+        /// <summary>
         /// Compares two effects by stable instance identity: owning instance, then effect index.
         /// </summary>
         /// <param name="left">The left effect.</param>
@@ -721,29 +942,49 @@ namespace Iterate.Domain.Execution
         }
 
         /// <summary>
+        /// Compares two qualified modifications by composition group — operand adjustments first —
+        /// then stable instance identity.
+        /// </summary>
+        /// <param name="left">The left effect.</param>
+        /// <param name="right">The right effect.</param>
+        /// <returns>The comparison result.</returns>
+        private static int CompareModification(ActiveEffect left, ActiveEffect right)
+        {
+            int leftGroup = left.OperationModification != null ? 0 : 1;
+            int rightGroup = right.OperationModification != null ? 0 : 1;
+            if (leftGroup != rightGroup)
+                return leftGroup.CompareTo(rightGroup);
+
+            return CompareIdentity(left, right);
+        }
+
+        /// <summary>
         /// Wraps the collected lists in a batch, or returns the shared empty batch when nothing
-        /// qualified, near-missed, re-applied, or created.
+        /// qualified, near-missed, re-applied, created, or updated a lock.
         /// </summary>
         /// <param name="qualified">The qualified effects, or null.</param>
         /// <param name="nearMisses">The near-misses, or null.</param>
         /// <param name="reapplications">The selected-host re-applications, or null.</param>
         /// <param name="creators">The qualified added-execution creators, or null.</param>
+        /// <param name="targetLockUpdates">The qualified target-lock updates, or null.</param>
         /// <returns>The batch.</returns>
         private static EffectMatchBatch ToBatch(
             List<ActiveEffect> qualified,
             List<EffectNearMiss> nearMisses,
             List<ActiveEffect> reapplications,
-            List<ActiveEffect> creators
+            List<ActiveEffect> creators,
+            List<ActiveEffect> targetLockUpdates
         )
         {
-            if (qualified == null && nearMisses == null && reapplications == null && creators == null)
+            if (qualified == null && nearMisses == null && reapplications == null && creators == null && targetLockUpdates == null)
                 return EffectMatchBatch.Empty;
 
             return new EffectMatchBatch(
                 qualified ?? (IReadOnlyList<ActiveEffect>)Array.Empty<ActiveEffect>(),
                 nearMisses ?? (IReadOnlyList<EffectNearMiss>)Array.Empty<EffectNearMiss>(),
                 reapplications ?? (IReadOnlyList<ActiveEffect>)Array.Empty<ActiveEffect>(),
-                creators ?? (IReadOnlyList<ActiveEffect>)Array.Empty<ActiveEffect>()
+                creators ?? (IReadOnlyList<ActiveEffect>)Array.Empty<ActiveEffect>(),
+                targetLockUpdates ?? (IReadOnlyList<ActiveEffect>)Array.Empty<ActiveEffect>()
             );
         }
     }

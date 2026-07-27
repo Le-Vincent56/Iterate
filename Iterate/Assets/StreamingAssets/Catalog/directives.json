@@ -44,7 +44,7 @@
       },
       {
         "phaseDomain": "EXECUTION",
-        "trigger": { "eventFamily": "LIFECYCLE", "eventSubtype": "BOUNDARY_EFFECT_REQUESTED", "qualifiers": [], "timing": { "kind": "NAMED_BOUNDARY", "name": "END_OF_PLAYER_CONTROLLED_SOURCE_TRAVERSAL" } },
+        "trigger": { "eventFamily": "REACTION", "eventSubtype": "BOUNDARY_EFFECT_REQUESTED", "qualifiers": [], "timing": { "kind": "NAMED_BOUNDARY", "name": "END_OF_PLAYER_CONTROLLED_SOURCE_TRAVERSAL" } },
         "operation": { "kind": "ADDED_EXECUTION_REQUEST", "target": { "kind": "LOCKED_TARGET", "argument": "" }, "cancelOnInvalid": true },
         "targeting": { "kind": "LOCKED_TARGET", "argument": "" },
         "timing": { "kind": "NAMED_BOUNDARY", "name": "END_OF_PLAYER_CONTROLLED_SOURCE_TRAVERSAL" },

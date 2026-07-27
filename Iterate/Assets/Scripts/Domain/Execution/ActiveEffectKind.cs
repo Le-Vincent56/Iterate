@@ -3,7 +3,8 @@ namespace Iterate.Domain.Execution
     /// <summary>
     /// How an interpreted effect participates at the engine's boundaries: transforming the pending
     /// primary operation, reacting to a result, rescuing a skipped source execution, creating an
-    /// added-execution request, or resolving at a named traversal boundary.
+    /// added-execution request, resolving at a named traversal boundary, or updating a tracked
+    /// target lock.
     /// </summary>
     public enum ActiveEffectKind
     {
@@ -30,6 +31,11 @@ namespace Iterate.Domain.Execution
         /// <summary>
         /// Resolves a source-less quantity change at a named traversal boundary.
         /// </summary>
-        Boundary
+        Boundary,
+
+        /// <summary>
+        /// Updates the tracked target its selection rule resolves, without writing a register.
+        /// </summary>
+        TargetLock
     }
 }
