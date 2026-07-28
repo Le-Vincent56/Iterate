@@ -28,7 +28,11 @@ namespace Iterate.Composition.Root.Tests
         public IEnumerator Boot_ProjectScopeActivates_LoadsCatalogAndLogsBothLines()
         {
             LogAssert.Expect(LogType.Log, "[Boot] Boot complete!");
-            LogAssert.Expect(LogType.Log, "[Catalog] Catalog loaded | revision=0.1.0 | definitions=45");
+            // The definition count is the shipped catalog's, and it moves whenever content is added:
+            // it went 45 to 46 when the PROCESS_RULE category and WB-PRC-001 landed. The count itself is
+            // owned and asserted by ShippedCatalogTests; this line pins it only as a by-product of
+            // matching the whole log message.
+            LogAssert.Expect(LogType.Log, "[Catalog] Catalog loaded | revision=0.1.0 | definitions=46");
 
             _projectScope = new GameObject("ProjectScope");
             _projectScope.SetActive(false);
@@ -47,6 +51,16 @@ namespace Iterate.Composition.Root.Tests
             }
 
             Assert.AreEqual(CatalogState.Loaded, holder.State);
+
+            // The startable marks the holder Loaded and only then logs, and it runs its continuation off
+            // the main thread (ConfigureAwait(false)). So observing Loaded does not imply the log has
+            // been emitted — the wait above can exit in the gap between those two statements, leaving
+            // LogAssert with nothing to match when it is evaluated at teardown. Yield further frames so
+            // the continuation reaches its log call first.
+            for (int settle = 0; settle < 30; settle++)
+            {
+                yield return null;
+            }
         }
     }
 }
