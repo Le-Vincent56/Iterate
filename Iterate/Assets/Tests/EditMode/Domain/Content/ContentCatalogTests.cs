@@ -78,7 +78,8 @@ namespace Iterate.Domain.Content.Tests
                 Array.Empty<DirectiveDefinition>(),
                 Array.Empty<DependencyDefinition>(),
                 Array.Empty<PatchDefinition>(),
-                Array.Empty<UtilityDefinition>()
+                Array.Empty<UtilityDefinition>(),
+                Array.Empty<ProcessRuleDefinition>()
             ));
         }
 
@@ -97,7 +98,8 @@ namespace Iterate.Domain.Content.Tests
                 Array.Empty<DirectiveDefinition>(),
                 Array.Empty<DependencyDefinition>(),
                 Array.Empty<PatchDefinition>(),
-                Array.Empty<UtilityDefinition>()
+                Array.Empty<UtilityDefinition>(),
+                Array.Empty<ProcessRuleDefinition>()
             );
         }
 

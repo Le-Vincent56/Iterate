@@ -203,5 +203,33 @@ namespace Iterate.Domain.Execution
         /// content — the scheduler emits no event with it.
         /// </summary>
         public const string RuntimeUnitCompleted = "RUNTIME_UNIT_COMPLETED";
+        
+        /// <summary>
+        /// The safety subtype marking a safety count first reaching its ceiling exactly; diagnostic
+        /// only and never a change of mechanics.
+        /// </summary>
+        public const string SafetyLimitApproached = "SAFETY_LIMIT_APPROACHED";
+
+        /// <summary>
+        /// The safety subtype marking an attempted occurrence that would exceed one or more
+        /// ceilings, recording every limit it breached.
+        /// </summary>
+        public const string SafetyLimitReached = "SAFETY_LIMIT_REACHED";
+
+        /// <summary>
+        /// The safety subtype marking the causal branch that reached a ceiling terminating.
+        /// </summary>
+        public const string CausalBranchTerminated = "CAUSAL_BRANCH_TERMINATED";
+
+        /// <summary>
+        /// The safety subtype bookending an execution the safety contract aborted; it replaces the
+        /// ordinary completion bookend rather than accompanying it.
+        /// </summary>
+        public const string ExecutionSafetyAborted = "EXECUTION_SAFETY_ABORTED";
+
+        /// <summary>
+        /// The intervention subtype marking a Process rule altering a pending occurrence.
+        /// </summary>
+        public const string ProcessRuleIntervened = "PROCESS_RULE_INTERVENED";
     }
 }

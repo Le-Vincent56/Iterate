@@ -15,6 +15,9 @@ namespace Iterate.Domain.Execution
     /// resolve successfully, and nothing can fail a unit after its primary operation resolves here, so
     /// the two moments are equivalent — child viii (abort semantics) must revisit this equivalence when
     /// a post-operation failure becomes representable.
+    /// Re-checked when the Process-counter wiring landed: the equivalence still holds. The Heat
+    /// pre-check sits before primary resolution and the abort path reads no lock, so neither the
+    /// intervention nor the unwind can observe a lock between the two timings.
     /// </summary>
     /// <param name="LockedSlot">The locked player Instruction slot.</param>
     /// <param name="HostInstance">The locked host's instance identity.</param>

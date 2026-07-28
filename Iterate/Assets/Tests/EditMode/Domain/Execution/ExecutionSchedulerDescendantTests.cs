@@ -131,7 +131,10 @@ namespace Iterate.Domain.Execution.Tests
 
             Assert.AreEqual(new ScoreValue(16), first.FinalState.FinalOutput);
             Assert.AreEqual(2, first.SafetyCounts.EffectReactions);
-            Assert.AreEqual(1, first.SafetyCounts.OperationTransformations);
+
+            // Modification-band commits stopped counting as transformations (CAB-SAFE-098); the
+            // count reaches this arrangement again once disposition transformations exist.
+            Assert.AreEqual(0, first.SafetyCounts.OperationTransformations);
             Assert.AreEqual(first, second);
         }
 

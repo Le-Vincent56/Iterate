@@ -1,8 +1,7 @@
 namespace Iterate.Domain.Content
 {
     /// <summary>
-    /// The six content categories of the frozen catalog. Serialized in JSON as the uppercase tokens
-    /// INSTRUCTION, STRUCTURE, DIRECTIVE, DEPENDENCY, PATCH, UTILITY.
+    /// The content category a definition belongs to.
     /// </summary>
     public enum ContentCategory
     {
@@ -11,6 +10,7 @@ namespace Iterate.Domain.Content
         Directive,
         Dependency,
         Patch,
-        Utility
+        Utility,
+        ProcessRule
     }
 }

@@ -19,7 +19,7 @@
             "required": ["file", "category"],
             "properties": {
               "file": { "type": "string", "minLength": 1 },
-              "category": { "enum": ["PARAMETERS", "INSTRUCTION", "STRUCTURE", "DIRECTIVE", "DEPENDENCY", "PATCH", "UTILITY"] }
+              "category": { "enum": ["PARAMETERS", "INSTRUCTION", "STRUCTURE", "DIRECTIVE", "DEPENDENCY", "PATCH", "UTILITY", "PROCESS_RULE"] }
             }
           }
         }
@@ -245,6 +245,20 @@
         "rulesText": { "type": "string", "minLength": 1 },
         "displayName": { "type": "string", "minLength": 1 },
         "category": { "const": "UTILITY" },
+        "rarity": { "$ref": "#/$defs/rarity" },
+        "tags": { "$ref": "#/$defs/tags" },
+        "effects": { "type": "array", "items": { "$ref": "#/$defs/effect" } }
+      }
+    },
+    "processRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "rulesText", "displayName", "category", "rarity", "tags", "effects"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^WB-PRC-[0-9]{3}$" },
+        "rulesText": { "type": "string", "minLength": 1 },
+        "displayName": { "type": "string", "minLength": 1 },
+        "category": { "const": "PROCESS_RULE" },
         "rarity": { "$ref": "#/$defs/rarity" },
         "tags": { "$ref": "#/$defs/tags" },
         "effects": { "type": "array", "items": { "$ref": "#/$defs/effect" } }

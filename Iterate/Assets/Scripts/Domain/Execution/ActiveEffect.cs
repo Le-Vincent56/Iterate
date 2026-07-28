@@ -53,6 +53,12 @@ namespace Iterate.Domain.Execution
         /// kinds.
         /// </summary>
         public QuantityChangeOperation Operation { get; }
+        
+        /// <summary>
+        /// The Process-counter request; null except for the counter-intervention kind and a
+        /// counter-carrying reaction.
+        /// </summary>
+        public CounterRequestOperation CounterRequest { get; }
 
         /// <summary>
         /// The operand adjustment applied to a host's pending operation; null except for a
@@ -106,6 +112,7 @@ namespace Iterate.Domain.Execution
             ActiveEffectKind kind,
             InstanceID? hostInstance,
             QuantityChangeOperation operation,
+            CounterRequestOperation counterRequest,
             OperationModificationOperation operationModification,
             RescueOperation rescue,
             AddedExecutionRequestOperation request,
@@ -121,6 +128,7 @@ namespace Iterate.Domain.Execution
             Kind = kind;
             HostInstance = hostInstance;
             Operation = operation;
+            CounterRequest = counterRequest;
             OperationModification = operationModification;
             Rescue = rescue;
             Request = request;
@@ -155,7 +163,22 @@ namespace Iterate.Domain.Execution
             if (operation == null)
                 throw new ArgumentException("A modification-kind ActiveEffect requires a quantity change.", nameof(operation));
 
-            return new ActiveEffect(origin, definitionID, effectIndex, trigger, ActiveEffectKind.Modification, null, operation, null, null, null, null, null, frequency);
+            return new ActiveEffect(
+                origin,
+                definitionID,
+                effectIndex,
+                trigger,
+                ActiveEffectKind.Modification,
+                null,
+                operation, 
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                frequency
+            );
         }
 
         /// <summary>
@@ -183,7 +206,22 @@ namespace Iterate.Domain.Execution
             if (operationModification == null)
                 throw new ArgumentException("An operation-modification ActiveEffect requires an operand adjustment.", nameof(operationModification));
 
-            return new ActiveEffect(origin, definitionID, effectIndex, trigger, ActiveEffectKind.Modification, null, null, operationModification, null, null, null, null, frequency);
+            return new ActiveEffect(
+                origin,
+                definitionID,
+                effectIndex,
+                trigger,
+                ActiveEffectKind.Modification,
+                null,
+                null,
+                null,
+                operationModification,
+                null,
+                null,
+                null,
+                null,
+                frequency
+            );
         }
 
         /// <summary>
@@ -210,7 +248,22 @@ namespace Iterate.Domain.Execution
             if (operation == null)
                 throw new ArgumentException("A reaction-kind ActiveEffect requires a quantity change.", nameof(operation));
 
-            return new ActiveEffect(origin, definitionID, effectIndex, trigger, ActiveEffectKind.Reaction, null, operation, null, null, null, null, null, frequency);
+            return new ActiveEffect(
+                origin,
+                definitionID,
+                effectIndex,
+                trigger,
+                ActiveEffectKind.Reaction,
+                null,
+                operation,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                frequency
+            );
         }
 
         /// <summary>
@@ -237,7 +290,22 @@ namespace Iterate.Domain.Execution
             if (rescue == null)
                 throw new ArgumentException("A rescue-kind ActiveEffect requires a rescue operation.", nameof(rescue));
 
-            return new ActiveEffect(origin, definitionID, effectIndex, trigger, ActiveEffectKind.Rescue, null, null, null, rescue, null, null, null, frequency);
+            return new ActiveEffect(
+                origin,
+                definitionID,
+                effectIndex,
+                trigger,
+                ActiveEffectKind.Rescue,
+                null,
+                null,
+                null,
+                null,
+                rescue,
+                null,
+                null,
+                null,
+                frequency
+            );
         }
 
         /// <summary>
@@ -270,6 +338,7 @@ namespace Iterate.Domain.Execution
                 effectIndex,
                 trigger,
                 ActiveEffectKind.AddedExecution,
+                null,
                 null,
                 null,
                 null,
@@ -323,6 +392,7 @@ namespace Iterate.Domain.Execution
                 null,
                 null,
                 null,
+                null,
                 boundaryName,
                 frequency
             );
@@ -368,6 +438,7 @@ namespace Iterate.Domain.Execution
                 null,
                 null,
                 null,
+                null,
                 request,
                 null,
                 boundaryName,
@@ -400,7 +471,109 @@ namespace Iterate.Domain.Execution
             if (targetLockUpdate == null)
                 throw new ArgumentException("A target-lock-kind ActiveEffect requires a target-lock update.", nameof(targetLockUpdate));
 
-            return new ActiveEffect(origin, definitionID, effectIndex, trigger, ActiveEffectKind.TargetLock, null, null, null, null, null, targetLockUpdate, null, frequency);
+            return new ActiveEffect(
+                origin,
+                definitionID,
+                effectIndex,
+                trigger,
+                ActiveEffectKind.TargetLock,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                targetLockUpdate,
+                null,
+                frequency
+            );
+        }
+        
+                /// <summary>
+        /// Creates a counter-intervention effect: a Process-counter request observed on a pending
+        /// primary operation, which either defers a gain or intervenes when the counter is already at
+        /// its ceiling.
+        /// </summary>
+        /// <param name="origin">The owning content instance's identity.</param>
+        /// <param name="definitionID">The owning definition's surrogate-key identity.</param>
+        /// <param name="effectIndex">The effect's index within the definition.</param>
+        /// <param name="trigger">The interpreted trigger descriptor.</param>
+        /// <param name="counterRequest">The counter request the effect declares.</param>
+        /// <param name="frequency">The effect's frequency declaration.</param>
+        /// <returns>The validated effect.</returns>
+        /// <exception cref="ArgumentException">Thrown when a required component is missing.</exception>
+        public static ActiveEffect ForCounterIntervention(
+            InstanceID origin,
+            string definitionID,
+            int effectIndex,
+            TriggerDescriptor trigger,
+            CounterRequestOperation counterRequest,
+            EffectFrequency frequency
+        )
+        {
+            RequireCommon(definitionID, trigger, frequency);
+            if (counterRequest == null)
+                throw new ArgumentException("A counter-intervention ActiveEffect requires a counter request.", nameof(counterRequest));
+
+            return new ActiveEffect(
+                origin,
+                definitionID,
+                effectIndex,
+                trigger,
+                ActiveEffectKind.CounterIntervention,
+                null,
+                null,
+                counterRequest,
+                null,
+                null,
+                null,
+                null,
+                null,
+                frequency
+            );
+        }
+
+        /// <summary>
+        /// Creates a reaction-kind effect whose consequence is a Process-counter request rather than a
+        /// register write.
+        /// </summary>
+        /// <param name="origin">The owning content instance's identity.</param>
+        /// <param name="definitionID">The owning definition's surrogate-key identity.</param>
+        /// <param name="effectIndex">The effect's index within the definition.</param>
+        /// <param name="trigger">The interpreted trigger descriptor.</param>
+        /// <param name="counterRequest">The counter request the effect declares.</param>
+        /// <param name="frequency">The effect's frequency declaration.</param>
+        /// <returns>The validated effect.</returns>
+        /// <exception cref="ArgumentException">Thrown when a required component is missing.</exception>
+        public static ActiveEffect ForCounterReaction(
+            InstanceID origin,
+            string definitionID,
+            int effectIndex,
+            TriggerDescriptor trigger,
+            CounterRequestOperation counterRequest,
+            EffectFrequency frequency
+        )
+        {
+            RequireCommon(definitionID, trigger, frequency);
+            if (counterRequest == null)
+                throw new ArgumentException("A counter reaction requires a counter request.", nameof(counterRequest));
+
+            return new ActiveEffect(
+                origin,
+                definitionID,
+                effectIndex,
+                trigger,
+                ActiveEffectKind.Reaction,
+                null,
+                null,
+                counterRequest,
+                null,
+                null,
+                null,
+                null,
+                null,
+                frequency
+            );
         }
 
         /// <summary>
@@ -428,6 +601,7 @@ namespace Iterate.Domain.Execution
                 Kind,
                 hostInstance,
                 Operation,
+                null,
                 OperationModification,
                 Rescue,
                 Request,

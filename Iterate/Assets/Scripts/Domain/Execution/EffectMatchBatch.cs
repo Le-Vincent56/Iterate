@@ -21,7 +21,9 @@ namespace Iterate.Domain.Execution
         IReadOnlyList<EffectNearMiss> NearMisses,
         IReadOnlyList<ActiveEffect> Reapplications,
         IReadOnlyList<ActiveEffect> Creators,
-        IReadOnlyList<ActiveEffect> TargetLockUpdates
+        IReadOnlyList<ActiveEffect> TargetLockUpdates,
+        IReadOnlyList<ActiveEffect> CounterInterventions = null,
+        IReadOnlyList<ActiveEffect> DeferredCounterGains = null
     )
     {
         /// <summary>
@@ -33,7 +35,8 @@ namespace Iterate.Domain.Execution
             Array.Empty<EffectNearMiss>(),
             Array.Empty<ActiveEffect>(),
             Array.Empty<ActiveEffect>(),
-            Array.Empty<ActiveEffect>());
+            Array.Empty<ActiveEffect>()
+        );
 
         /// <summary>
         /// The qualified effects in resolution order. Validated non-null at construction.
@@ -60,6 +63,16 @@ namespace Iterate.Domain.Execution
         /// The qualified target-lock updates in resolution order. Validated non-null at construction.
         /// </summary>
         public IReadOnlyList<ActiveEffect> TargetLockUpdates { get; } = RequireList(TargetLockUpdates);
+        
+        /// <summary>
+        /// The counter-intervention candidates whose counter already sits at its ceiling.
+        /// </summary>
+        public IReadOnlyList<ActiveEffect> CounterInterventions { get; } = CounterInterventions ?? Array.Empty<ActiveEffect>();
+
+        /// <summary>
+        /// The counter gains captured for commitment after the operation actually resolves.
+        /// </summary>
+        public IReadOnlyList<ActiveEffect> DeferredCounterGains { get; } = DeferredCounterGains ?? Array.Empty<ActiveEffect>();
 
         /// <summary>
         /// Validates that a batch list is present.

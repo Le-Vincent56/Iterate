@@ -40,6 +40,13 @@ namespace Iterate.Domain.Execution
     /// travels in a nested context constructed fresh per call, so the scheduler is reusable and
     /// reentrancy-clean. Every request-derived operation that can throw completes before the builder
     /// is begun, so a rejected request always leaves the builder usable.
+    /// A configured Process rule adds one reading to every unit: the pending operation is matched
+    /// once, before the pre-operation band, and a counter effect sitting at its ceiling produces an
+    /// intervention that skips the operation, while one below its ceiling is captured as a gain the
+    /// unit commits only if its primary operation actually resolves. Counter reactions resolve
+    /// after the ordinary reactions of the same boundary, so a cooling request follows both its
+    /// causing change and that change's own reaction closure, and the cooling window closes when
+    /// the designated final Core output activates.
     /// </summary>
     public sealed class ExecutionScheduler
     {
@@ -52,6 +59,17 @@ namespace Iterate.Domain.Execution
         /// The one wired named scheduling boundary the scheduler detects.
         /// </summary>
         private const string PlayerTraversalBoundary = "END_OF_PLAYER_CONTROLLED_SOURCE_TRAVERSAL";
+        
+        /// <summary>
+        /// The skip-cause prefix a Process-rule intervention composes, completed with the
+        /// intervening rule's stable identity — the CONDITION_FALSE convention.
+        /// </summary>
+        private const string ProcessRuleSkipCause = "PROCESS_RULE_INTERVENTION:";
+
+        /// <summary>
+        /// The canonical band name a Process-counter threshold crossing carries.
+        /// </summary>
+        private const string ThrottlingBand = "THROTTLING";
 
         private readonly ExecutionTraceBuilder _builder;
 
@@ -75,10 +93,20 @@ namespace Iterate.Domain.Execution
             AcceptCompilationHandoff(context);
             InitializeExecutionScope(context);
             ResetRuntime(context);
-            TraverseSource(context);
-            ResolveTraversalBoundaryEffects(context);
-            CloseExecution(context);
-            ExecutionRecord record = FinalizeEvidence(context);
+
+            ExecutionRecord record;
+            try
+            {
+                TraverseSource(context);
+                ResolveTraversalBoundaryEffects(context);
+                CloseExecution(context);
+                record = FinalizeEvidence(context);
+            }
+            catch (SafetyAbortSignal signal)
+            {
+                record = FinalizeSafetyAbort(context, signal);
+            }
+
             ExpireCompilationScopedEffects(context);
             return HandOffToResultReview(context, record);
         }
@@ -136,7 +164,7 @@ namespace Iterate.Domain.Execution
             );
 
             _builder.Begin(header);
-            AppendBookend(ExecutionEventSubtypes.ExecutionStarted);
+            AppendBookend(context, ExecutionEventSubtypes.ExecutionStarted);
         }
 
         /// <summary>
@@ -151,6 +179,74 @@ namespace Iterate.Domain.Execution
             ResetRegister(context, CoreRegister.Value, "Value", initialState.InitialValue.Value);
             ResetRegister(context, CoreRegister.Signal, "Signal", initialState.InitialSignal.Value);
             ResetRegister(context, CoreRegister.Score, "Score", initialState.InitialScore.Value);
+            InitializeProcessCounter(context);
+        }
+        
+        /// <summary>
+        /// Appends the governing Process counter's initialization evidence — its reset boundary —
+        /// and returns the counter to zero. No counter value carries between executions. Silent when
+        /// the Process declares no rule.
+        /// </summary>
+        /// <param name="context">The per-execution context.</param>
+        private void InitializeProcessCounter(ExecutionContext context)
+        {
+            if (!context.HasProcessRule)
+                return;
+
+            context.Counter.Reset();
+            QuantityChangePayload payload = new QuantityChangePayload(
+                CounterIdentity(context),
+                QuantityCategory.ProcessCounter,
+                QuantityOperationType.Assign,
+                0,
+                0,
+                null,
+                Array.Empty<QuantityModifierEvidence>(),
+                null,
+                0,
+                0
+            );
+
+            _builder.AppendEvent(new EventEvidence(
+                EventFamilies.Quantity,
+                ExecutionEventSubtypes.QuantityReset,
+                Array.Empty<string>(),
+                0,
+                null,
+                null,
+                null,
+                null,
+                null,
+                context.Request.Configuration.ProcessRule.InstanceID,
+                null,
+                null,
+                null,
+                EffectOriginLineage.Empty,
+                null,
+                0,
+                null,
+                null,
+                null,
+                context.CurrentSafetyStatus,
+                payload
+            ));
+        }
+
+        /// <summary>
+        /// Returns the counter identity the governing Process rule's requests name.
+        /// </summary>
+        /// <param name="context">The per-execution context.</param>
+        /// <returns>The counter identity token, or the empty string when no request declares one.</returns>
+        private static string CounterIdentity(ExecutionContext context)
+        {
+            IReadOnlyList<ActiveEffect> effects = context.Request.InterpretedEffects;
+            for (int i = 0; i < effects.Count; i++)
+            {
+                if (effects[i].CounterRequest != null)
+                    return effects[i].CounterRequest.Counter;
+            }
+
+            return string.Empty;
         }
 
         /// <summary>
@@ -207,7 +303,7 @@ namespace Iterate.Domain.Execution
             IReadOnlyList<CancelledRequest> stillPending = context.PendingRequests.DrainPending();
             for (int i = 0; i < stillPending.Count; i++)
             {
-                AppendCancellation(stillPending[i]);
+                AppendCancellation(context, stillPending[i]);
             }
         }
         
@@ -226,7 +322,7 @@ namespace Iterate.Domain.Execution
             for (int i = 0; i < slots.Count; i++)
             {
                 SourceSlotKind kind = slots[i].Kind;
-                if (kind == SourceSlotKind.Instruction || kind == SourceSlotKind.StructureHeader)
+                if (kind is SourceSlotKind.Instruction or SourceSlotKind.StructureHeader)
                     last = i;
             }
 
@@ -249,10 +345,7 @@ namespace Iterate.Domain.Execution
         /// Phase 6: appends the EXECUTION_COMPLETED lifecycle bookend.
         /// </summary>
         /// <param name="context">The per-execution context.</param>
-        private void CloseExecution(ExecutionContext context)
-        {
-            AppendBookend(ExecutionEventSubtypes.ExecutionCompleted);
-        }
+        private void CloseExecution(ExecutionContext context) => AppendBookend(context, ExecutionEventSubtypes.ExecutionCompleted);
 
         /// <summary>
         /// Phase 7: finalizes the evidence into a frozen record with the final register state and the
@@ -272,7 +365,7 @@ namespace Iterate.Domain.Execution
 
             return _builder.Finalize(
                 ExecutionCompletionStatus.Completed,
-                SafetyStatus.Normal,
+                context.CurrentSafetyStatus,
                 context.Tallies.ToCounts(),
                 finalState
             );
@@ -325,8 +418,18 @@ namespace Iterate.Domain.Execution
                 null,
                 null);
 
-            _builder.AppendEvent(StructureEvent(ExecutionEventSubtypes.StructureActivated, headerSlot, entryContext));
-            _builder.AppendEvent(StructureEvent(ExecutionEventSubtypes.StructureEntered, headerSlot, entryContext));
+            _builder.AppendEvent(StructureEvent(
+                context,
+                ExecutionEventSubtypes.StructureActivated,
+                headerSlot,
+                entryContext
+            ));
+            _builder.AppendEvent(StructureEvent(
+                context,
+                ExecutionEventSubtypes.StructureEntered,
+                headerSlot,
+                entryContext
+            ));
 
             int firstContained = headerIndex + 1;
             int pastFootprint = headerIndex + structure.Definition.SourceFootprint;
@@ -335,7 +438,12 @@ namespace Iterate.Domain.Execution
             else
                 TraverseCondition(context, headerSlot, arrangement, firstContained, pastFootprint, entryIdentity, entryContext);
 
-            _builder.AppendEvent(StructureEvent(ExecutionEventSubtypes.StructureExited, headerSlot, entryContext));
+            _builder.AppendEvent(StructureEvent(
+                context,
+                ExecutionEventSubtypes.StructureExited,
+                headerSlot,
+                entryContext
+            ));
             return pastFootprint;
         }
 
@@ -360,9 +468,15 @@ namespace Iterate.Domain.Execution
             int firstContained,
             int pastFootprint,
             string entryIdentity,
-            StructureContext entryContext)
+            StructureContext entryContext
+        )
         {
-            _builder.AppendEvent(StructureEvent(ExecutionEventSubtypes.RepeatCountCaptured, headerSlot, entryContext));
+            _builder.AppendEvent(StructureEvent(
+                context,
+                ExecutionEventSubtypes.RepeatCountCaptured,
+                headerSlot, 
+                entryContext
+            ));
 
             int count = headerSlot.Structure.Definition.RepeatCount;
             for (int iteration = 1; iteration <= count; iteration++)
@@ -373,7 +487,12 @@ namespace Iterate.Domain.Execution
                     StructureIdentities.Iteration(entryIdentity, iteration),
                     null);
 
-                _builder.AppendEvent(StructureEvent(ExecutionEventSubtypes.RepeatIterationStarted, headerSlot, iterationContext));
+                _builder.AppendEvent(StructureEvent(
+                    context, 
+                    ExecutionEventSubtypes.RepeatIterationStarted,
+                    headerSlot,
+                    iterationContext
+                ));
                 for (int i = firstContained; i < pastFootprint; i++)
                 {
                     SourceSlot contained = arrangement.Slots[i];
@@ -381,7 +500,12 @@ namespace Iterate.Domain.Execution
                         TraverseUnit(context, contained, iterationContext, null, null, null);
                 }
 
-                _builder.AppendEvent(StructureEvent(ExecutionEventSubtypes.RepeatIterationCompleted, headerSlot, iterationContext));
+                _builder.AppendEvent(StructureEvent(
+                    context,
+                    ExecutionEventSubtypes.RepeatIterationCompleted,
+                    headerSlot,
+                    iterationContext
+                ));
             }
         }
 
@@ -420,11 +544,21 @@ namespace Iterate.Domain.Execution
 
             StructurePredicate predicate = headerSlot.Structure.Definition.Predicate;
             int snapshotValue = context.Registers.Read(predicate.Register);
-            _builder.AppendEvent(StructureEvent(ExecutionEventSubtypes.ConditionSnapshotCaptured, headerSlot, evaluationContext));
+            _builder.AppendEvent(StructureEvent(
+                context,
+                ExecutionEventSubtypes.ConditionSnapshotCaptured,
+                headerSlot,
+                evaluationContext
+            ));
 
             if (ConditionPredicateEvaluator.Evaluate(predicate, snapshotValue))
             {
-                TraceEventID resultEvent = _builder.AppendEvent(StructureEvent(ExecutionEventSubtypes.ConditionTrue, headerSlot, evaluationContext));
+                TraceEventID resultEvent = _builder.AppendEvent(StructureEvent(
+                    context, 
+                    ExecutionEventSubtypes.ConditionTrue,
+                    headerSlot,
+                    evaluationContext
+                ));
                 OfferConditionSuccess(context, arrangement, firstContained, pastFootprint, resultEvent, evaluationIdentity, evaluationContext);
 
                 for (int i = firstContained; i < pastFootprint; i++)
@@ -437,7 +571,12 @@ namespace Iterate.Domain.Execution
                 return;
             }
 
-            _builder.AppendEvent(StructureEvent(ExecutionEventSubtypes.ConditionFalse, headerSlot, evaluationContext));
+            _builder.AppendEvent(StructureEvent(
+                context, 
+                ExecutionEventSubtypes.ConditionFalse,
+                headerSlot,
+                evaluationContext
+            ));
             string skipCause = "CONDITION_FALSE:" + evaluationIdentity;
             for (int i = firstContained; i < pastFootprint; i++)
             {
@@ -479,13 +618,28 @@ namespace Iterate.Domain.Execution
             EffectOriginLineage lineage = frame.Lineage;
 
             TraceEventID pendingEvent = EmitPendingOperation(context, slot, isCore, unit, structureContext, lineage);
+            OperationOccurrence pendingOccurrence = BuildOperationOccurrence(context, slot, isCore, unit, pendingEvent, 0);
+            EffectMatchBatch pendingBatch = context.Engine.MatchPendingOperation(pendingOccurrence);
+
+            string effectiveSkipCause = skipCause;
+            ActiveEffect counterEffect = null;
+            if (skipCause == null && pendingBatch.CounterInterventions.Count > 0)
+            {
+                counterEffect = pendingBatch.CounterInterventions[0];
+                effectiveSkipCause = OfferCounterIntervention(context, counterEffect, slot, isCore, unit, pendingEvent, lineage);
+            }
+            else if (skipCause == null && pendingBatch.DeferredCounterGains.Count > 0)
+            {
+                counterEffect = pendingBatch.DeferredCounterGains[0];
+            }
+
             EventDisposition bandDisposition = ResolvePreOperationBand(context,
                 slot,
                 isCore,
                 unit,
                 pendingEvent,
                 structureContext,
-                skipCause,
+                effectiveSkipCause,
                 lineage
             );
 
@@ -497,15 +651,26 @@ namespace Iterate.Domain.Execution
             }
             else
             {
-                TraceEventID quantityEvent = ResolveOperationPath(context, slot, isCore, unit, pendingEvent, structureContext, frame, conditionResult, out actuallyIncreasedScore);
+                TraceEventID quantityEvent = ResolveOperationPath(
+                    context,
+                    slot,
+                    isCore,
+                    unit,
+                    pendingEvent,
+                    pendingOccurrence,
+                    pendingBatch,
+                    counterEffect,
+                    structureContext,
+                    frame,
+                    conditionResult,
+                    out actuallyIncreasedScore
+                );
                 completionEvent = FinalizeAndCloseUnit(context, slot, isCore, unit, quantityEvent, bandDisposition, structureContext, lineage);
             }
 
             context.Adjacency.RecordCompletion(
-                unit,
                 bandDisposition,
                 isCore ? OwnershipClassification.CoreOwned : OwnershipClassification.PlayerOwned,
-                isCore ? (InstanceID?)null : slot.Instruction.InstanceID,
                 actuallyIncreasedScore
             );
             ResolvePendingRequests(context, slot, isCore, unit, frame, bandDisposition);
@@ -532,14 +697,24 @@ namespace Iterate.Domain.Execution
             SourceSlot slot,
             bool isCore,
             StructureContext structureContext,
-            AddedExecutionRequest request)
+            AddedExecutionRequest request
+        )
         {
-            if (!context.Tallies.PreflightUnitOpening())
-                throw new InvalidOperationException("Preflight prohibits opening another source-execution unit.");
+            IReadOnlyList<BreachedLimit> breached = context.Tallies.EvaluateUnitOpening();
+            if (breached != null)
+            {
+                throw new SafetyAbortSignal(
+                    EventFamilies.Source,
+                    ExecutionEventSubtypes.SourceExecutionStarted,
+                    "P" + slot.Position.LineNumber,
+                    InnermostOpenUnit(context) ?? default,
+                    breached
+                );
+            }
 
             ActivationKind activation = request == null ? ActivationKind.CanonicalTraversal : ActivationKind.AddedExecution;
             string requestIdentity = request?.RequestIdentity;
-            int depth = request == null ? 0 : request.ProposedDepth;
+            int depth = request?.ProposedDepth ?? 0;
             EffectOriginLineage lineage = request == null ? EffectOriginLineage.Empty : request.Lineage;
             RuntimeUnitID? parentUnit = request?.ParentUnit;
 
@@ -571,15 +746,37 @@ namespace Iterate.Domain.Execution
 
             RuntimeUnitID unit = _builder.OpenUnit(opening);
             context.Tallies.RecordUnitOpened();
+            EmitApproachedLimits(context, unit);
+            
+            if (isCore && context.Request.Configuration.DesignatedFinalCoreOutputPosition == slot.Position)
+                context.Engine.CloseCoolingWindow();
 
             RuntimeUnitID rootActivation = unit;
             if (request != null && context.FrameStack.Count > 0)
-                rootActivation = context.FrameStack[context.FrameStack.Count - 1].RootActivation;
+                rootActivation = context.FrameStack[^1].RootActivation;
 
             context.FrameStack.Add(new ExecutionFrame(unit, lineage, depth, rootActivation));
 
-            _builder.AppendEvent(UnitStreamEvent(EventFamilies.Source, ExecutionEventSubtypes.SourceObjectActivated, slot, isCore, unit, structureContext, lineage));
-            _builder.AppendEvent(UnitStreamEvent(EventFamilies.Source, ExecutionEventSubtypes.SourceExecutionStarted, slot, isCore, unit, structureContext, lineage));
+            _builder.AppendEvent(UnitStreamEvent(
+                context,
+                EventFamilies.Source,
+                ExecutionEventSubtypes.SourceObjectActivated,
+                slot,
+                isCore,
+                unit,
+                structureContext,
+                lineage
+            ));
+            _builder.AppendEvent(UnitStreamEvent(
+                context,
+                EventFamilies.Source,
+                ExecutionEventSubtypes.SourceExecutionStarted,
+                slot,
+                isCore,
+                unit,
+                structureContext,
+                lineage
+            ));
             return unit;
         }
 
@@ -599,9 +796,19 @@ namespace Iterate.Domain.Execution
             bool isCore,
             RuntimeUnitID unit,
             StructureContext structureContext,
-            EffectOriginLineage lineage)
+            EffectOriginLineage lineage
+        )
         {
-            TraceEventID pendingEvent = _builder.AppendEvent(UnitStreamEvent(EventFamilies.Operation, ExecutionEventSubtypes.PrimaryOperationPending, slot, isCore, unit, structureContext, lineage));
+            TraceEventID pendingEvent = _builder.AppendEvent(UnitStreamEvent(
+                context, 
+                EventFamilies.Operation,
+                ExecutionEventSubtypes.PrimaryOperationPending,
+                slot,
+                isCore,
+                unit,
+                structureContext,
+                lineage
+            ));
             context.Tallies.BeginPendingOperation();
             return pendingEvent;
         }
@@ -630,12 +837,22 @@ namespace Iterate.Domain.Execution
             TraceEventID pendingEvent,
             StructureContext structureContext,
             string skipCause,
-            EffectOriginLineage lineage)
+            EffectOriginLineage lineage
+        )
         {
             if (skipCause == null)
                 return EventDisposition.Resolved;
 
-            TraceEventID skipEvent = _builder.AppendEvent(SkipEvent(slot, isCore, unit, pendingEvent, skipCause, structureContext, lineage));
+            TraceEventID skipEvent = _builder.AppendEvent(SkipEvent(
+                context, 
+                slot,
+                isCore,
+                unit, 
+                pendingEvent,
+                skipCause,
+                structureContext,
+                lineage
+            ));
             SkipOccurrence occurrence = new SkipOccurrence(
                 unit,
                 skipEvent,
@@ -643,7 +860,8 @@ namespace Iterate.Domain.Execution
                 isCore ? OwnershipClassification.CoreOwned : OwnershipClassification.PlayerOwned,
                 isCore ? (InstanceID?)null : slot.Instruction.InstanceID,
                 skipCause,
-                true);
+                true
+            );
 
             EffectMatchBatch batch = context.Engine.MatchSkip(occurrence);
             if (batch.Qualified.Count == 0)
@@ -653,11 +871,147 @@ namespace Iterate.Domain.Execution
                 throw new InvalidOperationException("More than one rescue effect qualified against one skip; an undeclared rescuer conflict is an authoring defect.");
 
             ActiveEffect rescueEffect = batch.Qualified[0];
-            _builder.AppendEvent(EffectChainEvent(EventFamilies.Qualification, ExecutionEventSubtypes.EffectQualified, skipEvent, 2, rescueEffect.Origin, rescueEffect.HostInstance, unit, null, null, lineage));
+            _builder.AppendEvent(EffectChainEvent(
+                context,
+                EventFamilies.Qualification,
+                ExecutionEventSubtypes.EffectQualified,
+                skipEvent,
+                2,
+                rescueEffect.Origin,
+                rescueEffect.HostInstance,
+                unit,
+                null,
+                null,
+                lineage
+            ));
             context.Engine.Commit(rescueEffect, unit);
-            _builder.AppendEvent(EffectChainEvent(EventFamilies.Qualification, ExecutionEventSubtypes.EffectCommitted, skipEvent, 2, rescueEffect.Origin, rescueEffect.HostInstance, unit, null, null, lineage));
-            _builder.AppendEvent(EffectChainEvent(EventFamilies.Disposition, ExecutionEventSubtypes.SourceExecutionRescued, skipEvent, 2, rescueEffect.Origin, rescueEffect.HostInstance, unit, EventDisposition.Rescued, null, lineage));
+            _builder.AppendEvent(EffectChainEvent(
+                context, 
+                EventFamilies.Qualification,
+                ExecutionEventSubtypes.EffectCommitted,
+                skipEvent,
+                2,
+                rescueEffect.Origin,
+                rescueEffect.HostInstance,
+                unit,
+                null,
+                null,
+                lineage
+            ));
+            _builder.AppendEvent(EffectChainEvent(
+                context, 
+                EventFamilies.Disposition,
+                ExecutionEventSubtypes.SourceExecutionRescued,
+                skipEvent,
+                2,
+                rescueEffect.Origin,
+                rescueEffect.HostInstance,
+                unit,
+                EventDisposition.Rescued,
+                null,
+                lineage
+            ));
+            
+            RecordTransformation(context, unit, rescueEffect.Origin);
+            
             return EventDisposition.Rescued;
+        }
+        
+        /// <summary>
+        /// Records one Process-rule intervention against a pending operation and returns the skip
+        /// cause it produces. The intervention identifies the rule, the counter state read at the
+        /// pre-check, the affected source execution, and the resulting disposition; it changes no
+        /// counter, so its payload reports a zero delta over the value it read. One transformation
+        /// is recorded, since the intervention transforms the pending operation.
+        /// </summary>
+        /// <param name="context">The per-execution context.</param>
+        /// <param name="effect">The qualified counter-intervention effect.</param>
+        /// <param name="slot">The executing slot.</param>
+        /// <param name="isCore">Whether the slot is Core-owned.</param>
+        /// <param name="unit">The containing unit.</param>
+        /// <param name="pendingEvent">The pending-operation event.</param>
+        /// <param name="lineage">The emitting branch's effect-origin lineage.</param>
+        /// <returns>The composed skip cause.</returns>
+        /// <exception cref="SafetyAbortSignal">Thrown when the transformation ceiling has been reached.</exception>
+        private string OfferCounterIntervention(
+            ExecutionContext context,
+            ActiveEffect effect,
+            SourceSlot slot,
+            bool isCore,
+            RuntimeUnitID unit,
+            TraceEventID pendingEvent,
+            EffectOriginLineage lineage
+        )
+        {
+            RecordTransformation(context, unit, effect.Origin);
+
+            int reading = context.Counter.Value;
+            QuantityChangePayload state = new QuantityChangePayload(
+                effect.CounterRequest.Counter,
+                QuantityCategory.ProcessCounter,
+                QuantityOperationType.Increment,
+                effect.CounterRequest.Delta,
+                reading,
+                null,
+                Array.Empty<QuantityModifierEvidence>(),
+                new QuantityBoundsEvidence(
+                    effect.CounterRequest.HasFloor ? effect.CounterRequest.Floor : (int?)null,
+                    effect.CounterRequest.HasCeiling ? effect.CounterRequest.Ceiling : (int?)null),
+                0,
+                reading
+            );
+
+            _builder.AppendEvent(new EventEvidence(
+                EventFamilies.Intervention,
+                ExecutionEventSubtypes.ProcessRuleIntervened,
+                Array.Empty<string>(),
+                1,
+                unit,
+                null,
+                pendingEvent,
+                isCore ? (InstanceID?)null : slot.Instruction.InstanceID,
+                isCore ? slot.Core.Identity : null,
+                effect.Origin,
+                isCore ? OwnershipClassification.CoreOwned : OwnershipClassification.PlayerOwned,
+                slot.Position,
+                null,
+                lineage,
+                null,
+                0,
+                null,
+                EventDisposition.Skipped,
+                null,
+                context.CurrentSafetyStatus,
+                state
+            ));
+
+            return ProcessRuleSkipCause + context.Request.Configuration.ProcessRule.Definition.ID.Value;
+        }
+
+        /// <summary>
+        /// Preflights and records one transformation of the current pending operation, throwing the
+        /// abort signal when the transformation ceiling has been reached.
+        /// </summary>
+        /// <param name="context">The per-execution context.</param>
+        /// <param name="unit">The containing unit.</param>
+        /// <param name="origin">The transforming effect's origin.</param>
+        /// <exception cref="SafetyAbortSignal">Thrown when the transformation ceiling has been reached.</exception>
+        private void RecordTransformation(ExecutionContext context, RuntimeUnitID unit, InstanceID origin)
+        {
+            IReadOnlyList<BreachedLimit> breached = context.Tallies.EvaluateTransformation();
+            if (breached != null)
+            {
+                throw new SafetyAbortSignal(
+                    EventFamilies.Operation,
+                    ExecutionEventSubtypes.PrimaryOperationModified,
+                    origin.ToString(),
+                    unit,
+                    breached
+                );
+            }
+
+            context.Tallies.RecordTransformation();
+            EmitApproachedLimits(context, unit);
         }
 
         /// <summary>
@@ -680,8 +1034,25 @@ namespace Iterate.Domain.Execution
             StructureContext structureContext,
             EffectOriginLineage lineage)
         {
-            _builder.AppendEvent(DispositionFinalizedEvent(slot, isCore, unit, EventDisposition.Skipped, structureContext, lineage));
-            TraceEventID completionEvent = _builder.AppendEvent(UnitStreamEvent(EventFamilies.Source, ExecutionEventSubtypes.SourceExecutionCompleted, slot, isCore, unit, structureContext, lineage));
+            _builder.AppendEvent(DispositionFinalizedEvent(
+                context, 
+                slot,
+                isCore,
+                unit,
+                EventDisposition.Skipped,
+                structureContext,
+                lineage
+            ));
+            TraceEventID completionEvent = _builder.AppendEvent(UnitStreamEvent(
+                context, 
+                EventFamilies.Source,
+                ExecutionEventSubtypes.SourceExecutionCompleted,
+                slot,
+                isCore,
+                unit,
+                structureContext,
+                lineage
+            ));
 
             RuntimeUnitClosure closure = new RuntimeUnitClosure(
                 null,
@@ -689,7 +1060,7 @@ namespace Iterate.Domain.Execution
                 null,
                 Array.Empty<string>(),
                 UnitClosureStatus.NormalCompletion,
-                SafetyStatus.Normal
+                context.CurrentSafetyStatus
             );
             _builder.CompleteUnit(unit, closure);
             return completionEvent;
@@ -711,6 +1082,9 @@ namespace Iterate.Domain.Execution
         /// <param name="isCore">Whether the slot is Core-owned.</param>
         /// <param name="unit">The containing unit.</param>
         /// <param name="pendingEvent">The pending-operation event.</param>
+        /// <param name="pendingOccurrence">The pending-operation occurrence matched before the pre-operation band.</param>
+        /// <param name="modificationBatch">The batch captured at that single pending-operation match.</param>
+        /// <param name="counterEffect">The Process-counter effect that pre-checked this operation, or null when none did.</param>
         /// <param name="structureContext">The governing Structure context, or null at top level.</param>
         /// <param name="frame">The unit's own frame.</param>
         /// <param name="conditionResult">The enclosing Condition's retained evaluation outcome, or null outside one.</param>
@@ -723,6 +1097,9 @@ namespace Iterate.Domain.Execution
             bool isCore,
             RuntimeUnitID unit,
             TraceEventID pendingEvent,
+            OperationOccurrence pendingOccurrence,
+            EffectMatchBatch modificationBatch,
+            ActiveEffect counterEffect,
             StructureContext structureContext,
             ExecutionFrame frame,
             ConditionOutcome? conditionResult,
@@ -730,27 +1107,57 @@ namespace Iterate.Domain.Execution
         )
         {
             EffectOriginLineage lineage = frame.Lineage;
-            OperationOccurrence pendingOccurrence = BuildOperationOccurrence(slot, isCore, unit, pendingEvent, 0);
-            EffectMatchBatch modificationBatch = context.Engine.MatchPendingOperation(pendingOccurrence);
-            AppendNearMisses(modificationBatch, pendingEvent, 1, unit, lineage);
+            AppendNearMisses(context, modificationBatch, pendingEvent, 1, unit, lineage);
 
             int modifierSum = 0;
             IReadOnlyList<QuantityModifierEvidence> modifiers = Array.Empty<QuantityModifierEvidence>();
             if (modificationBatch.Qualified.Count > 0 || modificationBatch.Reapplications.Count > 0)
             {
-                List<QuantityModifierEvidence> applied = new List<QuantityModifierEvidence>(
-                    modificationBatch.Qualified.Count + modificationBatch.Reapplications.Count);
+                List<QuantityModifierEvidence> applied = new List<QuantityModifierEvidence>(modificationBatch.Qualified.Count + modificationBatch.Reapplications.Count);
                 for (int i = 0; i < modificationBatch.Qualified.Count; i++)
                 {
                     ActiveEffect effect = modificationBatch.Qualified[i];
-                    if (!context.Tallies.PreflightTransformation())
-                        throw new InvalidOperationException("Preflight prohibits another transformation of the pending operation.");
 
-                    _builder.AppendEvent(EffectChainEvent(EventFamilies.Qualification, ExecutionEventSubtypes.EffectQualified, pendingEvent, 1, effect.Origin, effect.HostInstance, unit, null, null, lineage));
+                    _builder.AppendEvent(EffectChainEvent(
+                        context, 
+                        EventFamilies.Qualification,
+                        ExecutionEventSubtypes.EffectQualified,
+                        pendingEvent,
+                        1,
+                        effect.Origin,
+                        effect.HostInstance,
+                        unit,
+                        null,
+                        null,
+                        lineage
+                    ));
                     context.Engine.CommitModification(effect, pendingOccurrence.HostInstance);
-                    _builder.AppendEvent(EffectChainEvent(EventFamilies.Qualification, ExecutionEventSubtypes.EffectCommitted, pendingEvent, 1, effect.Origin, effect.HostInstance, unit, null, null, lineage));
-                    context.Tallies.RecordTransformation();
-                    _builder.AppendEvent(EffectChainEvent(EventFamilies.Operation, ExecutionEventSubtypes.PrimaryOperationModified, pendingEvent, 1, effect.Origin, effect.HostInstance, unit, null, null, lineage));
+                    _builder.AppendEvent(EffectChainEvent(
+                        context, 
+                        EventFamilies.Qualification,
+                        ExecutionEventSubtypes.EffectCommitted,
+                        pendingEvent,
+                        1,
+                        effect.Origin,
+                        effect.HostInstance,
+                        unit,
+                        null,
+                        null,
+                        lineage
+                    ));
+                    _builder.AppendEvent(EffectChainEvent(
+                        context, 
+                        EventFamilies.Operation,
+                        ExecutionEventSubtypes.PrimaryOperationModified,
+                        pendingEvent,
+                        1,
+                        effect.Origin,
+                        effect.HostInstance,
+                        unit,
+                        null,
+                        null,
+                        lineage
+                    ));
 
                     int amount = ModificationAmount(effect);
                     modifierSum += amount;
@@ -760,12 +1167,33 @@ namespace Iterate.Domain.Execution
                 for (int i = 0; i < modificationBatch.Reapplications.Count; i++)
                 {
                     ActiveEffect effect = modificationBatch.Reapplications[i];
-                    if (!context.Tallies.PreflightTransformation())
-                        throw new InvalidOperationException("Preflight prohibits another transformation of the pending operation.");
 
-                    _builder.AppendEvent(EffectChainEvent(EventFamilies.Qualification, ExecutionEventSubtypes.EffectQualified, pendingEvent, 1, effect.Origin, effect.HostInstance, unit, null, null, lineage));
-                    context.Tallies.RecordTransformation();
-                    _builder.AppendEvent(EffectChainEvent(EventFamilies.Operation, ExecutionEventSubtypes.PrimaryOperationModified, pendingEvent, 1, effect.Origin, effect.HostInstance, unit, null, null, lineage));
+                    _builder.AppendEvent(EffectChainEvent(
+                        context, 
+                        EventFamilies.Qualification,
+                        ExecutionEventSubtypes.EffectQualified,
+                        pendingEvent,
+                        1,
+                        effect.Origin,
+                        effect.HostInstance,
+                        unit, 
+                        null,
+                        null,
+                        lineage
+                    ));
+                    _builder.AppendEvent(EffectChainEvent(
+                        context, 
+                        EventFamilies.Operation,
+                        ExecutionEventSubtypes.PrimaryOperationModified,
+                        pendingEvent, 
+                        1,
+                        effect.Origin,
+                        effect.HostInstance,
+                        unit,
+                        null,
+                        null,
+                        lineage
+                     ));
 
                     int amount = ModificationAmount(effect);
                     modifierSum += amount;
@@ -780,16 +1208,46 @@ namespace Iterate.Domain.Execution
                 : OperationEvaluator.EvaluateInstruction(slot.Instruction.Definition.PrimaryOperation, context.Registers, slot.Position, modifierSum);
             actuallyIncreasedScore = evaluation.Register == CoreRegister.Score && evaluation.FinalDelta > 0;
 
-            TraceEventID resolvedEvent = _builder.AppendEvent(UnitStreamEvent(EventFamilies.Operation, ExecutionEventSubtypes.PrimaryOperationResolved, slot, isCore, unit, structureContext, lineage));
-            TraceEventID quantityEvent = AppendQuantityEvent(slot, isCore, evaluation, unit, modifiers, structureContext, lineage);
+            TraceEventID resolvedEvent = _builder.AppendEvent(UnitStreamEvent(
+                context, 
+                EventFamilies.Operation,
+                ExecutionEventSubtypes.PrimaryOperationResolved,
+                slot,
+                isCore,
+                unit,
+                structureContext,
+                lineage
+            ));
+            TraceEventID quantityEvent = AppendQuantityEvent(
+                context, 
+                slot,
+                isCore,
+                evaluation,
+                unit,
+                modifiers,
+                structureContext,
+                lineage
+            );
             context.Registers.Write(evaluation.Register, evaluation.FinalValue);
 
             if (evaluation.Register == CoreRegister.Score)
                 EmitThresholdCrossings(context, evaluation, quantityEvent, 1, unit, lineage);
 
-            _builder.AppendEvent(UnitStreamEvent(EventFamilies.Operation, ExecutionEventSubtypes.PrimaryOperationResultFinalized, slot, isCore, unit, structureContext, lineage));
+            _builder.AppendEvent(UnitStreamEvent(
+                context, 
+                EventFamilies.Operation,
+                ExecutionEventSubtypes.PrimaryOperationResultFinalized,
+                slot,
+                isCore,
+                unit,
+                structureContext,
+                lineage
+            ));
+            
+            if (counterEffect != null)
+                CommitCounterRequest(context, counterEffect, resolvedEvent, 1, unit, lineage);
 
-            OperationOccurrence resolvedOccurrence = BuildOperationOccurrence(slot, isCore, unit, resolvedEvent, 0);
+            OperationOccurrence resolvedOccurrence = BuildOperationOccurrence(context, slot, isCore, unit, resolvedEvent, 0);
             EffectMatchBatch resolvedBatch = context.Engine.MatchResolvedOperation(resolvedOccurrence);
             ResolveReactionBatch(context, resolvedBatch, resolvedEvent, 0, unit, slot.Position, lineage);
 
@@ -838,8 +1296,25 @@ namespace Iterate.Domain.Execution
             StructureContext structureContext,
             EffectOriginLineage lineage)
         {
-            _builder.AppendEvent(DispositionFinalizedEvent(slot, isCore, unit, finalDisposition, structureContext, lineage));
-            TraceEventID completionEvent = _builder.AppendEvent(UnitStreamEvent(EventFamilies.Source, ExecutionEventSubtypes.SourceExecutionCompleted, slot, isCore, unit, structureContext, lineage));
+            _builder.AppendEvent(DispositionFinalizedEvent(
+                context, 
+                slot,
+                isCore,
+                unit,
+                finalDisposition,
+                structureContext,
+                lineage
+            ));
+            TraceEventID completionEvent = _builder.AppendEvent(UnitStreamEvent(
+                context, 
+                EventFamilies.Source,
+                ExecutionEventSubtypes.SourceExecutionCompleted,
+                slot,
+                isCore,
+                unit,
+                structureContext,
+                lineage
+            ));
 
             RuntimeUnitClosure closure = new RuntimeUnitClosure(
                 finalDisposition == EventDisposition.Rescued ? EventDisposition.Skipped : (EventDisposition?)null,
@@ -847,7 +1322,7 @@ namespace Iterate.Domain.Execution
                 quantityEvent,
                 Array.Empty<string>(),
                 UnitClosureStatus.NormalCompletion,
-                SafetyStatus.Normal
+                context.CurrentSafetyStatus
             );
             _builder.CompleteUnit(unit, closure);
             return completionEvent;
@@ -903,7 +1378,7 @@ namespace Iterate.Domain.Execution
             );
 
             EffectMatchBatch batch = context.Engine.MatchPostUnit(occurrence);
-            AppendNearMisses(batch, completionEvent, 1, null, frame.Lineage);
+            AppendNearMisses(context, batch, completionEvent, 1, null, frame.Lineage);
             CommitCreators(context, batch, completionEvent, 0, frame, slot, structureContext, unit, true, conditionResult);
         }
         
@@ -952,7 +1427,7 @@ namespace Iterate.Domain.Execution
             );
 
             EffectMatchBatch batch = context.Engine.MatchConditionSuccess(occurrence);
-            AppendNearMisses(batch, resultEvent, 1, null, EffectOriginLineage.Empty);
+            AppendNearMisses(context, batch, resultEvent, 1, null, EffectOriginLineage.Empty);
             if (batch.Creators.Count == 0)
                 return;
 
@@ -960,6 +1435,7 @@ namespace Iterate.Domain.Execution
             {
                 ActiveEffect effect = batch.Creators[i];
                 _builder.AppendEvent(EffectChainEvent(
+                    context, 
                     EventFamilies.Qualification,
                     ExecutionEventSubtypes.EffectQualified,
                     resultEvent,
@@ -973,6 +1449,7 @@ namespace Iterate.Domain.Execution
                 ));
                 context.Engine.Commit(effect);
                 _builder.AppendEvent(EffectChainEvent(
+                    context, 
                     EventFamilies.Qualification,
                     ExecutionEventSubtypes.EffectCommitted,
                     resultEvent,
@@ -1000,6 +1477,7 @@ namespace Iterate.Domain.Execution
                 );
 
                 TraceEventID requestedEvent = _builder.AppendEvent(AddedExecutionEvent(
+                    context, 
                     ExecutionEventSubtypes.AddedExecutionRequested,
                     resultEvent,
                     1,
@@ -1046,14 +1524,14 @@ namespace Iterate.Domain.Execution
                 registers.Score
             );
             EffectMatchBatch quantityBatch = context.Engine.MatchBoundary(quantityOffer);
-            AppendNearMisses(quantityBatch, null, 0, null, EffectOriginLineage.Empty);
+            AppendNearMisses(context, quantityBatch, null, 0, null, EffectOriginLineage.Empty);
             for (int i = 0; i < quantityBatch.Qualified.Count; i++)
             {
                 ResolveBoundaryQuantityEffect(context, quantityBatch.Qualified[i], registers);
             }
         }
         
-                /// <summary>
+        /// <summary>
         /// Drains the quantity batch's target-lock updates: per update, the qualification and
         /// commitment chain caused by the finalized quantity event at chain depth, no register write,
         /// then the engine stores the occurrence-derived memento keyed by the update's origin. Only a
@@ -1087,7 +1565,19 @@ namespace Iterate.Domain.Execution
             for (int i = 0; i < batch.TargetLockUpdates.Count; i++)
             {
                 ActiveEffect effect = batch.TargetLockUpdates[i];
-                _builder.AppendEvent(EffectChainEvent(EventFamilies.Qualification, ExecutionEventSubtypes.EffectQualified, quantityEvent, chainDepth, effect.Origin, effect.HostInstance, unit, null, null, lineage));
+                _builder.AppendEvent(EffectChainEvent(
+                    context, 
+                    EventFamilies.Qualification,
+                    ExecutionEventSubtypes.EffectQualified,
+                    quantityEvent,
+                    chainDepth,
+                    effect.Origin,
+                    effect.HostInstance,
+                    unit,
+                    null,
+                    null,
+                    lineage
+                ));
 
                 TargetLock lockMemento = new TargetLock(
                     occurrence.HostSlot,
@@ -1099,7 +1589,19 @@ namespace Iterate.Domain.Execution
                 );
                 context.Engine.CommitTargetLock(effect, lockMemento);
 
-                _builder.AppendEvent(EffectChainEvent(EventFamilies.Qualification, ExecutionEventSubtypes.EffectCommitted, quantityEvent, chainDepth, effect.Origin, effect.HostInstance, unit, null, null, lineage));
+                _builder.AppendEvent(EffectChainEvent(
+                    context, 
+                    EventFamilies.Qualification,
+                    ExecutionEventSubtypes.EffectCommitted,
+                    quantityEvent,
+                    chainDepth,
+                    effect.Origin,
+                    effect.HostInstance,
+                    unit,
+                    null,
+                    null,
+                    lineage
+                ));
             }
         }
 
@@ -1122,7 +1624,11 @@ namespace Iterate.Domain.Execution
             TargetLock lockMemento = context.Engine.TargetLockFor(effect.Origin);
             SourceSlot lockedSlot = lockMemento.LockedSlot;
 
-            TraceEventID targetLockedEvent = _builder.AppendEvent(TargetLockedEvent(effect.Origin, lockedSlot));
+            TraceEventID targetLockedEvent = _builder.AppendEvent(TargetLockedEvent(
+                context,
+                effect.Origin,
+                lockedSlot
+            ));
             context.Engine.Commit(effect);
 
             AddedExecutionRequest request = new AddedExecutionRequest(
@@ -1140,6 +1646,7 @@ namespace Iterate.Domain.Execution
             );
 
             TraceEventID requestedEvent = _builder.AppendEvent(AddedExecutionEvent(
+                context, 
                 ExecutionEventSubtypes.AddedExecutionRequested,
                 targetLockedEvent,
                 1,
@@ -1152,14 +1659,28 @@ namespace Iterate.Domain.Execution
             string checkToken = LockedHostValidator.Validate(lockMemento, context.Request.Source.Arrangement);
             if (checkToken != null)
             {
-                AppendCancellation(new CancelledRequest(request, LockedHostValidator.ComposeReason(checkToken)));
+                AppendCancellation(context, new CancelledRequest(request, LockedHostValidator.ComposeReason(checkToken)));
                 return;
             }
 
-            if (request.ProposedDepth > SafetyCeilings.AddedExecutionLineageDepth)
-                throw new InvalidOperationException("Preflight prohibits the boundary descendant; the lineage-depth ceiling would be exceeded.");
+            IReadOnlyList<BreachedLimit> breached = context.Tallies.EvaluateDescendant(
+                request.ProposedDepth,
+                lockMemento.LockedUnit);
+            if (breached != null)
+            {
+                throw new SafetyAbortSignal(
+                    EventFamilies.AddedExecution,
+                    ExecutionEventSubtypes.AddedExecutionStarted,
+                    request.RequestIdentity,
+                    InnermostOpenUnit(context) ?? default,
+                    breached);
+            }
+
+            context.Tallies.RecordDescendant(request.ProposedDepth, lockMemento.LockedUnit);
+            EmitApproachedLimits(context, null);
 
             _builder.AppendEvent(AddedExecutionEvent(
+                context, 
                 ExecutionEventSubtypes.AddedExecutionStarted,
                 requestedEvent,
                 1,
@@ -1171,6 +1692,7 @@ namespace Iterate.Domain.Execution
             TraverseUnit(context, lockedSlot, request.InheritedContext, null, request, request.RetainedConditionResult);
 
             _builder.AppendEvent(AddedExecutionEvent(
+                context, 
                 ExecutionEventSubtypes.AddedExecutionCompleted,
                 requestedEvent,
                 1,
@@ -1193,6 +1715,7 @@ namespace Iterate.Domain.Execution
         private void ResolveBoundaryQuantityEffect(ExecutionContext context, ActiveEffect effect, ExecutionRegisters registers)
         {
             TraceEventID requestedEvent = _builder.AppendEvent(BoundaryChainEvent(
+                context, 
                 ExecutionEventSubtypes.BoundaryEffectRequested, 
                 null,
                 0,
@@ -1200,6 +1723,7 @@ namespace Iterate.Domain.Execution
             ));
             context.Engine.Commit(effect);
             TraceEventID resolvedEvent = _builder.AppendEvent(BoundaryChainEvent(
+                context, 
                 ExecutionEventSubtypes.BoundaryEffectResolved,
                 requestedEvent,
                 1,
@@ -1208,6 +1732,7 @@ namespace Iterate.Domain.Execution
 
             EvaluatedOperation evaluation = OperationEvaluator.EvaluateBoundaryEffect(effect.Operation, registers);
             TraceEventID quantityEvent = _builder.AppendEvent(ReactionQuantityEvent(
+                context, 
                 evaluation,
                 resolvedEvent,
                 2,
@@ -1244,10 +1769,11 @@ namespace Iterate.Domain.Execution
         /// identity, at the locked slot's position, carrying the resolving creator's effect origin. The
         /// request chain that follows derives its identity and cause from this event.
         /// </summary>
+        /// <param name="context">The per-execution context.</param>
         /// <param name="effectOrigin">The resolving creator's origin instance.</param>
         /// <param name="lockedSlot">The locked host slot.</param>
         /// <returns>The assembled evidence.</returns>
-        private static EventEvidence TargetLockedEvent(InstanceID effectOrigin, SourceSlot lockedSlot)
+        private static EventEvidence TargetLockedEvent(ExecutionContext context, InstanceID effectOrigin, SourceSlot lockedSlot)
         {
             InstanceID host = lockedSlot.Instruction.InstanceID;
             return new EventEvidence(
@@ -1270,7 +1796,7 @@ namespace Iterate.Domain.Execution
                 null,
                 null,
                 null,
-                SafetyStatus.Normal,
+                context.CurrentSafetyStatus,
                 null
             );
         }
@@ -1280,12 +1806,14 @@ namespace Iterate.Domain.Execution
         /// effect origin and no source origin of its own — a boundary effect manufactures no source
         /// line.
         /// </summary>
+        /// <param name="context">The per-execution context.</param>
         /// <param name="subtype">The REACTION subtype token.</param>
         /// <param name="causingEvent">The causing event, or null for the uncaused request.</param>
         /// <param name="depth">The event's causal depth.</param>
         /// <param name="effectOrigin">The resolving effect's origin instance.</param>
         /// <returns>The assembled evidence.</returns>
         private static EventEvidence BoundaryChainEvent(
+            ExecutionContext context,
             string subtype,
             TraceEventID? causingEvent,
             int depth,
@@ -1312,7 +1840,7 @@ namespace Iterate.Domain.Execution
                 null,
                 null,
                 null,
-                SafetyStatus.Normal,
+                context.CurrentSafetyStatus,
                 null
             );
         }
@@ -1355,7 +1883,7 @@ namespace Iterate.Domain.Execution
                     return;
                 
                 case PendingResolution.Cancelled:
-                    AppendCancellation(cancelled);
+                    AppendCancellation(context, cancelled);
                     break;
             }
         }
@@ -1366,8 +1894,9 @@ namespace Iterate.Domain.Execution
         /// context, the cancelled disposition, and the tracker's reason. The consumed allowance stays
         /// consumed.
         /// </summary>
+        /// <param name="context">The per-execution context.</param>
         /// <param name="cancelled">The cancelled request with its reason.</param>
-        private void AppendCancellation(CancelledRequest cancelled)
+        private void AppendCancellation(ExecutionContext context, CancelledRequest cancelled)
         {
             AddedExecutionRequest request = cancelled.Request;
             SourceSlot lockedSlot = request.LockedSlot;
@@ -1392,7 +1921,7 @@ namespace Iterate.Domain.Execution
                 request.InheritedContext,
                 EventDisposition.Cancelled,
                 cancelled.Reason,
-                SafetyStatus.Normal,
+                context.CurrentSafetyStatus,
                 null
             ));
         }
@@ -1435,9 +1964,33 @@ namespace Iterate.Domain.Execution
             for (int i = 0; i < batch.Creators.Count; i++)
             {
                 ActiveEffect effect = batch.Creators[i];
-                _builder.AppendEvent(EffectChainEvent(EventFamilies.Qualification, ExecutionEventSubtypes.EffectQualified, candidateEvent, chainDepth, effect.Origin, effect.HostInstance, chainUnit, null, null, frame.Lineage));
+                _builder.AppendEvent(EffectChainEvent(
+                    context, 
+                    EventFamilies.Qualification,
+                    ExecutionEventSubtypes.EffectQualified,
+                    candidateEvent, 
+                    chainDepth, 
+                    effect.Origin,
+                    effect.HostInstance,
+                    chainUnit,
+                    null,
+                    null,
+                    frame.Lineage
+                ));
                 context.Engine.Commit(effect, unit);
-                _builder.AppendEvent(EffectChainEvent(EventFamilies.Qualification, ExecutionEventSubtypes.EffectCommitted, candidateEvent, chainDepth, effect.Origin, effect.HostInstance, chainUnit, null, null, frame.Lineage));
+                _builder.AppendEvent(EffectChainEvent(
+                    context, 
+                    EventFamilies.Qualification,
+                    ExecutionEventSubtypes.EffectCommitted,
+                    candidateEvent,
+                    chainDepth,
+                    effect.Origin,
+                    effect.HostInstance,
+                    chainUnit,
+                    null,
+                    null,
+                    frame.Lineage
+                ));
 
                 AddedExecutionRequest request = new AddedExecutionRequest(
                     AddedExecutionRequestIdentities.For(effect, candidateEvent),
@@ -1454,6 +2007,7 @@ namespace Iterate.Domain.Execution
                 );
 
                 TraceEventID requestedEvent = _builder.AppendEvent(AddedExecutionEvent(
+                    context, 
                     ExecutionEventSubtypes.AddedExecutionRequested,
                     candidateEvent,
                     chainDepth,
@@ -1483,12 +2037,27 @@ namespace Iterate.Domain.Execution
             for (int i = 0; i < batch.Count; i++)
             {
                 AddedExecutionRequest request = batch[i];
-                if (!context.Tallies.PreflightDescendant(request.ProposedDepth, frame.RootActivation))
-                    throw new InvalidOperationException("Preflight prohibits creating another added execution; a lineage-depth or per-activation ceiling would be exceeded.");
+                
+                IReadOnlyList<BreachedLimit> breached = context.Tallies.EvaluateDescendant(
+                    request.ProposedDepth,
+                    frame.RootActivation
+                );
+                if (breached != null)
+                {
+                    throw new SafetyAbortSignal(
+                        EventFamilies.AddedExecution,
+                        ExecutionEventSubtypes.AddedExecutionStarted,
+                        request.RequestIdentity,
+                        InnermostOpenUnit(context) ?? default,
+                        breached
+                    );
+                }
 
                 context.Tallies.RecordDescendant(request.ProposedDepth, frame.RootActivation);
+                EmitApproachedLimits(context, null);
 
                 _builder.AppendEvent(AddedExecutionEvent(
+                    context, 
                     ExecutionEventSubtypes.AddedExecutionStarted,
                     request.RequestedEvent.Value,
                     1,
@@ -1500,6 +2069,7 @@ namespace Iterate.Domain.Execution
                 TraverseUnit(context, request.LockedSlot, request.InheritedContext, null, request, request.RetainedConditionResult);
 
                 _builder.AppendEvent(AddedExecutionEvent(
+                    context, 
                     ExecutionEventSubtypes.AddedExecutionCompleted,
                     request.RequestedEvent.Value,
                     1,
@@ -1532,10 +2102,17 @@ namespace Iterate.Domain.Execution
             EffectOriginLineage lineage
         )
         {
-            AppendNearMisses(batch, observedEvent, observedDepth + 1, unit, lineage);
+            AppendNearMisses(context, batch, observedEvent, observedDepth + 1, unit, lineage);
             for (int i = 0; i < batch.Qualified.Count; i++)
             {
-                ResolveReaction(context, batch.Qualified[i], observedEvent, observedDepth, unit, position, lineage);
+                if (batch.Qualified[i].CounterRequest == null)
+                    ResolveReaction(context, batch.Qualified[i], observedEvent, observedDepth, unit, position, lineage);
+            }
+
+            for (int i = 0; i < batch.Qualified.Count; i++)
+            {
+                if (batch.Qualified[i].CounterRequest != null)
+                    ResolveCounterReaction(context, batch.Qualified[i], observedEvent, observedDepth, unit, lineage);
             }
         }
 
@@ -1564,19 +2141,73 @@ namespace Iterate.Domain.Execution
             EffectOriginLineage lineage
         )
         {
-            if (!context.Tallies.PreflightReaction())
-                throw new InvalidOperationException("Preflight prohibits resolving another effect reaction.");
+            IReadOnlyList<BreachedLimit> breached = context.Tallies.EvaluateReaction();
+            if (breached != null)
+            {
+                throw new SafetyAbortSignal(
+                    EventFamilies.Reaction,
+                    ExecutionEventSubtypes.ImmediateReactionResolved,
+                    effect.Origin.ToString(),
+                    InnermostOpenUnit(context) ?? default,
+                    breached
+                );
+            }
 
             int chainDepth = observedDepth + 1;
-            _builder.AppendEvent(EffectChainEvent(EventFamilies.Qualification, ExecutionEventSubtypes.EffectQualified, observedEvent, chainDepth, effect.Origin, effect.HostInstance, unit, null, null, lineage));
+            _builder.AppendEvent(EffectChainEvent(
+                context, 
+                EventFamilies.Qualification,
+                ExecutionEventSubtypes.EffectQualified,
+                observedEvent,
+                chainDepth,
+                effect.Origin,
+                effect.HostInstance,
+                unit,
+                null,
+                null,
+                lineage
+            ));
             context.Engine.Commit(effect, unit);
-            _builder.AppendEvent(EffectChainEvent(EventFamilies.Qualification, ExecutionEventSubtypes.EffectCommitted, observedEvent, chainDepth, effect.Origin, effect.HostInstance, unit, null, null, lineage));
+            _builder.AppendEvent(EffectChainEvent(
+                context, 
+                EventFamilies.Qualification,
+                ExecutionEventSubtypes.EffectCommitted,
+                observedEvent,
+                chainDepth,
+                effect.Origin,
+                effect.HostInstance,
+                unit,
+                null,
+                null,
+                lineage
+            ));
             context.Tallies.RecordReaction();
-            TraceEventID reactionEvent = _builder.AppendEvent(EffectChainEvent(EventFamilies.Reaction, ExecutionEventSubtypes.ImmediateReactionResolved, observedEvent, chainDepth, effect.Origin, effect.HostInstance, unit, null, null, lineage));
+            EmitApproachedLimits(context, unit);
+            TraceEventID reactionEvent = _builder.AppendEvent(EffectChainEvent(
+                context, 
+                EventFamilies.Reaction,
+                ExecutionEventSubtypes.ImmediateReactionResolved,
+                observedEvent,
+                chainDepth,
+                effect.Origin,
+                effect.HostInstance,
+                unit,
+                null,
+                null,
+                lineage
+            ));
 
             EvaluatedOperation evaluation = OperationEvaluator.EvaluateInstruction(effect.Operation, context.Registers, position, 0);
             int quantityDepth = chainDepth + 1;
-            TraceEventID quantityEvent = _builder.AppendEvent(ReactionQuantityEvent(evaluation, reactionEvent, quantityDepth, effect.Origin, unit, lineage));
+            TraceEventID quantityEvent = _builder.AppendEvent(ReactionQuantityEvent(
+                context, 
+                evaluation,
+                reactionEvent,
+                quantityDepth,
+                effect.Origin,
+                unit,
+                lineage
+            ));
             context.Registers.Write(evaluation.Register, evaluation.FinalValue);
 
             if (evaluation.Register == CoreRegister.Score)
@@ -1598,12 +2229,94 @@ namespace Iterate.Domain.Execution
             EffectMatchBatch descendants = context.Engine.MatchQuantityChange(occurrence);
             ResolveReactionBatch(context, descendants, quantityEvent, quantityDepth, unit, position, lineage);
         }
+        
+        /// <summary>
+        /// Resolves one counter reaction inside the causing unit's closure: the qualification and
+        /// commitment chain, the reaction event, then the counter change it requests. A counter
+        /// change writes no register and is offered to no boundary — a counter qualifies other
+        /// effects only where a rule declares it, and none does — so the branch closes here.
+        /// </summary>
+        /// <param name="context">The per-execution context.</param>
+        /// <param name="effect">The qualified counter-reaction effect.</param>
+        /// <param name="observedEvent">The candidate event the effect observed.</param>
+        /// <param name="observedDepth">The candidate event's causal depth.</param>
+        /// <param name="unit">The containing unit.</param>
+        /// <param name="lineage">The emitting branch's effect-origin lineage.</param>
+        /// <exception cref="SafetyAbortSignal">Thrown when the reaction ceiling has been reached.</exception>
+        private void ResolveCounterReaction(
+            ExecutionContext context,
+            ActiveEffect effect,
+            TraceEventID observedEvent,
+            int observedDepth,
+            RuntimeUnitID? unit,
+            EffectOriginLineage lineage
+        )
+        {
+            IReadOnlyList<BreachedLimit> breached = context.Tallies.EvaluateReaction();
+            if (breached != null)
+            {
+                throw new SafetyAbortSignal(
+                    EventFamilies.Reaction,
+                    ExecutionEventSubtypes.ImmediateReactionResolved,
+                    effect.Origin.ToString(),
+                    InnermostOpenUnit(context) ?? default,
+                    breached
+                );
+            }
+
+            int chainDepth = observedDepth + 1;
+            _builder.AppendEvent(EffectChainEvent(
+                context,
+                EventFamilies.Qualification,
+                ExecutionEventSubtypes.EffectQualified,
+                observedEvent,
+                chainDepth,
+                effect.Origin,
+                effect.HostInstance,
+                unit,
+                null,
+                null,
+                lineage
+            ));
+            context.Engine.Commit(effect, unit);
+            _builder.AppendEvent(EffectChainEvent(
+                context,
+                EventFamilies.Qualification,
+                ExecutionEventSubtypes.EffectCommitted,
+                observedEvent,
+                chainDepth,
+                effect.Origin,
+                effect.HostInstance,
+                unit,
+                null,
+                null,
+                lineage
+            ));
+            context.Tallies.RecordReaction();
+            EmitApproachedLimits(context, unit);
+            TraceEventID reactionEvent = _builder.AppendEvent(EffectChainEvent(
+                context,
+                EventFamilies.Reaction,
+                ExecutionEventSubtypes.ImmediateReactionResolved,
+                observedEvent,
+                chainDepth,
+                effect.Origin,
+                effect.HostInstance,
+                unit,
+                null,
+                null,
+                lineage
+            ));
+
+            CommitCounterRequest(context, effect, reactionEvent, chainDepth + 1, unit, lineage);
+        }
 
         /// <summary>
         /// Builds the typed occurrence for a unit's primary operation at the pending or resolved
         /// boundary: operator, target register, and operand shape from the payload, ownership and the
         /// owning host instance from the slot kind.
         /// </summary>
+        /// <param name="context">The per-execution context, read for the governing counter snapshot.</param>
         /// <param name="slot">The executing slot.</param>
         /// <param name="isCore">Whether the slot is Core-owned.</param>
         /// <param name="unit">The containing unit.</param>
@@ -1611,6 +2324,7 @@ namespace Iterate.Domain.Execution
         /// <param name="causalDepth">The candidate event's causal depth.</param>
         /// <returns>The operation occurrence.</returns>
         private static OperationOccurrence BuildOperationOccurrence(
+            ExecutionContext context,
             SourceSlot slot,
             bool isCore,
             RuntimeUnitID unit,
@@ -1644,7 +2358,8 @@ namespace Iterate.Domain.Execution
                 op,
                 operand.Source,
                 operand.Source == OperandSource.Register ? operand.SourceRegister : (CoreRegister?)null,
-                isCore ? OwnershipClassification.CoreOwned : OwnershipClassification.PlayerOwned
+                isCore ? OwnershipClassification.CoreOwned : OwnershipClassification.PlayerOwned,
+                context.CounterSnapshot()
             );
         }
 
@@ -1657,9 +2372,7 @@ namespace Iterate.Domain.Execution
         /// <returns>The contributed amount.</returns>
         private static int ModificationAmount(ActiveEffect effect)
         {
-            return effect.OperationModification != null
-                ? effect.OperationModification.OperandDelta
-                : effect.Operation.Operand.Constant;
+            return effect.OperationModification?.OperandDelta ?? effect.Operation.Operand.Constant;
         }
 
         /// <summary>
@@ -1668,12 +2381,14 @@ namespace Iterate.Domain.Execution
         /// failed requirement, the effect's socketed host when one exists, the emitting branch's
         /// lineage, and a registry-clean empty qualifier list.
         /// </summary>
+        /// <param name="context">The per-execution context.</param>
         /// <param name="batch">The captured batch.</param>
         /// <param name="candidateEvent">The candidate event the near-misses observed.</param>
         /// <param name="depth">The near-miss events' causal depth.</param>
         /// <param name="unit">The containing unit, or null when the offer is unit-less.</param>
         /// <param name="lineage">The emitting branch's effect-origin lineage.</param>
         private void AppendNearMisses(
+            ExecutionContext context,
             EffectMatchBatch batch,
             TraceEventID? candidateEvent,
             int depth,
@@ -1685,6 +2400,7 @@ namespace Iterate.Domain.Execution
             {
                 EffectNearMiss nearMiss = batch.NearMisses[i];
                 _builder.AppendEvent(EffectChainEvent(
+                    context, 
                     EventFamilies.Qualification,
                     ExecutionEventSubtypes.EffectFailedToQualify,
                     candidateEvent,
@@ -1704,11 +2420,13 @@ namespace Iterate.Domain.Execution
         /// player-owned with the Structure's instance as host, at the header position, carrying the
         /// Structure context, payload-free. Structure walks are canonical, so the lineage is empty.
         /// </summary>
+        /// <param name="context">The per-execution context.</param>
         /// <param name="subtype">The STRUCTURE subtype token.</param>
         /// <param name="headerSlot">The Structure header slot.</param>
         /// <param name="structureContext">The context the event executes within.</param>
         /// <returns>The assembled evidence.</returns>
         private static EventEvidence StructureEvent(
+            ExecutionContext context,
             string subtype,
             SourceSlot headerSlot,
             StructureContext structureContext
@@ -1734,7 +2452,7 @@ namespace Iterate.Domain.Execution
                 structureContext,
                 null,
                 null,
-                SafetyStatus.Normal,
+                context.CurrentSafetyStatus,
                 null
             );
         }
@@ -1744,6 +2462,7 @@ namespace Iterate.Domain.Execution
         /// carrying the creator origin, the request identity and proposed depth together, the
         /// request's lineage and inherited context, and the locked host's ownership and position.
         /// </summary>
+        /// <param name="context">The per-execution context.</param>
         /// <param name="subtype">The ADDED_EXECUTION subtype token.</param>
         /// <param name="causingEvent">The causing event.</param>
         /// <param name="depth">The event's causal depth.</param>
@@ -1752,6 +2471,7 @@ namespace Iterate.Domain.Execution
         /// <param name="lockedSlot">The request's locked host slot.</param>
         /// <returns>The assembled evidence.</returns>
         private static EventEvidence AddedExecutionEvent(
+            ExecutionContext context,
             string subtype,
             TraceEventID causingEvent,
             int depth,
@@ -1780,7 +2500,7 @@ namespace Iterate.Domain.Execution
                 request.InheritedContext,
                 null,
                 null,
-                SafetyStatus.Normal,
+                context.CurrentSafetyStatus,
                 null
             );
         }
@@ -1791,6 +2511,7 @@ namespace Iterate.Domain.Execution
         /// position, carrying the skipped disposition with its explicit cause, the emitting branch's
         /// lineage, and the unit's Structure context, payload-free.
         /// </summary>
+        /// <param name="context">The per-execution context.</param>
         /// <param name="slot">The executing slot.</param>
         /// <param name="isCore">Whether the slot is Core-owned.</param>
         /// <param name="unit">The containing unit.</param>
@@ -1800,6 +2521,7 @@ namespace Iterate.Domain.Execution
         /// <param name="lineage">The emitting branch's effect-origin lineage.</param>
         /// <returns>The assembled evidence.</returns>
         private static EventEvidence SkipEvent(
+            ExecutionContext context,
             SourceSlot slot,
             bool isCore,
             RuntimeUnitID unit,
@@ -1828,7 +2550,7 @@ namespace Iterate.Domain.Execution
                 structureContext,
                 EventDisposition.Skipped,
                 skipCause,
-                SafetyStatus.Normal,
+                context.CurrentSafetyStatus,
                 null
             );
         }
@@ -1838,6 +2560,7 @@ namespace Iterate.Domain.Execution
         /// identity, and position — uncaused, at depth zero, in-unit, payload-free, carrying the
         /// emitting branch's lineage and the unit's Structure context when governed.
         /// </summary>
+        /// <param name="context">The per-execution context.</param>
         /// <param name="family">The event family token.</param>
         /// <param name="subtype">The event subtype token.</param>
         /// <param name="slot">The executing slot.</param>
@@ -1847,6 +2570,7 @@ namespace Iterate.Domain.Execution
         /// <param name="lineage">The emitting branch's effect-origin lineage.</param>
         /// <returns>The assembled evidence.</returns>
         private static EventEvidence UnitStreamEvent(
+            ExecutionContext context,
             string family,
             string subtype,
             SourceSlot slot,
@@ -1876,7 +2600,7 @@ namespace Iterate.Domain.Execution
                 structureContext,
                 null,
                 null,
-                SafetyStatus.Normal,
+                context.CurrentSafetyStatus,
                 null
             );
         }
@@ -1886,6 +2610,7 @@ namespace Iterate.Domain.Execution
         /// uncaused, at depth zero, in-unit, payload-free — carrying the unit's final disposition, the
         /// emitting branch's lineage, and its Structure context when governed.
         /// </summary>
+        /// <param name="context">The per-execution context.</param>
         /// <param name="slot">The executing slot.</param>
         /// <param name="isCore">Whether the slot is Core-owned.</param>
         /// <param name="unit">The containing unit.</param>
@@ -1894,6 +2619,7 @@ namespace Iterate.Domain.Execution
         /// <param name="lineage">The emitting branch's effect-origin lineage.</param>
         /// <returns>The assembled evidence.</returns>
         private static EventEvidence DispositionFinalizedEvent(
+            ExecutionContext context,
             SourceSlot slot,
             bool isCore,
             RuntimeUnitID unit,
@@ -1922,7 +2648,7 @@ namespace Iterate.Domain.Execution
                 structureContext,
                 disposition,
                 null,
-                SafetyStatus.Normal,
+                context.CurrentSafetyStatus,
                 null
             );
         }
@@ -1933,6 +2659,7 @@ namespace Iterate.Domain.Execution
         /// socketed host when one exists, and the emitting branch's lineage, payload-free, with no
         /// source origin of its own.
         /// </summary>
+        /// <param name="context">The per-execution context.</param>
         /// <param name="family">The event family token.</param>
         /// <param name="subtype">The event subtype token.</param>
         /// <param name="causingEvent">The observed candidate event.</param>
@@ -1945,6 +2672,7 @@ namespace Iterate.Domain.Execution
         /// <param name="lineage">The emitting branch's effect-origin lineage.</param>
         /// <returns>The assembled evidence.</returns>
         private static EventEvidence EffectChainEvent(
+            ExecutionContext context,
             string family,
             string subtype,
             TraceEventID? causingEvent,
@@ -1977,7 +2705,7 @@ namespace Iterate.Domain.Execution
                 null,
                 disposition,
                 dispositionReason,
-                SafetyStatus.Normal,
+                context.CurrentSafetyStatus,
                 null
             );
         }
@@ -1987,6 +2715,7 @@ namespace Iterate.Domain.Execution
         /// carrying the effect origin, the emitting branch's lineage, and the resolved payload but no
         /// ownership, host, or position — a reaction never appears source-originated.
         /// </summary>
+        /// <param name="context">The per-execution context.</param>
         /// <param name="evaluation">The resolved reaction evaluation.</param>
         /// <param name="causingEvent">The causing reaction event.</param>
         /// <param name="depth">The quantity event's causal depth.</param>
@@ -1995,6 +2724,7 @@ namespace Iterate.Domain.Execution
         /// <param name="lineage">The emitting branch's effect-origin lineage.</param>
         /// <returns>The assembled evidence.</returns>
         private static EventEvidence ReactionQuantityEvent(
+            ExecutionContext context,
             EvaluatedOperation evaluation,
             TraceEventID causingEvent,
             int depth,
@@ -2036,7 +2766,7 @@ namespace Iterate.Domain.Execution
                 null,
                 EventDisposition.Resolved,
                 null,
-                SafetyStatus.Normal,
+                context.CurrentSafetyStatus,
                 payload
             );
         }
@@ -2089,7 +2819,7 @@ namespace Iterate.Domain.Execution
                 null,
                 null,
                 null,
-                SafetyStatus.Normal,
+                context.CurrentSafetyStatus,
                 payload
             );
 
@@ -2103,6 +2833,7 @@ namespace Iterate.Domain.Execution
         /// modification, carrying the emitting branch's lineage and the unit's Structure context when
         /// governed.
         /// </summary>
+        /// <param name="context">The per-execution context.</param>
         /// <param name="slot">The executing slot.</param>
         /// <param name="isCore">Whether the slot is Core-owned.</param>
         /// <param name="evaluation">The resolved evaluation.</param>
@@ -2112,6 +2843,7 @@ namespace Iterate.Domain.Execution
         /// <param name="lineage">The emitting branch's effect-origin lineage.</param>
         /// <returns>The minted quantity-event identity.</returns>
         private TraceEventID AppendQuantityEvent(
+            ExecutionContext context,
             SourceSlot slot,
             bool isCore,
             EvaluatedOperation evaluation,
@@ -2154,7 +2886,7 @@ namespace Iterate.Domain.Execution
                 structureContext,
                 EventDisposition.Resolved,
                 null,
-                SafetyStatus.Normal,
+                context.CurrentSafetyStatus,
                 payload
             );
 
@@ -2205,19 +2937,168 @@ namespace Iterate.Domain.Execution
                     null,
                     null,
                     null,
-                    SafetyStatus.Normal,
+                    context.CurrentSafetyStatus,
                     null
                 );
 
                 _builder.AppendEvent(evidence);
             }
         }
+        
+        /// <summary>
+        /// Applies one counter request and appends its evidence: prior value, requested delta, the
+        /// declared bounds when one reduced the change, the final delta and value, the requesting
+        /// rule as origin, and the causing event. A request is never refused — a bound reduces it,
+        /// and a fully reduced request still resolves, with a zero final delta and its bound
+        /// evidence retained. Any threshold the change crosses is recorded after it finalizes.
+        /// </summary>
+        /// <param name="context">The per-execution context.</param>
+        /// <param name="effect">The effect whose counter request is being committed.</param>
+        /// <param name="causingEvent">The event that caused the change.</param>
+        /// <param name="depth">The change's causal depth.</param>
+        /// <param name="unit">The containing unit, or null outside one.</param>
+        /// <param name="lineage">The emitting branch's effect-origin lineage.</param>
+        private void CommitCounterRequest(
+            ExecutionContext context,
+            ActiveEffect effect,
+            TraceEventID causingEvent,
+            int depth,
+            RuntimeUnitID? unit,
+            EffectOriginLineage lineage
+        )
+        {
+            CounterRequestOperation request = effect.CounterRequest;
+            ProcessCounterCommit commit = context.Counter.Apply(request);
+
+            QuantityChangePayload payload = new QuantityChangePayload(
+                request.Counter,
+                QuantityCategory.ProcessCounter,
+                request.Delta < 0 ? QuantityOperationType.Decrement : QuantityOperationType.Increment,
+                request.Delta,
+                commit.PriorValue,
+                null,
+                Array.Empty<QuantityModifierEvidence>(),
+                commit.BoundApplied
+                    ? new QuantityBoundsEvidence(
+                        request.HasFloor ? request.Floor : (int?)null,
+                        request.HasCeiling ? request.Ceiling : (int?)null
+                    )
+                    : null,
+                commit.FinalDelta,
+                commit.FinalValue
+            );
+
+            TraceEventID changeEvent = _builder.AppendEvent(new EventEvidence(
+                EventFamilies.Quantity,
+                ExecutionEventSubtypes.QuantityChanged,
+                Array.Empty<string>(),
+                depth,
+                unit,
+                null,
+                causingEvent,
+                null,
+                null,
+                effect.Origin,
+                null,
+                null,
+                null,
+                lineage,
+                null,
+                0,
+                null,
+                EventDisposition.Resolved,
+                null,
+                context.CurrentSafetyStatus,
+                payload
+            ));
+
+            EmitCounterCrossings(context, commit, changeEvent, depth + 1, unit, lineage);
+        }
+
+        /// <summary>
+        /// Appends the threshold crossing a finalized counter change produces, if any: an entry when
+        /// the value reaches the rule's declared ceiling from below, an exit when it leaves that
+        /// ceiling. A change that does not move the value across the ceiling records nothing, so
+        /// repeated entries and exits stay individually reconstructable.
+        /// </summary>
+        /// <param name="context">The per-execution context.</param>
+        /// <param name="commit">The commit the counter produced.</param>
+        /// <param name="causingEvent">The counter-change event.</param>
+        /// <param name="depth">The crossing event's causal depth.</param>
+        /// <param name="unit">The containing unit, or null outside one.</param>
+        /// <param name="lineage">The emitting branch's effect-origin lineage.</param>
+        private void EmitCounterCrossings(
+            ExecutionContext context,
+            ProcessCounterCommit commit,
+            TraceEventID causingEvent,
+            int depth,
+            RuntimeUnitID? unit,
+            EffectOriginLineage lineage
+        )
+        {
+            int? ceiling = CounterCeiling(context);
+            if (ceiling == null)
+                return;
+
+            bool wasAtCeiling = commit.PriorValue >= ceiling.Value;
+            bool isAtCeiling = commit.FinalValue >= ceiling.Value;
+            if (wasAtCeiling == isAtCeiling)
+                return;
+
+            _builder.AppendEvent(new EventEvidence(
+                EventFamilies.Threshold,
+                isAtCeiling
+                    ? ExecutionEventSubtypes.ThresholdCrossedUpward
+                    : ExecutionEventSubtypes.ThresholdCrossedDownward,
+                Array.Empty<string>(),
+                depth,
+                unit,
+                null,
+                causingEvent,
+                null,
+                null,
+                null,
+                null,
+                null,
+                ThrottlingBand,
+                lineage,
+                null,
+                0,
+                null,
+                null,
+                null,
+                context.CurrentSafetyStatus,
+                null
+            ));
+        }
+
+        /// <summary>
+        /// Returns the ceiling the governing Process rule declares for its counter - the value whose
+        /// crossing is a threshold entry — or null when no request declares one.
+        /// </summary>
+        /// <param name="context">The per-execution context.</param>
+        /// <returns>The declared ceiling, or null.</returns>
+        private static int? CounterCeiling(ExecutionContext context)
+        {
+            IReadOnlyList<ActiveEffect> effects = context.Request.InterpretedEffects;
+            for (int i = 0; i < effects.Count; i++)
+            {
+                CounterRequestOperation request = effects[i].CounterRequest;
+                if (request != null && request.HasCeiling)
+                    return request.Ceiling;
+            }
+
+            return null;
+        }
 
         /// <summary>
         /// Appends a LIFECYCLE bookend event with the given subtype, outside any unit, causal depth zero.
+        /// The execution's safety status is read from the context, so an aborted execution's bookend
+        /// carries the abort rather than a stale normal status.
         /// </summary>
+        /// <param name="context">The per-execution context.</param>
         /// <param name="subtype">The lifecycle subtype token.</param>
-        private void AppendBookend(string subtype)
+        private void AppendBookend(ExecutionContext context, string subtype)
         {
             EventEvidence evidence = new EventEvidence(
                 EventFamilies.Lifecycle,
@@ -2239,7 +3120,7 @@ namespace Iterate.Domain.Execution
                 null,
                 null,
                 null,
-                SafetyStatus.Normal,
+                context.CurrentSafetyStatus,
                 null
             );
 
@@ -2268,6 +3149,214 @@ namespace Iterate.Domain.Execution
                 default:
                     throw new ArgumentException($"Unknown register {register}.", nameof(register));
             }
+        }
+        
+        /// <summary>
+        /// Emits one SAFETY_LIMIT_APPROACHED event for each limit that has just reached its ceiling
+        /// for the first time, and raises the execution's safety status on first contact. Reaching a
+        /// ceiling is permitted, so this records a legal diagnostic state and never changes
+        /// mechanics. The tallies report which limits sit at their ceilings; which of those are new
+        /// is remembered here.
+        /// </summary>
+        /// <param name="context">The per-execution context.</param>
+        /// <param name="unit">The containing unit, or null outside any unit.</param>
+        private void EmitApproachedLimits(ExecutionContext context, RuntimeUnitID? unit)
+        {
+            SafetyLimitFlags atCeiling = context.Tallies.LimitsAtCeiling;
+            SafetyLimitFlags newlyAtCeiling = atCeiling & ~context.ApproachedLimits;
+            if (newlyAtCeiling == SafetyLimitFlags.None)
+                return;
+
+            context.ApproachedLimits |= newlyAtCeiling;
+            if (context.CurrentSafetyStatus == SafetyStatus.Normal)
+                context.CurrentSafetyStatus = SafetyStatus.SafetyLimitApproached;
+
+            for (int bit = 1; bit <= (int)SafetyLimitFlags.TransformationsOnPendingOperation; bit <<= 1)
+            {
+                SafetyLimitFlags limit = (SafetyLimitFlags)bit;
+                if ((newlyAtCeiling & limit) == SafetyLimitFlags.None)
+                    continue;
+
+                _builder.AppendEvent(SafetyEvent(
+                    context,
+                    ExecutionEventSubtypes.SafetyLimitApproached,
+                    unit,
+                    null,
+                    new SafetyAbortPayload(
+                        SafetyAbortSignal.ComposeOccurrenceIdentity(
+                            EventFamilies.Safety,
+                            ExecutionEventSubtypes.SafetyLimitApproached,
+                            SafetyAbortSignal.LimitName(limit)),
+                        unit ?? default,
+                        LimitAtCeiling(limit)
+                    )
+                ));
+            }
+        }
+        
+        /// <summary>
+        /// Runs abort finalization inside the existing freeze seam: the attempted occurrence's
+        /// evidence, the branch termination it causes, the affected unit's closure when one is still
+        /// open, and the safety bookend in place of ordinary completion — then the same Finalize
+        /// call the ordinary path makes, with aborted statuses. Events completed before the breach
+        /// are preserved exactly as they were recorded; nothing is rolled back and no ancestor's
+        /// closure is rewritten.
+        /// </summary>
+        /// <param name="context">The per-execution context.</param>
+        /// <param name="signal">The unwind signal carrying the breach evidence.</param>
+        /// <returns>The frozen aborted record.</returns>
+        private ExecutionRecord FinalizeSafetyAbort(ExecutionContext context, SafetyAbortSignal signal)
+        {
+            context.CurrentSafetyStatus = SafetyStatus.SafetyAborted;
+
+            RuntimeUnitID? openUnit = InnermostOpenUnit(context);
+            TraceEventID reached = _builder.AppendEvent(SafetyEvent(
+                context,
+                ExecutionEventSubtypes.SafetyLimitReached,
+                openUnit,
+                null,
+                new SafetyAbortPayload(
+                    signal.OverLimitOccurrenceIdentity,
+                    signal.AffectedUnit,
+                    signal.BreachedLimits
+                )
+            ));
+
+            _builder.AppendEvent(SafetyEvent(
+                context,
+                ExecutionEventSubtypes.CausalBranchTerminated,
+                openUnit,
+                reached,
+                null
+            ));
+
+            if (openUnit != null)
+            {
+                _builder.CompleteUnit(openUnit.Value, new RuntimeUnitClosure(
+                    null,
+                    EventDisposition.Skipped,
+                    null,
+                    Array.Empty<string>(),
+                    UnitClosureStatus.SafetyIntervention,
+                    context.CurrentSafetyStatus
+                ));
+            }
+
+            AppendBookend(context, ExecutionEventSubtypes.ExecutionSafetyAborted);
+
+            ExecutionRegisters registers = context.Registers;
+            FinalExecutionState finalState = new FinalExecutionState(
+                (ValueAmount)registers.Value,
+                (SignalValue)registers.Signal,
+                (ScoreValue)registers.Score,
+                (ScoreValue)registers.Score
+            );
+
+            return _builder.Finalize(
+                ExecutionCompletionStatus.SafetyAborted,
+                SafetyStatus.SafetyAborted,
+                context.Tallies.ToCounts(),
+                finalState
+            );
+        }
+        
+        /// <summary>
+        /// The unit that is still open in the builder at the moment of a breach, or null when none
+        /// is. A frame outlives its unit's closure — a unit closes before its descendants drain — so
+        /// the innermost frame's unit is open only when the breach landed between its opening and
+        /// its closure, which happens at the reaction site alone. At most one unit is ever open.
+        /// </summary>
+        /// <param name="context">The per-execution context.</param>
+        /// <returns>The open unit, or null.</returns>
+        private RuntimeUnitID? InnermostOpenUnit(ExecutionContext context)
+        {
+            if (context.FrameStack.Count == 0)
+                return null;
+
+            RuntimeUnitID unit = context.FrameStack[^1].Unit;
+            return _builder.IsUnitOpen(unit) ? unit : (RuntimeUnitID?)null;
+        }
+        
+        /// <summary>
+        /// Builds one SAFETY-family event outside the ordinary evidence helpers: unit-scoped when a
+        /// unit is open and unit-less otherwise, disposition-free, at causal depth zero. Like every
+        /// other emission helper it reads the execution's safety status from the context rather than
+        /// receiving it.
+        /// </summary>
+        /// <param name="context">The per-execution context.</param>
+        /// <param name="subtype">The safety subtype token.</param>
+        /// <param name="unit">The containing unit, or null when none is open.</param>
+        /// <param name="causingEvent">The event that caused this one, or null.</param>
+        /// <param name="payload">The safety payload, or null.</param>
+        /// <returns>The composed evidence.</returns>
+        private EventEvidence SafetyEvent(
+            ExecutionContext context,
+            string subtype,
+            RuntimeUnitID? unit,
+            TraceEventID? causingEvent,
+            EventPayload payload
+        )
+        {
+            return new EventEvidence(
+                EventFamilies.Safety,
+                subtype,
+                Array.Empty<string>(),
+                0,
+                unit,
+                null,
+                causingEvent,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                EffectOriginLineage.Empty,
+                null,
+                0,
+                null,
+                null,
+                null,
+                context.CurrentSafetyStatus,
+                payload
+            );
+        }
+
+        /// <summary>
+        /// The single-element breached-limit list describing one registry row sitting exactly at its
+        /// ceiling. Reaching a ceiling is permitted, so the count equals the ceiling by construction:
+        /// every record path refuses the occurrence that would carry a count past it.
+        /// </summary>
+        /// <param name="limit">The registry row at its ceiling.</param>
+        /// <returns>The one-element list.</returns>
+        /// <exception cref="ArgumentException">Thrown when the value is not exactly one registry row.</exception>
+        private static IReadOnlyList<BreachedLimit> LimitAtCeiling(SafetyLimitFlags limit)
+        {
+            int ceiling;
+            switch (limit)
+            {
+                case SafetyLimitFlags.AddedExecutionLineageDepth:
+                    ceiling = SafetyCeilings.AddedExecutionLineageDepth;
+                    break;
+                case SafetyLimitFlags.AddedExecutionsPerActivation:
+                    ceiling = SafetyCeilings.AddedExecutionsPerActivation;
+                    break;
+                case SafetyLimitFlags.SourceExecutionUnits:
+                    ceiling = SafetyCeilings.SourceExecutionUnitsPerExecution;
+                    break;
+                case SafetyLimitFlags.EffectReactions:
+                    ceiling = SafetyCeilings.EffectReactionsPerExecution;
+                    break;
+                case SafetyLimitFlags.TransformationsOnPendingOperation:
+                    ceiling = SafetyCeilings.TransformationsPerPendingOperation;
+                    break;
+                default:
+                    throw new ArgumentException("An at-ceiling limit requires exactly one registry row.", nameof(limit));
+            }
+
+            List<BreachedLimit> atCeiling = new List<BreachedLimit>(1);
+            atCeiling.Add(new BreachedLimit(SafetyAbortSignal.LimitName(limit), ceiling, ceiling));
+            return atCeiling;
         }
 
         /// <summary>
@@ -2322,12 +3411,48 @@ namespace Iterate.Domain.Execution
             public RuntimeAdjacencyTracker Adjacency { get; }
 
             /// <summary>
+            /// The execution's running safety status. It begins Normal, rises once to
+            /// SafetyLimitApproached at first exact ceiling contact, and is set to SafetyAborted by
+            /// abort finalization before the first abort event is emitted. Every evidence-emission
+            /// helper reads it here rather than receiving it, so no emission site can stamp a stale
+            /// literal.
+            /// </summary>
+            public SafetyStatus CurrentSafetyStatus { get; set; }
+
+            /// <summary>
+            /// The limits already announced as approached, so first contact emits exactly one event per
+            /// limit. First-contact memory lives here rather than in the tallies, which stay pure
+            /// counters.
+            /// </summary>
+            public SafetyLimitFlags ApproachedLimits { get; set; }
+            
+            /// <summary>
             /// The greatest one-based position an occupied player-controlled slot holds — an
             /// Instruction, a contained Instruction, or a Structure header; empty positions never
             /// count — or null when the arrangement holds none. Hoisted once per execution; distinct
             /// from the boundary-placement index, which is zero-based and header-standing.
             /// </summary>
             public SourcePosition? FinalOccupiedPlayerPosition { get; }
+            
+            /// <summary>
+            /// The governing Process rule's counter, initialized to zero. Constructed regardless of
+            /// configuration; it is only ever read through <see cref="CounterSnapshot"/>, which
+            /// returns null when the Process declares no rule.
+            /// </summary>
+            public ProcessCounterState Counter { get; }
+
+            /// <summary>
+            /// Whether a Process rule governs this execution.
+            /// </summary>
+            public bool HasProcessRule { get; }
+
+            /// <summary>
+            /// The counter value to offer at an operation boundary, or null when no Process rule
+            /// governs the execution — which leaves every counter effect structurally ineligible
+            /// rather than near-missing.
+            /// </summary>
+            /// <returns>The current counter value, or null.</returns>
+            public int? CounterSnapshot() => HasProcessRule ? Counter.Value : (int?)null;
 
             public ExecutionContext(ExecutionRequest request)
             {
@@ -2339,7 +3464,11 @@ namespace Iterate.Domain.Execution
                 Engine = new EffectEngine(request.InterpretedEffects, Ledger);
                 PendingRequests = new PendingAddedExecutionTracker();
                 Adjacency = new RuntimeAdjacencyTracker();
+                CurrentSafetyStatus = SafetyStatus.Normal;
+                ApproachedLimits = SafetyLimitFlags.None;
                 FinalOccupiedPlayerPosition = ComputeFinalOccupiedPlayerPosition(request.Source.Arrangement.Slots);
+                Counter = new ProcessCounterState();
+                HasProcessRule = request.Configuration.ProcessRule != null;
             }
 
             /// <summary>
@@ -2353,9 +3482,7 @@ namespace Iterate.Domain.Execution
                 for (int i = 0; i < slots.Count; i++)
                 {
                     SourceSlotKind kind = slots[i].Kind;
-                    if (kind == SourceSlotKind.Instruction
-                        || kind == SourceSlotKind.ContainedInstruction
-                        || kind == SourceSlotKind.StructureHeader)
+                    if (kind is SourceSlotKind.Instruction or SourceSlotKind.ContainedInstruction or SourceSlotKind.StructureHeader)
                     {
                         final = slots[i].Position;
                     }

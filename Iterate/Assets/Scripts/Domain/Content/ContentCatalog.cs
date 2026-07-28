@@ -13,16 +13,12 @@ namespace Iterate.Domain.Content
     public sealed class ContentCatalog
     {
         private readonly IReadOnlyDictionary<InstructionID, InstructionDefinition> _instructionsByID;
-
         private readonly IReadOnlyDictionary<StructureID, StructureDefinition> _structuresByID;
-
         private readonly IReadOnlyDictionary<DirectiveID, DirectiveDefinition> _directivesByID;
-
         private readonly IReadOnlyDictionary<DependencyID, DependencyDefinition> _dependenciesByID;
-
         private readonly IReadOnlyDictionary<PatchID, PatchDefinition> _patchesByID;
-
         private readonly IReadOnlyDictionary<UtilityID, UtilityDefinition> _utilitiesByID;
+        private readonly IReadOnlyDictionary<ProcessRuleID, ProcessRuleDefinition> _processRulesByID;
 
         /// <summary>
         /// The catalog revision identity string.
@@ -63,6 +59,12 @@ namespace Iterate.Domain.Content
         /// The Utility definitions in authored order.
         /// </summary>
         public IReadOnlyList<UtilityDefinition> Utilities { get; }
+        
+        /// <summary>
+        /// The Process-rule definitions in authored order.
+        /// </summary>
+        public IReadOnlyList<ProcessRuleDefinition> ProcessRules { get; }
+
 
         /// <summary>
         /// The total number of definitions across every category.
@@ -77,7 +79,8 @@ namespace Iterate.Domain.Content
             IReadOnlyList<DirectiveDefinition> directives,
             IReadOnlyList<DependencyDefinition> dependencies,
             IReadOnlyList<PatchDefinition> patches,
-            IReadOnlyList<UtilityDefinition> utilities
+            IReadOnlyList<UtilityDefinition> utilities,
+            IReadOnlyList<ProcessRuleDefinition> processRules
         )
         {
             Revision = revision ?? throw new ArgumentNullException(nameof(revision));
@@ -88,6 +91,7 @@ namespace Iterate.Domain.Content
             Dependencies = dependencies ?? throw new ArgumentNullException(nameof(dependencies));
             Patches = patches ?? throw new ArgumentNullException(nameof(patches));
             Utilities = utilities ?? throw new ArgumentNullException(nameof(utilities));
+            ProcessRules = processRules ?? throw new ArgumentNullException(nameof(processRules));
 
             _instructionsByID = BuildIndex(instructions, definition => definition.ID);
             _structuresByID = BuildIndex(structures, definition => definition.ID);
@@ -95,13 +99,15 @@ namespace Iterate.Domain.Content
             _dependenciesByID = BuildIndex(dependencies, definition => definition.ID);
             _patchesByID = BuildIndex(patches, definition => definition.ID);
             _utilitiesByID = BuildIndex(utilities, definition => definition.ID);
+            _processRulesByID = BuildIndex(processRules, definition => definition.ID);
 
             DefinitionCount = instructions.Count
-                + structures.Count
-                + directives.Count
-                + dependencies.Count
-                + patches.Count
-                + utilities.Count;
+                              + structures.Count
+                              + directives.Count
+                              + dependencies.Count
+                              + patches.Count
+                              + utilities.Count
+                              + processRules.Count;
         }
 
         /// <summary>
@@ -168,6 +174,17 @@ namespace Iterate.Domain.Content
         public bool TryGetUtility(UtilityID id, out UtilityDefinition definition)
         {
             return _utilitiesByID.TryGetValue(id, out definition);
+        }
+        
+        /// <summary>
+        /// Looks up a Process-rule definition by ID.
+        /// </summary>
+        /// <param name="id">The Process-rule ID to look up.</param>
+        /// <param name="definition">The found definition, or null when absent.</param>
+        /// <returns>True when the ID resolves to a definition.</returns>
+        public bool TryGetProcessRule(ProcessRuleID id, out ProcessRuleDefinition definition)
+        {
+            return _processRulesByID.TryGetValue(id, out definition);
         }
 
         /// <summary>

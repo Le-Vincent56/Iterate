@@ -1,7 +1,6 @@
 using NUnit.Framework;
 using Iterate.Domain.Execution;
 using Iterate.Domain.Trace;
-using Iterate.Domain.Values;
 
 namespace Iterate.Domain.Execution.Tests
 {
@@ -30,10 +29,8 @@ namespace Iterate.Domain.Execution.Tests
             RuntimeAdjacencyTracker tracker = new RuntimeAdjacencyTracker();
 
             tracker.RecordCompletion(
-                new RuntimeUnitID(1),
                 EventDisposition.Resolved,
                 OwnershipClassification.PlayerOwned,
-                new InstanceID(10),
                 true);
 
             Assert.IsTrue(tracker.CurrentPredecessorQualifies);
@@ -45,16 +42,12 @@ namespace Iterate.Domain.Execution.Tests
             RuntimeAdjacencyTracker tracker = new RuntimeAdjacencyTracker();
 
             tracker.RecordCompletion(
-                new RuntimeUnitID(1),
                 EventDisposition.Resolved,
                 OwnershipClassification.PlayerOwned,
-                new InstanceID(10),
                 true);
             tracker.RecordCompletion(
-                new RuntimeUnitID(2),
                 EventDisposition.Resolved,
                 OwnershipClassification.PlayerOwned,
-                new InstanceID(11),
                 false);
 
             Assert.IsFalse(tracker.CurrentPredecessorQualifies);
@@ -66,16 +59,12 @@ namespace Iterate.Domain.Execution.Tests
             RuntimeAdjacencyTracker tracker = new RuntimeAdjacencyTracker();
 
             tracker.RecordCompletion(
-                new RuntimeUnitID(1),
                 EventDisposition.Resolved,
                 OwnershipClassification.PlayerOwned,
-                new InstanceID(10),
                 true);
             tracker.RecordCompletion(
-                new RuntimeUnitID(2),
                 EventDisposition.Resolved,
                 OwnershipClassification.CoreOwned,
-                null,
                 true);
 
             Assert.IsFalse(tracker.CurrentPredecessorQualifies);
@@ -87,10 +76,8 @@ namespace Iterate.Domain.Execution.Tests
             RuntimeAdjacencyTracker tracker = new RuntimeAdjacencyTracker();
 
             tracker.RecordCompletion(
-                new RuntimeUnitID(1),
                 EventDisposition.Rescued,
                 OwnershipClassification.PlayerOwned,
-                new InstanceID(10),
                 true);
 
             Assert.IsTrue(tracker.CurrentPredecessorQualifies);
@@ -102,16 +89,12 @@ namespace Iterate.Domain.Execution.Tests
             RuntimeAdjacencyTracker tracker = new RuntimeAdjacencyTracker();
 
             tracker.RecordCompletion(
-                new RuntimeUnitID(1),
                 EventDisposition.Resolved,
                 OwnershipClassification.PlayerOwned,
-                new InstanceID(10),
                 true);
             tracker.RecordCompletion(
-                new RuntimeUnitID(2),
                 EventDisposition.Skipped,
                 OwnershipClassification.PlayerOwned,
-                new InstanceID(11),
                 false);
 
             Assert.IsTrue(tracker.CurrentPredecessorQualifies);
@@ -123,16 +106,12 @@ namespace Iterate.Domain.Execution.Tests
             RuntimeAdjacencyTracker tracker = new RuntimeAdjacencyTracker();
 
             tracker.RecordCompletion(
-                new RuntimeUnitID(1),
                 EventDisposition.Resolved,
                 OwnershipClassification.PlayerOwned,
-                new InstanceID(10),
                 true);
             tracker.RecordCompletion(
-                new RuntimeUnitID(2),
                 EventDisposition.Prevented,
                 OwnershipClassification.PlayerOwned,
-                new InstanceID(11),
                 false);
 
             Assert.IsTrue(tracker.CurrentPredecessorQualifies);
@@ -144,16 +123,12 @@ namespace Iterate.Domain.Execution.Tests
             RuntimeAdjacencyTracker tracker = new RuntimeAdjacencyTracker();
 
             tracker.RecordCompletion(
-                new RuntimeUnitID(1),
                 EventDisposition.Resolved,
                 OwnershipClassification.PlayerOwned,
-                new InstanceID(10),
                 true);
             tracker.RecordCompletion(
-                new RuntimeUnitID(2),
                 EventDisposition.Cancelled,
                 OwnershipClassification.PlayerOwned,
-                new InstanceID(11),
                 false);
 
             Assert.IsTrue(tracker.CurrentPredecessorQualifies);
@@ -165,16 +140,12 @@ namespace Iterate.Domain.Execution.Tests
             RuntimeAdjacencyTracker tracker = new RuntimeAdjacencyTracker();
 
             tracker.RecordCompletion(
-                new RuntimeUnitID(1),
                 EventDisposition.Resolved,
                 OwnershipClassification.PlayerOwned,
-                new InstanceID(10),
                 true);
             tracker.RecordCompletion(
-                new RuntimeUnitID(2),
                 EventDisposition.FailedToQualify,
                 OwnershipClassification.PlayerOwned,
-                new InstanceID(11),
                 false);
 
             Assert.IsTrue(tracker.CurrentPredecessorQualifies);
@@ -186,10 +157,8 @@ namespace Iterate.Domain.Execution.Tests
             RuntimeAdjacencyTracker tracker = new RuntimeAdjacencyTracker();
 
             tracker.RecordCompletion(
-                new RuntimeUnitID(1),
                 EventDisposition.Skipped,
                 OwnershipClassification.PlayerOwned,
-                new InstanceID(10),
                 false);
 
             Assert.IsFalse(tracker.CurrentPredecessorQualifies);
@@ -201,16 +170,12 @@ namespace Iterate.Domain.Execution.Tests
             RuntimeAdjacencyTracker tracker = new RuntimeAdjacencyTracker();
 
             tracker.RecordCompletion(
-                new RuntimeUnitID(1),
                 EventDisposition.Resolved,
                 OwnershipClassification.CoreOwned,
-                null,
                 true);
             tracker.RecordCompletion(
-                new RuntimeUnitID(2),
                 EventDisposition.Resolved,
                 OwnershipClassification.PlayerOwned,
-                new InstanceID(11),
                 true);
 
             Assert.IsTrue(tracker.CurrentPredecessorQualifies);
@@ -222,22 +187,16 @@ namespace Iterate.Domain.Execution.Tests
             RuntimeAdjacencyTracker tracker = new RuntimeAdjacencyTracker();
 
             tracker.RecordCompletion(
-                new RuntimeUnitID(1),
                 EventDisposition.Resolved,
                 OwnershipClassification.PlayerOwned,
-                new InstanceID(10),
                 true);
             tracker.RecordCompletion(
-                new RuntimeUnitID(2),
                 EventDisposition.Skipped,
                 OwnershipClassification.PlayerOwned,
-                new InstanceID(11),
                 false);
             tracker.RecordCompletion(
-                new RuntimeUnitID(3),
                 EventDisposition.Skipped,
                 OwnershipClassification.PlayerOwned,
-                new InstanceID(12),
                 false);
 
             Assert.IsTrue(tracker.CurrentPredecessorQualifies);

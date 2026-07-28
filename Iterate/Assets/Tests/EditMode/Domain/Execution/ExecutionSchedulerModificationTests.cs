@@ -127,7 +127,12 @@ namespace Iterate.Domain.Execution.Tests
             }
 
             Assert.AreEqual(1, modified);
-            Assert.AreEqual(new SafetyCounts(0, 0, 5, 0, 1), record.SafetyCounts);
+
+            // The modification band no longer advances the transformation count: an operand
+            // modification inside the approved operation-modification band is not a transformation
+            // unless it changes the operation's governed disposition or identity (CAB-SAFE-098).
+            // The PRIMARY_OPERATION_MODIFIED event still records the modification itself.
+            Assert.AreEqual(new SafetyCounts(0, 0, 5, 0, 0), record.SafetyCounts);
         }
 
         [Test]

@@ -29,6 +29,7 @@ namespace Iterate.Application.Content
             List<DependencyDefinition> dependencies = new();
             List<PatchDefinition> patches = new();
             List<UtilityDefinition> utilities = new();
+            List<ProcessRuleDefinition> processRules = new();
 
             for (int index = 0; index < manifest.Files.Count; index++)
             {
@@ -65,6 +66,11 @@ namespace Iterate.Application.Content
                         case CatalogFileKind.Utility:
                             FreezeUtilities(rows, utilities);
                             break;
+                        
+                                                
+                        case CatalogFileKind.ProcessRule:
+                            FreezeProcessRules(rows, processRules);
+                            break;
                     }
                 }
                 catch (CatalogLoadException)
@@ -88,7 +94,8 @@ namespace Iterate.Application.Content
                 directives,
                 dependencies,
                 patches,
-                utilities
+                utilities,
+                processRules
             );
         }
 
@@ -251,6 +258,28 @@ namespace Iterate.Application.Content
                 JsonObject row = (JsonObject)rows.Items[index];
                 target.Add(new UtilityDefinition(
                     new UtilityID(ReadString(row, "id")),
+                    ReadString(row, "rulesText"),
+                    ReadString(row, "displayName"),
+                    ParseEnum<ContentCategory>(ReadString(row, "category")),
+                    ParseEnum<Rarity>(ReadString(row, "rarity")),
+                    ReadStringList(ReadArray(row, "tags")),
+                    FreezeEffects(row)
+                ));
+            }
+        }
+        
+        /// <summary>
+        /// Freezes each Process-rule row into the target list.
+        /// </summary>
+        /// <param name="rows">The Process-rule rows.</param>
+        /// <param name="target">The list to append the frozen Process rules to.</param>
+        private static void FreezeProcessRules(JsonArray rows, List<ProcessRuleDefinition> target)
+        {
+            for (int index = 0; index < rows.Items.Count; index++)
+            {
+                JsonObject row = (JsonObject)rows.Items[index];
+                target.Add(new ProcessRuleDefinition(
+                    new ProcessRuleID(ReadString(row, "id")),
                     ReadString(row, "rulesText"),
                     ReadString(row, "displayName"),
                     ParseEnum<ContentCategory>(ReadString(row, "category")),

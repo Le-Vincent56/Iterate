@@ -61,7 +61,7 @@ namespace Iterate.Domain.Execution
         /// validation and engine registration share one result. An uninterpretable pragma, installed
         /// Dependency, or attached Patch fails the request here.
         /// </summary>
-        public IReadOnlyList<ActiveEffect> InterpretedEffects { get; } = InterpretAll(Source, InstalledDependencies);
+        public IReadOnlyList<ActiveEffect> InterpretedEffects { get; } = InterpretAll(Source, InstalledDependencies, Configuration);
 
         /// <summary>
         /// Validates that the source is present. The arrangement's own construction rules already
@@ -138,16 +138,20 @@ namespace Iterate.Domain.Execution
         /// <summary>
         /// Interprets the compilation's active Directive pragmas in activation order, every installed
         /// Dependency's EXECUTION effects in installation order, then every arrangement slot's attached
-        /// Patch in position order, rejecting the request before any state is touched when one is
-        /// uninterpretable.
+        /// Patch in position order, and finally the configured Process rule's effects, rejecting the
+        /// request before any state is touched when one is uninterpretable. The Process rule is
+        /// appended last; ordering across content categories carries no precedence, and the rule's
+        /// effects act at moments no other category occupies.
         /// </summary>
         /// <param name="source">The locked compiled source carrying the pragmas and arrangement.</param>
         /// <param name="installedDependencies">The installed Dependency instances.</param>
+        /// <param name="configuration">The Process configuration; its Process rule is interpreted when present.</param>
         /// <returns>The interpreted effects; empty when nothing is declared.</returns>
         /// <exception cref="ArgumentException">Thrown when a component is null or content is uninterpretable.</exception>
         private static IReadOnlyList<ActiveEffect> InterpretAll(
             CompiledSource source,
-            IReadOnlyList<DependencyInstance> installedDependencies
+            IReadOnlyList<DependencyInstance> installedDependencies,
+            ProcessExecutionConfiguration configuration
         )
         {
             RequireExecutableSource(source);
@@ -184,6 +188,15 @@ namespace Iterate.Domain.Execution
                 for (int j = 0; j < interpreted.Count; j++)
                 {
                     effects.Add(interpreted[j]);
+                }
+            }
+            
+            if (configuration?.ProcessRule != null)
+            {
+                IReadOnlyList<ActiveEffect> ruleEffects = EffectInterpreter.Interpret(configuration.ProcessRule);
+                for (int i = 0; i < ruleEffects.Count; i++)
+                {
+                    effects.Add(ruleEffects[i]);
                 }
             }
 

@@ -36,6 +36,12 @@ namespace Iterate.Domain.Execution
         /// <summary>
         /// Updates the tracked target its selection rule resolves, without writing a register.
         /// </summary>
-        TargetLock
+        TargetLock,
+        
+        /// <summary>
+        /// Requests a Process-counter change at the pre-operation intervention band, or intervenes
+        /// when the counter already sits at its declared ceiling.
+        /// </summary>
+        CounterIntervention
     }
 }

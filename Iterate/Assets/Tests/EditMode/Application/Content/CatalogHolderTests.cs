@@ -43,7 +43,8 @@ namespace Iterate.Application.Content.Tests
                 new List<DirectiveDefinition>(),
                 new List<DependencyDefinition>(),
                 new List<PatchDefinition>(),
-                new List<UtilityDefinition>()
+                new List<UtilityDefinition>(),
+                new List<ProcessRuleDefinition>()
             );
         }
 

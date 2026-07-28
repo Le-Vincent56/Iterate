@@ -107,6 +107,21 @@ namespace Iterate.Domain.Execution
 
             return InterpretDeclared(directive.InstanceID, directive.Definition.ID.Value, directive.Definition.Effects, null);
         }
+        
+        /// <summary>
+        /// Interprets every EXECUTION-domain effect a Process rule declares. The effect origin is the
+        /// rule instance, so a rule's effects are attributable exactly like any other content's.
+        /// </summary>
+        /// <param name="rule">The Process-rule instance.</param>
+        /// <returns>The interpreted effects.</returns>
+        /// <exception cref="ArgumentException">Thrown when the rule is null or an effect is uninterpretable.</exception>
+        public static IReadOnlyList<ActiveEffect> Interpret(ProcessRuleInstance rule)
+        {
+            if (rule == null)
+                throw new ArgumentException("Interpretation requires a Process-rule instance.", nameof(rule));
+
+            return InterpretDeclared(rule.InstanceID, rule.Definition.ID.Value, rule.Definition.Effects, null);
+        }
 
         /// <summary>
         /// Interprets every EXECUTION-domain effect the host's attached Patch declares, socketing each
@@ -190,6 +205,14 @@ namespace Iterate.Domain.Execution
 
             if (trigger.EventFamily == EventFamily.Operation && subtype == ExecutionEventSubtypes.PrimaryOperationPending)
             {
+                if (effect.Operation is CounterRequestOperation counterRequest)
+                {
+                    RequireUnsocketed(definitionID, socketed, "a Process-counter intervention");
+                    RequireBand(definitionID, trigger, PreOperationBand);
+                    RequireQuantityVocabularyQualifiers(definitionID, trigger, socketed);
+                    return ActiveEffect.ForCounterIntervention(origin, definitionID, effectIndex, trigger, counterRequest, frequency);
+                }
+                
                 RequireBand(definitionID, trigger, ModificationBand);
                 RequireQuantityVocabularyQualifiers(definitionID, trigger, socketed);
                 if (socketed)
@@ -234,6 +257,12 @@ namespace Iterate.Domain.Execution
                     return ActiveEffect.ForAddedExecution(origin, definitionID, effectIndex, trigger, request, frequency);
                 }
 
+                if (effect.Operation is CounterRequestOperation coolingRequest)
+                {
+                    RequireUnsocketed(definitionID, socketed, "a Process-counter reaction");
+                    return ActiveEffect.ForCounterReaction(origin, definitionID, effectIndex, trigger, coolingRequest, frequency);
+                }
+                
                 if (socketed)
                     RequireHostInstructionQualifier(definitionID, trigger);
 
@@ -404,8 +433,7 @@ namespace Iterate.Domain.Execution
                 switch (qualifier.Kind)
                 {
                     case "OPERATION_CLASS":
-                        known = qualifier.Value is "FIXED_ADDITION" or "PLAYER_INSTRUCTION" or "VALUE_ADD_SIGNAL"
-                            || (socketed && qualifier.Value == HostInstructionQualifier);
+                        known = qualifier.Value is "FIXED_ADDITION" or "PLAYER_INSTRUCTION" or "VALUE_ADD_SIGNAL" or "MULTIPLY" || (socketed && qualifier.Value == HostInstructionQualifier);
                         break;
 
                     case "REGISTER":

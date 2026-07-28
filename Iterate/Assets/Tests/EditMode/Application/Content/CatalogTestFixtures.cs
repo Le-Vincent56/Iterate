@@ -212,6 +212,41 @@ namespace Iterate.Application.Content.Tests
         ]";
 
         /// <summary>
+        /// A valid Process-rule file: the THERMAL THROTTLE two-entry pair — the pre-operation Heat
+        /// gain clamped to its ceiling, and the post-Score cooling request floored at zero.
+        /// </summary>
+        public const string ValidProcessRulesFile = @"[
+            {
+                ""id"": ""WB-PRC-001"",
+                ""rulesText"": ""Multiplication raises Heat; Score increases cool it."",
+                ""displayName"": ""THERMAL THROTTLE"",
+                ""category"": ""PROCESS_RULE"",
+                ""rarity"": ""STARTER"",
+                ""tags"": [""ProcessRule"", ""Heat""],
+                ""effects"": [
+                    {
+                        ""phaseDomain"": ""EXECUTION"",
+                        ""trigger"": { ""eventFamily"": ""OPERATION"", ""eventSubtype"": ""PRIMARY_OPERATION_PENDING"", ""qualifiers"": [ { ""kind"": ""OPERATION_CLASS"", ""value"": ""MULTIPLY"" } ], ""timing"": { ""kind"": ""BAND"", ""name"": ""QUALIFICATION_AND_PRE_OPERATION_INTERVENTION"" } },
+                        ""operation"": { ""kind"": ""COUNTER_REQUEST"", ""counter"": ""HEAT"", ""delta"": 1, ""floor"": 0, ""ceiling"": 3, ""hasFloor"": true, ""hasCeiling"": true },
+                        ""targeting"": { ""kind"": ""NO_TARGET"", ""argument"": """" },
+                        ""timing"": { ""kind"": ""BAND"", ""name"": ""QUALIFICATION_AND_PRE_OPERATION_INTERVENTION"" },
+                        ""stacking"": ""INDEPENDENT_RESOLUTION"",
+                        ""frequency"": { ""allowance"": ""EVERY_QUALIFYING_EVENT"", ""scope"": ""DECLARED_SCOPE"" }
+                    },
+                    {
+                        ""phaseDomain"": ""EXECUTION"",
+                        ""trigger"": { ""eventFamily"": ""QUANTITY"", ""eventSubtype"": ""QUANTITY_CHANGED"", ""qualifiers"": [ { ""kind"": ""REGISTER"", ""value"": ""SCORE"" }, { ""kind"": ""ACTUAL_DELTA_SIGN"", ""value"": ""POSITIVE"" } ], ""timing"": { ""kind"": ""BAND"", ""name"": ""IMMEDIATE_RESULT_REACTION"" } },
+                        ""operation"": { ""kind"": ""COUNTER_REQUEST"", ""counter"": ""HEAT"", ""delta"": -1, ""floor"": 0, ""ceiling"": 0, ""hasFloor"": true, ""hasCeiling"": false },
+                        ""targeting"": { ""kind"": ""NO_TARGET"", ""argument"": """" },
+                        ""timing"": { ""kind"": ""BAND"", ""name"": ""IMMEDIATE_RESULT_REACTION"" },
+                        ""stacking"": ""INDEPENDENT_RESOLUTION"",
+                        ""frequency"": { ""allowance"": ""EVERY_QUALIFYING_EVENT"", ""scope"": ""DECLARED_SCOPE"" }
+                    }
+                ]
+            }
+        ]";
+
+        /// <summary>
         /// The 30-row parameter register with every required WB-PAR ID, ratios fractional and the rest
         /// integral.
         /// </summary>

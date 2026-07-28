@@ -44,6 +44,7 @@ namespace Iterate.Domain.Execution
         private readonly Dictionary<string, InstanceID> _selectedHosts;
         private readonly Dictionary<InstanceID, TargetLock> _targetLocks;
         private bool _observationWindowClosed;
+        private bool _coolingWindowClosed;
 
         /// <summary>
         /// The registered effects, sorted by owning instance identity then effect index.
@@ -81,7 +82,44 @@ namespace Iterate.Domain.Execution
             if (occurrence == null)
                 throw new ArgumentException("Matching requires an occurrence.", nameof(occurrence));
 
-            return MatchOperation(occurrence, ActiveEffectKind.Modification, ExecutionEventSubtypes.PrimaryOperationPending, true);
+            List<ActiveEffect> interventions = null;
+            List<ActiveEffect> deferredGains = null;
+            if (occurrence.CounterSnapshot.HasValue)
+            {
+                for (int i = 0; i < _registered.Count; i++)
+                {
+                    ActiveEffect effect = _registered[i];
+                    if (effect.Kind != ActiveEffectKind.CounterIntervention
+                        || effect.Trigger.EventSubtype != ExecutionEventSubtypes.PrimaryOperationPending)
+                        continue;
+
+                    if (!_ledger.IsEligible(effect, occurrence.Unit))
+                        continue;
+
+                    if (FirstFailedOperationQualifier(effect, occurrence) != null)
+                        continue;
+
+                    if (effect.CounterRequest.HasCeiling && occurrence.CounterSnapshot.Value >= effect.CounterRequest.Ceiling)
+                    {
+                        interventions ??= new List<ActiveEffect>();
+                        interventions.Add(effect);
+                    }
+                    else
+                    {
+                        deferredGains ??= new List<ActiveEffect>();
+                        deferredGains.Add(effect);
+                    }
+                }
+            }
+
+            return MatchOperation(
+                occurrence,
+                ActiveEffectKind.Modification,
+                ExecutionEventSubtypes.PrimaryOperationPending,
+                true,
+                interventions,
+                deferredGains
+            );
         }
 
         /// <summary>
@@ -126,6 +164,9 @@ namespace Iterate.Domain.Execution
                     continue;
 
                 if (effect.Trigger.EventSubtype != ExecutionEventSubtypes.QuantityChanged)
+                    continue;
+                
+                if (effect.CounterRequest != null && _coolingWindowClosed)
                     continue;
 
                 if (isCreator && !occurrence.FromPrimaryOperation)
@@ -444,6 +485,12 @@ namespace Iterate.Domain.Execution
         /// execution-scoped state.
         /// </summary>
         public void CloseObservationWindow() => _observationWindowClosed = true;
+        
+        /// <summary>
+        /// Closes the cooling window: after this, a counter-carrying reaction is no longer a
+        /// candidate and stays silent rather than recording a near-miss.
+        /// </summary>
+        public void CloseCoolingWindow() => _coolingWindowClosed = true;
 
         /// <summary>
         /// Drops all registered state, recorded selected hosts, and target locks — the
@@ -455,6 +502,7 @@ namespace Iterate.Domain.Execution
             _selectedHosts.Clear();
             _targetLocks.Clear();
             _observationWindowClosed = false;
+            _coolingWindowClosed = false;
         }
 
         /// <summary>
@@ -463,17 +511,23 @@ namespace Iterate.Domain.Execution
         /// modification band, a ledger-ineligible selected-host effect whose recorded host equals the
         /// occurrence's host re-applies when its qualifiers pass and stays silent when they fail, and
         /// qualified modifications order operand adjustments before quantity-change modifications.
+        /// Counter candidates are resolved by the caller, which alone reads the occurrence's counter
+        /// snapshot; this method passes them through unchanged and never populates them itself.
         /// </summary>
         /// <param name="occurrence">The operation occurrence.</param>
         /// <param name="wantKind">The participation kind this boundary offers.</param>
         /// <param name="subtype">The trigger subtype this boundary offers.</param>
         /// <param name="modificationOrder">Whether qualified effects order operand adjustments first.</param>
+        /// <param name="counterInterventions">The caller's at-ceiling counter candidates, or null when none.</param>
+        /// <param name="deferredCounterGains">The caller's below-ceiling counter candidates, or null when none.</param>
         /// <returns>The captured batch, or the shared empty batch.</returns>
         private EffectMatchBatch MatchOperation(
             OperationOccurrence occurrence,
             ActiveEffectKind wantKind,
             string subtype,
-            bool modificationOrder
+            bool modificationOrder,
+            List<ActiveEffect> counterInterventions = null,
+            List<ActiveEffect> deferredCounterGains = null
         )
         {
             List<ActiveEffect> qualified = null;
@@ -519,7 +573,15 @@ namespace Iterate.Domain.Execution
                     InsertQualified(qualified, effect);
             }
 
-            return ToBatch(qualified, nearMisses, reapplications, null, null);
+            return ToBatch(
+                qualified,
+                nearMisses,
+                reapplications,
+                null,
+                null,
+                counterInterventions,
+                deferredCounterGains
+            );
         }
 
         /// <summary>
@@ -689,6 +751,9 @@ namespace Iterate.Domain.Execution
 
                         case "PLAYER_INSTRUCTION":
                             return occurrence.Ownership == OwnershipClassification.PlayerOwned;
+                        
+                        case "MULTIPLY":
+                            return occurrence.Operator == CoreLineOperator.Multiply;
 
                         default:
                             return false;
@@ -960,23 +1025,29 @@ namespace Iterate.Domain.Execution
 
         /// <summary>
         /// Wraps the collected lists in a batch, or returns the shared empty batch when nothing
-        /// qualified, near-missed, re-applied, created, or updated a lock.
+        /// qualified, near-missed, re-applied, created, updated a lock, or produced a counter
+        /// candidate.
         /// </summary>
         /// <param name="qualified">The qualified effects, or null.</param>
         /// <param name="nearMisses">The near-misses, or null.</param>
         /// <param name="reapplications">The selected-host re-applications, or null.</param>
         /// <param name="creators">The qualified added-execution creators, or null.</param>
         /// <param name="targetLockUpdates">The qualified target-lock updates, or null.</param>
+        /// <param name="counterInterventions">The at-ceiling counter-intervention candidates, or null.</param>
+        /// <param name="deferredCounterGains">The below-ceiling deferred counter gains, or null.</param>
         /// <returns>The batch.</returns>
         private static EffectMatchBatch ToBatch(
             List<ActiveEffect> qualified,
             List<EffectNearMiss> nearMisses,
             List<ActiveEffect> reapplications,
             List<ActiveEffect> creators,
-            List<ActiveEffect> targetLockUpdates
+            List<ActiveEffect> targetLockUpdates,
+            List<ActiveEffect> counterInterventions = null,
+            List<ActiveEffect> deferredCounterGains = null
         )
         {
-            if (qualified == null && nearMisses == null && reapplications == null && creators == null && targetLockUpdates == null)
+            if (qualified == null && nearMisses == null && reapplications == null && creators == null
+                && targetLockUpdates == null && counterInterventions == null && deferredCounterGains == null)
                 return EffectMatchBatch.Empty;
 
             return new EffectMatchBatch(
@@ -984,7 +1055,9 @@ namespace Iterate.Domain.Execution
                 nearMisses ?? (IReadOnlyList<EffectNearMiss>)Array.Empty<EffectNearMiss>(),
                 reapplications ?? (IReadOnlyList<ActiveEffect>)Array.Empty<ActiveEffect>(),
                 creators ?? (IReadOnlyList<ActiveEffect>)Array.Empty<ActiveEffect>(),
-                targetLockUpdates ?? (IReadOnlyList<ActiveEffect>)Array.Empty<ActiveEffect>()
+                targetLockUpdates ?? (IReadOnlyList<ActiveEffect>)Array.Empty<ActiveEffect>(),
+                counterInterventions ?? (IReadOnlyList<ActiveEffect>)Array.Empty<ActiveEffect>(),
+                deferredCounterGains ?? (IReadOnlyList<ActiveEffect>)Array.Empty<ActiveEffect>()
             );
         }
     }

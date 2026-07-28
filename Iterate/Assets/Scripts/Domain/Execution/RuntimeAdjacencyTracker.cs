@@ -1,5 +1,4 @@
 using Iterate.Domain.Trace;
-using Iterate.Domain.Values;
 
 namespace Iterate.Domain.Execution
 {
@@ -41,16 +40,12 @@ namespace Iterate.Domain.Execution
         /// Records one runtime unit's closure. A resolved or rescued closure becomes the new
         /// predecessor; every other final disposition leaves the prior predecessor unchanged.
         /// </summary>
-        /// <param name="unit">The closing unit's identity.</param>
         /// <param name="finalDisposition">The unit's final disposition.</param>
         /// <param name="ownership">Whether the unit's host is player- or Core-owned.</param>
-        /// <param name="hostInstance">The player host instance, or null for a Core-owned line.</param>
         /// <param name="actuallyIncreasedScore">Whether the primary operation's actual Score delta was positive.</param>
         public void RecordCompletion(
-            RuntimeUnitID unit,
             EventDisposition finalDisposition,
             OwnershipClassification ownership,
-            InstanceID? hostInstance,
             bool actuallyIncreasedScore
         )
         {

@@ -21,6 +21,7 @@ namespace Iterate.Domain.Execution
     /// <param name="OperandSource">The operand's declared source.</param>
     /// <param name="OperandRegister">The operand register; non-null exactly when the operand source is a register.</param>
     /// <param name="Ownership">The executing unit's ownership classification.</param>
+    /// <param name="CounterSnapshot">The governing Process counter's value at this boundary; null when no Process rule is configured.</param>
     public sealed record OperationOccurrence(
         RuntimeUnitID Unit,
         TraceEventID Event,
@@ -30,7 +31,8 @@ namespace Iterate.Domain.Execution
         CoreLineOperator Operator,
         OperandSource OperandSource,
         CoreRegister? OperandRegister,
-        OwnershipClassification Ownership
+        OwnershipClassification Ownership,
+        int? CounterSnapshot = null
     )
     {
         /// <summary>

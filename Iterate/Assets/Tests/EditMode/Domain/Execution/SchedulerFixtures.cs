@@ -170,6 +170,203 @@ namespace Iterate.Domain.Execution.Tests
         }
 
         /// <summary>
+        /// The standard configuration carrying a Process rule and an optional designated final Core
+        /// output position. Built explicitly rather than with a <c>with</c> expression: every property
+        /// on the configuration is redeclared get-only behind a validation initializer, so the record
+        /// has no non-destructive mutation surface.
+        /// </summary>
+        /// <param name="rule">The Process-rule instance the execution is governed by.</param>
+        /// <param name="designatedFinalCoreOutputPosition">The position whose activation closes the cooling window, or null.</param>
+        /// <returns>The configuration.</returns>
+        public static ProcessExecutionConfiguration ConfigurationWithRule(
+            ProcessRuleInstance rule,
+            SourcePosition? designatedFinalCoreOutputPosition)
+        {
+            return new ProcessExecutionConfiguration(
+                "exec",
+                "compilation",
+                "source-rev",
+                "process",
+                "core",
+                "rule-config",
+                "session-seed",
+                StandardThresholds(),
+                rule,
+                designatedFinalCoreOutputPosition);
+        }
+
+        /// <summary>
+        /// Assembles a request over an arbitrary arrangement under a caller-supplied configuration —
+        /// the shape a Process rule needs, since the rule is carried on the configuration rather than
+        /// installed like a Dependency.
+        /// </summary>
+        /// <param name="arrangement">The source arrangement.</param>
+        /// <param name="initialState">The initial register state.</param>
+        /// <param name="configuration">The Process configuration.</param>
+        /// <returns>The assembled request.</returns>
+        public static ExecutionRequest RequestOver(
+            SourceArrangement arrangement,
+            InitialExecutionState initialState,
+            ProcessExecutionConfiguration configuration)
+        {
+            CompiledSource source = new CompiledSource(arrangement, new List<DirectiveInstance>(), StandardCost());
+
+            return new ExecutionRequest(source, configuration, StandardStamps(), initialState, new List<DependencyInstance>());
+        }
+
+        /// <summary>
+        /// Assembles a request over an arbitrary arrangement under a caller-supplied configuration
+        /// with installed Dependency instances and active Directive pragmas — the shape a Process
+        /// rule needs alongside SAFE MODE, a creator, or a scoring reaction.
+        /// </summary>
+        /// <param name="arrangement">The source arrangement.</param>
+        /// <param name="initialState">The initial register state.</param>
+        /// <param name="configuration">The Process configuration.</param>
+        /// <param name="installed">The installed Dependency instances.</param>
+        /// <param name="pragmas">The active Directive pragmas.</param>
+        /// <returns>The assembled request.</returns>
+        public static ExecutionRequest RequestOver(
+            SourceArrangement arrangement,
+            InitialExecutionState initialState,
+            ProcessExecutionConfiguration configuration,
+            List<DependencyInstance> installed,
+            List<DirectiveInstance> pragmas)
+        {
+            CompiledSource source = new CompiledSource(arrangement, pragmas, StandardCost());
+
+            return new ExecutionRequest(source, configuration, StandardStamps(), initialState, installed);
+        }
+
+        /// <summary>
+        /// A THERMAL-THROTTLE-shaped Process-rule instance (WB-PRC-001): the pre-operation Heat gain
+        /// on every qualifying multiplication, clamped to zero through three, and the cooling request
+        /// on every positive Score change, clamped at zero.
+        /// </summary>
+        /// <param name="instance">The instance identity value.</param>
+        /// <returns>The Process-rule instance.</returns>
+        public static ProcessRuleInstance ThermalThrottleRule(int instance)
+        {
+            EffectTiming preOperation = new EffectTiming(TimingKind.Band, "QUALIFICATION_AND_PRE_OPERATION_INTERVENTION");
+            EffectDefinition gain = new EffectDefinition(
+                PhaseDomain.Execution,
+                new TriggerDescriptor(
+                    EventFamily.Operation,
+                    "PRIMARY_OPERATION_PENDING",
+                    new List<TriggerQualifier> { new TriggerQualifier("OPERATION_CLASS", "MULTIPLY") },
+                    preOperation),
+                new CounterRequestOperation("HEAT", 1, 0, 3, true, true),
+                new TargetingRule("NO_TARGET", string.Empty),
+                preOperation,
+                StackingMode.IndependentResolution,
+                new EffectFrequency("EVERY_QUALIFYING_EVENT", "DECLARED_SCOPE"));
+
+            EffectTiming reaction = new EffectTiming(TimingKind.Band, "IMMEDIATE_RESULT_REACTION");
+            EffectDefinition cooling = new EffectDefinition(
+                PhaseDomain.Execution,
+                new TriggerDescriptor(
+                    EventFamily.Quantity,
+                    "QUANTITY_CHANGED",
+                    new List<TriggerQualifier>
+                    {
+                        new TriggerQualifier("REGISTER", "SCORE"),
+                        new TriggerQualifier("ACTUAL_DELTA_SIGN", "POSITIVE")
+                    },
+                    reaction),
+                new CounterRequestOperation("HEAT", -1, 0, 0, true, false),
+                new TargetingRule("NO_TARGET", string.Empty),
+                reaction,
+                StackingMode.IndependentResolution,
+                new EffectFrequency("EVERY_QUALIFYING_EVENT", "DECLARED_SCOPE"));
+
+            ProcessRuleDefinition definition = new ProcessRuleDefinition(
+                new ProcessRuleID("WB-PRC-001"),
+                "Multiplication raises Heat; Score increases cool it.",
+                "THERMAL THROTTLE",
+                ContentCategory.ProcessRule,
+                Rarity.Starter,
+                new List<string> { "ProcessRule", "Heat" },
+                new List<EffectDefinition> { gain, cooling });
+
+            return new ProcessRuleInstance(new InstanceID(instance), definition);
+        }
+
+        /// <summary>
+        /// A player Instruction instance with a fixed <c>Value ×= constant</c> primary operation —
+        /// the multiplication the Heat pre-check observes.
+        /// </summary>
+        /// <param name="instance">The instance identity value.</param>
+        /// <param name="constant">The fixed operand.</param>
+        /// <returns>The Instruction instance.</returns>
+        public static InstructionInstance ValueMultiplyInstance(int instance, int constant)
+        {
+            return new InstructionInstance(
+                new InstanceID(instance),
+                InstructionWith(new QuantityChangeOperation(CoreRegister.Value, QuantityOperator.Multiply, OperandSpec.FromConstant(constant))),
+                null);
+        }
+
+        /// <summary>
+        /// A player Instruction instance with a <c>Score += Value</c> primary operation — the scoring
+        /// source a cooling request observes.
+        /// </summary>
+        /// <param name="instance">The instance identity value.</param>
+        /// <returns>The Instruction instance.</returns>
+        public static InstructionInstance ScoreAddValueInstance(int instance)
+        {
+            return new InstructionInstance(new InstanceID(instance), ScoreAddValueInstruction(), null);
+        }
+
+        /// <summary>
+        /// A Core line applying the given operator to Value with a constant operand.
+        /// </summary>
+        /// <param name="identity">The stable Core-line identity.</param>
+        /// <param name="op">The operator the line applies.</param>
+        /// <param name="constant">The constant operand.</param>
+        /// <returns>The Core line.</returns>
+        public static CoreLine ValueCoreLine(string identity, CoreLineOperator op, int constant)
+        {
+            return new CoreLine(identity, new CoreLineOperation(op, CoreRegister.Value, OperandSpec.FromConstant(constant)));
+        }
+
+        /// <summary>
+        /// A Core line adding Value to Score — the intermediate or designated final Core output.
+        /// </summary>
+        /// <param name="identity">The stable Core-line identity.</param>
+        /// <returns>The Core line.</returns>
+        public static CoreLine ScoreOutputCoreLine(string identity)
+        {
+            return new CoreLine(
+                identity,
+                new CoreLineOperation(CoreLineOperator.Add, CoreRegister.Score, OperandSpec.FromRegister(CoreRegister.Value)));
+        }
+
+        /// <summary>
+        /// An OUTPUT-CACHE-shaped Directive instance: an every-qualifying reaction observing positive
+        /// player-Instruction Score gains and adding the constant to Score. The operation-class
+        /// qualifier admits only primary operations, so the reaction's own Score change cannot
+        /// re-qualify it — one separate scoring reaction per player scoring unit.
+        /// </summary>
+        /// <param name="instance">The instance identity value.</param>
+        /// <param name="constant">The fixed operand the reaction adds to Score.</param>
+        /// <returns>The Directive instance.</returns>
+        public static DirectiveInstance ScoreGainReactionPragma(int instance, int constant)
+        {
+            EffectTiming timing = new EffectTiming(TimingKind.Band, "IMMEDIATE_RESULT_REACTION");
+            TriggerDescriptor trigger = new TriggerDescriptor(
+                EventFamily.Quantity,
+                "QUANTITY_CHANGED",
+                new List<TriggerQualifier>
+                {
+                    new TriggerQualifier("ACTUAL_DELTA_SIGN", "POSITIVE"),
+                    new TriggerQualifier("REGISTER", "SCORE"),
+                    new TriggerQualifier("OPERATION_CLASS", "PLAYER_INSTRUCTION")
+                },
+                timing);
+
+            return DirectiveOver(instance, "WB-DIR-904", ReactionEffect(trigger, CoreRegister.Score, constant));
+        }
+
+        /// <summary>
         /// A SAFE-MODE-shaped Dependency instance (WB-DEP-007): the first skipped source execution
         /// each execution is rescued to resolve normally — the skipped-execution disposition trigger
         /// at the pre-operation band, no qualifiers, resolving to RESCUED once per execution.
@@ -438,6 +635,58 @@ namespace Iterate.Domain.Execution.Tests
         }
 
         /// <summary>
+        /// An every-qualifying reaction Directive instance observing positive player Value gains and
+        /// adding the constant to Value. The operation-class qualifier admits only a primary
+        /// operation of a player-owned unit, so the reaction's own quantity change — which is not
+        /// from a primary operation — can never re-qualify it or its siblings: the fan-out is flat,
+        /// one resolution per reaction instance per player unit, with no cascade.
+        /// </summary>
+        /// <param name="instance">The instance identity value.</param>
+        /// <param name="constant">The fixed operand the reaction adds to Value.</param>
+        /// <returns>The Directive instance.</returns>
+        public static DirectiveInstance ValueGainReactionPragma(int instance, int constant)
+        {
+            EffectTiming timing = new EffectTiming(TimingKind.Band, "IMMEDIATE_RESULT_REACTION");
+            TriggerDescriptor trigger = new TriggerDescriptor(
+                EventFamily.Quantity,
+                "QUANTITY_CHANGED",
+                new List<TriggerQualifier>
+                {
+                    new TriggerQualifier("ACTUAL_DELTA_SIGN", "POSITIVE"),
+                    new TriggerQualifier("REGISTER", "VALUE"),
+                    new TriggerQualifier("OPERATION_CLASS", "PLAYER_INSTRUCTION")
+                },
+                timing);
+
+            return DirectiveOver(instance, "WB-DIR-903", ReactionEffect(trigger, CoreRegister.Value, constant));
+        }
+
+        /// <summary>
+        /// An every-qualifying reaction Directive instance shaped exactly like
+        /// <see cref="ValueGainReactionPragma"/> but observing positive player <em>Signal</em> gains
+        /// — the failed-qualification probe against a Value-only arrangement.
+        /// </summary>
+        /// <param name="instance">The instance identity value.</param>
+        /// <param name="constant">The fixed operand the reaction adds to Value.</param>
+        /// <returns>The Directive instance.</returns>
+        public static DirectiveInstance SignalGainReactionPragma(int instance, int constant)
+        {
+            EffectTiming timing = new EffectTiming(TimingKind.Band, "IMMEDIATE_RESULT_REACTION");
+            TriggerDescriptor trigger = new TriggerDescriptor(
+                EventFamily.Quantity,
+                "QUANTITY_CHANGED",
+                new List<TriggerQualifier>
+                {
+                    new TriggerQualifier("ACTUAL_DELTA_SIGN", "POSITIVE"),
+                    new TriggerQualifier("REGISTER", "SIGNAL"),
+                    new TriggerQualifier("OPERATION_CLASS", "PLAYER_INSTRUCTION")
+                },
+                timing);
+
+            return DirectiveOver(instance, "WB-DIR-904", ReactionEffect(trigger, CoreRegister.Value, constant));
+        }
+
+        /// <summary>
         /// A LOOP-UNROLLER-shaped Dependency instance (WB-DEP-009): the first successful
         /// Repeat-context unit closure each execution requests one added execution of that unit.
         /// </summary>
@@ -534,6 +783,29 @@ namespace Iterate.Domain.Execution.Tests
                 timing,
                 StackingMode.IndependentResolution,
                 new EffectFrequency("ONCE", "EXECUTION"));
+        }
+
+        /// <summary>
+        /// Builds an EXECUTION-domain reaction effect at the immediate-result-reaction band whose
+        /// operation adds the constant to the register, resolving on every qualifying event.
+        /// </summary>
+        /// <param name="trigger">The quantity trigger descriptor.</param>
+        /// <param name="register">The register the reaction's operation writes.</param>
+        /// <param name="constant">The constant operand.</param>
+        /// <returns>The effect definition.</returns>
+        private static EffectDefinition ReactionEffect(
+            TriggerDescriptor trigger,
+            CoreRegister register,
+            int constant)
+        {
+            return new EffectDefinition(
+                PhaseDomain.Execution,
+                trigger,
+                new QuantityChangeOperation(register, QuantityOperator.Add, OperandSpec.FromConstant(constant)),
+                new TargetingRule("NO_TARGET", string.Empty),
+                trigger.Timing,
+                StackingMode.IndependentResolution,
+                new EffectFrequency("EVERY_QUALIFYING_EVENT", "DECLARED_SCOPE"));
         }
 
         /// <summary>

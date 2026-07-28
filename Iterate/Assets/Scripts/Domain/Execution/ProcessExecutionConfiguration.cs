@@ -1,4 +1,6 @@
 using System;
+using Iterate.Domain.Compilation;
+using Iterate.Domain.Content;
 
 namespace Iterate.Domain.Execution
 {
@@ -23,7 +25,9 @@ namespace Iterate.Domain.Execution
         string CoreIdentity,
         string ProcessRuleConfigurationIdentity,
         string SessionSeedIdentity,
-        ProcessThresholds Thresholds
+        ProcessThresholds Thresholds,
+        ProcessRuleInstance ProcessRule = null,
+        SourcePosition? DesignatedFinalCoreOutputPosition = null
     )
     {
         /// <summary>
@@ -65,6 +69,18 @@ namespace Iterate.Domain.Execution
         /// The Score-band thresholds. Validated non-null at construction.
         /// </summary>
         public ProcessThresholds Thresholds { get; } = RequireThresholds(Thresholds);
+        
+        /// <summary>
+        /// The Process rule governing this execution, or null when the Process declares none — which
+        /// is every Process but a Critical Process.
+        /// </summary>
+        public ProcessRuleInstance ProcessRule { get; } = ProcessRule;
+
+        /// <summary>
+        /// The position of the Core output whose activation closes the cooling window, or null when
+        /// no Process rule needs one.
+        /// </summary>
+        public SourcePosition? DesignatedFinalCoreOutputPosition { get; } = DesignatedFinalCoreOutputPosition;
 
         /// <summary>
         /// Validates that a supplied identity is present and non-empty.

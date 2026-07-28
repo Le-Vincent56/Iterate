@@ -29,7 +29,8 @@ namespace Iterate.Application.Content
                 new DirectiveRuleSet(),
                 new DependencyRuleSet(),
                 new PatchRuleSet(),
-                new UtilityRuleSet()
+                new UtilityRuleSet(),
+                new ProcessRuleRuleSet()
             };
 
             Dictionary<string, ICategoryRuleSet> byToken = new(StringComparer.Ordinal);

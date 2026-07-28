@@ -118,6 +118,21 @@ namespace Iterate.Domain.Trace
             _unitClosures[index] = closure;
             _completionOrders[index] = ++_completionCounter;
         }
+        
+        /// <summary>
+        /// Reports whether a minted unit is still open. Reading unit state never throws for an
+        /// unminted identity; it answers false.
+        /// </summary>
+        /// <param name="unit">The unit identity to test.</param>
+        /// <returns>True when the unit is minted and not yet closed.</returns>
+        public bool IsUnitOpen(RuntimeUnitID unit)
+        {
+            int index = unit.Value - 1;
+            if (index < 0 || index >= _unitOpenings.Count)
+                return false;
+
+            return _unitClosures[index] == null;
+        }
 
         /// <summary>
         /// Records a missing-evidence defect. A referenced anchor identity must already exist; the content

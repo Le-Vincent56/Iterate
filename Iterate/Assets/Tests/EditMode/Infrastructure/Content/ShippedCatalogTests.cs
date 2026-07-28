@@ -11,7 +11,7 @@ namespace Iterate.Infrastructure.Content.Tests
 {
     /// <summary>
     /// Loads the shipped catalog under StreamingAssets/Catalog through the real pipeline and pins its
-    /// conformance: it loads without errors at revision 0.1.0, carries all 45 definitions with the
+    /// conformance: it loads without errors at revision 0.1.0, carries all 46 definitions with the
     /// per-category counts, exposes the locked parameters, and matches the slice's spot-check items.
     /// This is the standing TA-DAT-004 conformance evidence; it is red until the catalog files exist.
     /// </summary>
@@ -34,7 +34,7 @@ namespace Iterate.Infrastructure.Content.Tests
         }
 
         [Test]
-        public void ShippedCatalog_HasForty5DefinitionsWithPerCategoryCounts()
+        public void ShippedCatalog_HasForty6DefinitionsWithPerCategoryCounts()
         {
             ContentCatalog catalog = Load();
 
@@ -44,7 +44,8 @@ namespace Iterate.Infrastructure.Content.Tests
             Assert.AreEqual(11, catalog.Dependencies.Count, "Dependencies");
             Assert.AreEqual(6, catalog.Patches.Count, "Patches");
             Assert.AreEqual(3, catalog.Utilities.Count, "Utilities");
-            Assert.AreEqual(45, catalog.DefinitionCount, "total");
+            Assert.AreEqual(1, catalog.ProcessRules.Count, "ProcessRules");
+            Assert.AreEqual(46, catalog.DefinitionCount, "total");
         }
 
         [Test]

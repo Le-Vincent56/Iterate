@@ -11,6 +11,13 @@ namespace Iterate.Domain.Execution
     /// lineage-depth high-water read from proposed frame depths and the per-root-activation
     /// descendant tallies. Depth is never an independent counter that could drift from the frame
     /// stack; the preflights take the proposed depth the stack implies.
+    /// The tallies are pure counters and never emit evidence. Two query shapes sit on top of them:
+    /// the boolean preflights, for sites needing only yes or no, and the evaluators, which answer
+    /// the same question with every simultaneously breached limit so a breach can record all of
+    /// them. The evaluators return null on the clear path and allocate only on a real breach, which
+    /// happens at most once per execution. Which limits currently sit at their ceilings is a
+    /// separate constant-time query; remembering which of those were reached for the first time
+    /// belongs to the caller, not here.
     /// </summary>
     public sealed class ExecutionSafetyTallies
     {
@@ -18,6 +25,12 @@ namespace Iterate.Domain.Execution
         /// The descendant counts per original canonical activation.
         /// </summary>
         private readonly Dictionary<RuntimeUnitID, int> _descendantsPerRoot = new Dictionary<RuntimeUnitID, int>();
+
+        /// <summary>
+        /// The number of root activations whose descendant count has reached its ceiling, kept as a
+        /// running count so the at-ceiling query stays constant-time and allocation-free.
+        /// </summary>
+        private int _rootsAtDescendantCeiling;
 
         /// <summary>
         /// The number of source-execution units opened so far.
@@ -50,6 +63,39 @@ namespace Iterate.Domain.Execution
         public int AddedDescendants { get; private set; }
 
         /// <summary>
+        /// The registry rows whose counts currently sit at their ceilings, in registry order.
+        /// Reaching a ceiling is permitted, so this reports a legal state, not a breach. The
+        /// per-activation row is set while any one root activation has reached its ceiling. The
+        /// transformation row follows the live per-operation count and therefore clears when a new
+        /// pending operation begins; a caller wanting first-contact-only behaviour keeps that memory
+        /// itself.
+        /// </summary>
+        public SafetyLimitFlags LimitsAtCeiling
+        {
+            get
+            {
+                SafetyLimitFlags flags = SafetyLimitFlags.None;
+
+                if (LineageDepthHighWater >= SafetyCeilings.AddedExecutionLineageDepth)
+                    flags |= SafetyLimitFlags.AddedExecutionLineageDepth;
+
+                if (_rootsAtDescendantCeiling > 0)
+                    flags |= SafetyLimitFlags.AddedExecutionsPerActivation;
+
+                if (SourceExecutionUnits >= SafetyCeilings.SourceExecutionUnitsPerExecution)
+                    flags |= SafetyLimitFlags.SourceExecutionUnits;
+
+                if (EffectReactions >= SafetyCeilings.EffectReactionsPerExecution)
+                    flags |= SafetyLimitFlags.EffectReactions;
+
+                if (TransformationsOnPendingOperation >= SafetyCeilings.TransformationsPerPendingOperation)
+                    flags |= SafetyLimitFlags.TransformationsOnPendingOperation;
+
+                return flags;
+            }
+        }
+
+        /// <summary>
         /// Reports whether opening one more source-execution unit is permitted: true while below the
         /// ceiling, false once it is reached. Reaching the ceiling is permitted; the occurrence that would
         /// exceed it is not.
@@ -58,6 +104,25 @@ namespace Iterate.Domain.Execution
         public bool PreflightUnitOpening()
         {
             return SourceExecutionUnits < SafetyCeilings.SourceExecutionUnitsPerExecution;
+        }
+
+        /// <summary>
+        /// Evaluates opening one more source-execution unit against every applicable ceiling.
+        /// </summary>
+        /// <returns>Null when the unit may be opened; otherwise every breached limit in registry order.</returns>
+        public IReadOnlyList<BreachedLimit> EvaluateUnitOpening()
+        {
+            if (SourceExecutionUnits < SafetyCeilings.SourceExecutionUnitsPerExecution)
+                return null;
+
+            List<BreachedLimit> breached = new List<BreachedLimit>(1);
+            breached.Add(new BreachedLimit(
+                SafetyAbortSignal.LimitName(SafetyLimitFlags.SourceExecutionUnits),
+                SafetyCeilings.SourceExecutionUnitsPerExecution,
+                SourceExecutionUnits
+            ));
+
+            return breached;
         }
 
         /// <summary>
@@ -80,6 +145,25 @@ namespace Iterate.Domain.Execution
         public bool PreflightReaction()
         {
             return EffectReactions < SafetyCeilings.EffectReactionsPerExecution;
+        }
+
+        /// <summary>
+        /// Evaluates resolving one more effect reaction against every applicable ceiling.
+        /// </summary>
+        /// <returns>Null when the reaction may resolve; otherwise every breached limit in registry order.</returns>
+        public IReadOnlyList<BreachedLimit> EvaluateReaction()
+        {
+            if (EffectReactions < SafetyCeilings.EffectReactionsPerExecution)
+                return null;
+
+            List<BreachedLimit> breached = new List<BreachedLimit>(1);
+            breached.Add(new BreachedLimit(
+                SafetyAbortSignal.LimitName(SafetyLimitFlags.EffectReactions),
+                SafetyCeilings.EffectReactionsPerExecution,
+                EffectReactions
+            ));
+
+            return breached;
         }
 
         /// <summary>
@@ -111,6 +195,25 @@ namespace Iterate.Domain.Execution
         public bool PreflightTransformation()
         {
             return TransformationsOnPendingOperation < SafetyCeilings.TransformationsPerPendingOperation;
+        }
+
+        /// <summary>
+        /// Evaluates one more transformation of the current pending operation against every
+        /// applicable ceiling.
+        /// </summary>
+        /// <returns>Null when the transformation may apply; otherwise every breached limit in registry order.</returns>
+        public IReadOnlyList<BreachedLimit> EvaluateTransformation()
+        {
+            if (TransformationsOnPendingOperation < SafetyCeilings.TransformationsPerPendingOperation)
+                return null;
+
+            List<BreachedLimit> breached = new List<BreachedLimit>(1);
+            breached.Add(new BreachedLimit(
+                SafetyAbortSignal.LimitName(SafetyLimitFlags.TransformationsOnPendingOperation),
+                SafetyCeilings.TransformationsPerPendingOperation,
+                TransformationsOnPendingOperation));
+
+            return breached;
         }
 
         /// <summary>
@@ -147,8 +250,58 @@ namespace Iterate.Domain.Execution
         }
 
         /// <summary>
+        /// Evaluates creating one more descendant against every ceiling one such occurrence
+        /// advances: its lineage depth, its root activation's descendant count, and the execution's
+        /// source-execution-unit count, each judged independently so a single attempt records all
+        /// of them. The reaction that created the request is counted when that reaction resolves,
+        /// so it is not evaluated a second time here.
+        /// </summary>
+        /// <param name="proposedDepth">The descendant's proposed added-execution depth.</param>
+        /// <param name="rootActivation">The original canonical activation the branch descends from.</param>
+        /// <returns>Null when the descendant may be created; otherwise every breached limit in registry order.</returns>
+        public IReadOnlyList<BreachedLimit> EvaluateDescendant(int proposedDepth, RuntimeUnitID rootActivation)
+        {
+            bool depthBreached = proposedDepth > SafetyCeilings.AddedExecutionLineageDepth;
+            _descendantsPerRoot.TryGetValue(rootActivation, out int rootCount);
+            bool rootBreached = rootCount >= SafetyCeilings.AddedExecutionsPerActivation;
+            bool unitsBreached = SourceExecutionUnits >= SafetyCeilings.SourceExecutionUnitsPerExecution;
+
+            if (!depthBreached && !rootBreached && !unitsBreached)
+                return null;
+
+            List<BreachedLimit> breached = new List<BreachedLimit>(3);
+
+            if (depthBreached)
+            {
+                breached.Add(new BreachedLimit(
+                    SafetyAbortSignal.LimitName(SafetyLimitFlags.AddedExecutionLineageDepth),
+                    SafetyCeilings.AddedExecutionLineageDepth,
+                    proposedDepth));
+            }
+
+            if (rootBreached)
+            {
+                breached.Add(new BreachedLimit(
+                    SafetyAbortSignal.LimitName(SafetyLimitFlags.AddedExecutionsPerActivation),
+                    SafetyCeilings.AddedExecutionsPerActivation,
+                    rootCount));
+            }
+
+            if (unitsBreached)
+            {
+                breached.Add(new BreachedLimit(
+                    SafetyAbortSignal.LimitName(SafetyLimitFlags.SourceExecutionUnits),
+                    SafetyCeilings.SourceExecutionUnitsPerExecution,
+                    SourceExecutionUnits));
+            }
+
+            return breached;
+        }
+
+        /// <summary>
         /// Records one created descendant: increments the root activation's tally and the total,
-        /// and raises the lineage-depth high-water when the proposed depth exceeds it.
+        /// raises the lineage-depth high-water when the proposed depth exceeds it, and notes the
+        /// root activation reaching its ceiling so the at-ceiling query stays constant-time.
         /// </summary>
         /// <param name="proposedDepth">The descendant's proposed added-execution depth.</param>
         /// <param name="rootActivation">The original canonical activation the branch descends from.</param>
@@ -163,6 +316,9 @@ namespace Iterate.Domain.Execution
                 throw new InvalidOperationException("The per-activation added-execution ceiling has been reached; another descendant would exceed it.");
 
             _descendantsPerRoot[rootActivation] = count + 1;
+            if (count + 1 == SafetyCeilings.AddedExecutionsPerActivation)
+                _rootsAtDescendantCeiling++;
+
             AddedDescendants++;
             if (proposedDepth > LineageDepthHighWater)
                 LineageDepthHighWater = proposedDepth;
