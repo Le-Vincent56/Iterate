@@ -22,5 +22,19 @@
         "frequency": { "allowance": "EVERY_QUALIFYING_EVENT", "scope": "DECLARED_SCOPE" }
       }
     ]
+  },
+  {
+    "id": "WB-PRC-002", "rulesText": "Every edited compilation this Process costs 0 Bytes.", "displayName": "TUTORIAL FREE COMPILATION",
+    "category": "PROCESS_RULE", "rarity": "STARTER", "tags": ["ProcessRule", "Bytes", "Tutorial"],
+    "effects": [
+      {
+        "phaseDomain": "COMPILATION",
+        "trigger": { "eventFamily": "LIFECYCLE", "eventSubtype": "COMPILATION_COMMITTED", "qualifiers": [ { "kind": "OPERATION_CLASS", "value": "EDITED_COMPILATION" } ] },
+        "operation": { "kind": "COST_MODIFICATION", "costKind": "COMPILATION", "setsAbsolute": true, "amount": 0, "floor": 0, "progressionAdvances": true },
+        "targeting": { "kind": "NO_TARGET", "argument": "" },
+        "stacking": "INDEPENDENT_RESOLUTION",
+        "frequency": { "allowance": "ONCE", "scope": "COMPILATION" }
+      }
+    ]
   }
 ]

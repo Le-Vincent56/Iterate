@@ -131,6 +131,14 @@ namespace Iterate.Domain.Content
         /// The controlled cost kinds.
         /// </summary>
         public static readonly ControlledVocabulary CostKinds = new("COMPILATION");
+        
+        /// <summary>
+        /// The controlled acquisition-pool selection methods.
+        /// </summary>
+        public static readonly ControlledVocabulary PoolSelectionMethods = new(
+            "PLAYER_CHOICE",
+            "UNIFORM_WITHOUT_REPLACEMENT"
+        );
 
         /// <summary>
         /// The controlled Process-setup configuration settings.

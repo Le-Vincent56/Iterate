@@ -1,0 +1,18 @@
+[
+  {
+    "id": "WB-ARCH-001",
+    "displayName": "Direct Output",
+    "startingRepository": [
+      "WB-INS-002",
+      "WB-INS-002",
+      "WB-INS-003",
+      "WB-INS-005",
+      "WB-INS-012",
+      "WB-INS-007",
+      "WB-INS-010",
+      "WB-STR-001",
+      "WB-DIR-001"
+    ],
+    "starterDependency": "WB-DEP-001"
+  }
+]

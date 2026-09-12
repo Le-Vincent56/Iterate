@@ -25,13 +25,15 @@ namespace Iterate.Infrastructure.Content.Tests
     public sealed class ShippedCatalogProcessRuleTests
     {
         [Test]
-        public void ShippedCatalog_CarriesExactlyOneProcessRule()
+        public void ShippedCatalog_CarriesBothProcessRules()
         {
             ContentCatalog catalog = Load();
 
-            Assert.AreEqual(1, catalog.ProcessRules.Count);
+            Assert.AreEqual(2, catalog.ProcessRules.Count);
             Assert.AreEqual("WB-PRC-001", catalog.ProcessRules[0].ID.Value);
             Assert.AreEqual("THERMAL THROTTLE", catalog.ProcessRules[0].DisplayName);
+            Assert.AreEqual("WB-PRC-002", catalog.ProcessRules[1].ID.Value);
+            Assert.AreEqual("TUTORIAL FREE COMPILATION", catalog.ProcessRules[1].DisplayName);
         }
 
         [Test]

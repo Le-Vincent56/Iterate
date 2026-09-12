@@ -1,0 +1,14 @@
+[
+  {
+    "id": "WB-SYS-001",
+    "displayName": "System 1",
+    "stages": [
+      { "kind": "PROCESS", "process": "WB-PROC-001" },
+      { "kind": "SHOP", "shop": "WB-SHOP-001" },
+      { "kind": "PROCESS", "process": "WB-PROC-002" },
+      { "kind": "ROUTE_SELECTION", "routes": ["WB-ROUTE-001", "WB-ROUTE-002"] },
+      { "kind": "SHOP", "shop": "WB-SHOP-004" },
+      { "kind": "PROCESS", "process": "WB-PROC-005" }
+    ]
+  }
+]

@@ -1,0 +1,55 @@
+[
+  {
+    "id": "WB-RWD-001",
+    "displayName": "Tutorial Process 1 rewards",
+    "components": [
+      { "tier": "PASS", "kind": "TOKENS", "amount": 4 },
+      { "tier": "PASS", "kind": "POOL_CHOICE", "reference": "WB-POOL-001" },
+      { "tier": "OPTIMIZE", "kind": "CACHED_PATCH", "reference": "WB-PAT-001" },
+      { "tier": "BENCHMARK", "kind": "TOKENS", "amount": 2 }
+    ]
+  },
+  {
+    "id": "WB-RWD-002",
+    "displayName": "Tutorial Process 2 rewards",
+    "components": [
+      { "tier": "PASS", "kind": "TOKENS", "amount": 4 },
+      { "tier": "PASS", "kind": "GUARANTEED_CONTENT", "reference": "WB-STR-002" },
+      { "tier": "OPTIMIZE", "kind": "PATCH", "reference": "WB-PAT-002" },
+      { "tier": "BENCHMARK", "kind": "TOKENS", "amount": 2 }
+    ]
+  },
+  {
+    "id": "WB-RWD-003",
+    "displayName": "PARITY CHECK rewards",
+    "components": [
+      { "tier": "PASS", "kind": "TOKENS", "amount": 4 },
+      { "tier": "PASS", "kind": "POOL_CHOICE", "reference": "WB-POOL-006" },
+      { "tier": "OPTIMIZE", "kind": "PATCH", "reference": "WB-PAT-004" },
+      { "tier": "BENCHMARK", "kind": "TOKENS", "amount": 2 }
+    ]
+  },
+  {
+    "id": "WB-RWD-004",
+    "displayName": "POWER SURGE rewards",
+    "components": [
+      { "tier": "PASS", "kind": "TOKENS", "amount": 4 },
+      { "tier": "PASS", "kind": "ROUTE_TOKEN_BONUS", "amount": 2 },
+      { "tier": "PASS", "kind": "POOL_CHOICE", "reference": "WB-POOL-007" },
+      { "tier": "OPTIMIZE", "kind": "PATCH", "reference": "WB-PAT-005" },
+      { "tier": "BENCHMARK", "kind": "TOKENS", "amount": 2 }
+    ]
+  },
+  {
+    "id": "WB-RWD-005",
+    "displayName": "THERMAL THROTTLE rewards",
+    "components": [
+      { "tier": "PASS", "kind": "TOKENS", "amount": 6 },
+      { "tier": "PASS", "kind": "POOL_CHOICE", "reference": "WB-POOL-008" },
+      { "tier": "PASS", "kind": "RAM_SET", "amount": 5 },
+      { "tier": "PASS", "kind": "POOL_CHOICE", "reference": "WB-POOL-009" },
+      { "tier": "OPTIMIZE", "kind": "PATCH", "reference": "WB-PAT-006" },
+      { "tier": "BENCHMARK", "kind": "TOKENS", "amount": 3 }
+    ]
+  }
+]

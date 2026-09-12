@@ -1,0 +1,64 @@
+[
+  {
+    "id": "WB-SHOP-001",
+    "displayName": "Simplified post-Tutorial-1 shop",
+    "slots": 3,
+    "rerollsEnabled": false,
+    "pinningEnabled": false,
+    "dependenciesEnabled": false,
+    "servicesEnabled": false,
+    "fixedOffers": [
+      { "offerID": "OFF-001", "content": "WB-INS-001", "price": 4 },
+      { "offerID": "OFF-002", "content": "WB-INS-006", "price": 4 },
+      { "offerID": "OFF-003", "content": "WB-INS-009", "price": 6 }
+    ]
+  },
+  {
+    "id": "WB-SHOP-002",
+    "displayName": "PARITY CHECK pre-Process shop",
+    "slots": 4,
+    "rerollsEnabled": true,
+    "pinningEnabled": true,
+    "dependenciesEnabled": false,
+    "servicesEnabled": false,
+    "fixedOffers": [
+      { "offerID": "OFF-101", "content": "WB-INS-001", "price": 4 },
+      { "offerID": "OFF-102", "content": "WB-STR-003", "price": 6 },
+      { "offerID": "OFF-103", "content": "WB-PAT-001", "price": 4 },
+      { "offerID": "OFF-104", "content": "WB-UTL-001", "price": 3 }
+    ],
+    "rerollPool": "WB-POOL-003"
+  },
+  {
+    "id": "WB-SHOP-003",
+    "displayName": "POWER SURGE pre-Process shop",
+    "slots": 4,
+    "rerollsEnabled": true,
+    "pinningEnabled": true,
+    "dependenciesEnabled": false,
+    "servicesEnabled": false,
+    "fixedOffers": [
+      { "offerID": "OFF-201", "content": "WB-INS-012", "price": 4 },
+      { "offerID": "OFF-202", "content": "WB-INS-004", "price": 6 },
+      { "offerID": "OFF-203", "content": "WB-PAT-003", "price": 6 },
+      { "offerID": "OFF-204", "content": "WB-UTL-001", "price": 3 }
+    ],
+    "rerollPool": "WB-POOL-004"
+  },
+  {
+    "id": "WB-SHOP-004",
+    "displayName": "Pre-Critical shop",
+    "slots": 4,
+    "rerollsEnabled": true,
+    "pinningEnabled": true,
+    "dependenciesEnabled": true,
+    "servicesEnabled": true,
+    "fixedOffers": [
+      { "offerID": "OFF-301", "content": "WB-DEP-002", "price": 4 },
+      { "offerID": "OFF-302", "content": "WB-DEP-003", "price": 6 },
+      { "offerID": "OFF-303", "content": "WB-DEP-004", "price": 8 },
+      { "offerID": "OFF-304", "content": "WB-UTL-002", "price": 3 }
+    ],
+    "rerollPool": "WB-POOL-005"
+  }
+]

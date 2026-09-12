@@ -28,11 +28,14 @@ namespace Iterate.Composition.Root.Tests
         public IEnumerator Boot_ProjectScopeActivates_LoadsCatalogAndLogsBothLines()
         {
             LogAssert.Expect(LogType.Log, "[Boot] Boot complete!");
-            // The definition count is the shipped catalog's, and it moves whenever content is added:
-            // it went 45 to 46 when the PROCESS_RULE category and WB-PRC-001 landed. The count itself is
-            // owned and asserted by ShippedCatalogTests; this line pins it only as a by-product of
-            // matching the whole log message.
-            LogAssert.Expect(LogType.Log, "[Catalog] Catalog loaded | revision=0.1.0 | definitions=46");
+            // The revision and definition count are the shipped catalog's, and both move whenever
+            // content is added: the count went 45 to 46 when the PROCESS_RULE category and WB-PRC-001
+            // landed, then 46 to 79 when the catalog extension's eight package and configuration kinds
+            // and WB-PRC-002 landed at revision 0.2.0. Both are owned and asserted by
+            // ShippedCatalogTests; this line pins them only as a by-product of matching the whole log
+            // message, which is why a content change surfaces here as a missing-log failure rather than
+            // as a count mismatch.
+            LogAssert.Expect(LogType.Log, "[Catalog] Catalog loaded | revision=0.2.0 | definitions=79");
 
             _projectScope = new GameObject("ProjectScope");
             _projectScope.SetActive(false);

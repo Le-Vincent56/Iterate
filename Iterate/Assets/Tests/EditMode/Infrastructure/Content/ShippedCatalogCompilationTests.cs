@@ -12,7 +12,7 @@ using Iterate.Infrastructure.Content;
 namespace Iterate.Infrastructure.Content.Tests
 {
     /// <summary>
-    /// End-to-end Compilation verification against the real frozen 45-definition catalog (no fixture effect
+    /// End-to-end Compilation verification against the real frozen 79-definition catalog (no fixture effect
     /// data): the evaluator-support sweep guarding against catalog/evaluator drift, catalog-versus-fixture
     /// parity for CLEAN BUILD and COMPILE AHEAD, and one full Process-shaped scenario over the standard Core
     /// shape. It loads through the same pipeline as the standing shipped-catalog conformance test.
@@ -54,7 +54,16 @@ namespace Iterate.Infrastructure.Content.Tests
                 swept += SweepCompilationEffects(definition.ID.Value, definition.DisplayName, definition.Effects, parameters);
             }
 
-            Assert.GreaterOrEqual(swept, 2, "expected at least CLEAN BUILD and COMPILE AHEAD");
+            // Process rules were outside this sweep until September 12, 2026, which is how WB-PRC-002
+            // shipped with a frequency the validator accepts and this resolver refuses: every other
+            // COMPILATION-domain carrier was swept, and that one was not.
+            for (int i = 0; i < catalog.ProcessRules.Count; i++)
+            {
+                ProcessRuleDefinition definition = catalog.ProcessRules[i];
+                swept += SweepCompilationEffects(definition.ID.Value, definition.DisplayName, definition.Effects, parameters);
+            }
+
+            Assert.GreaterOrEqual(swept, 3, "expected at least CLEAN BUILD, COMPILE AHEAD and TUTORIAL FREE COMPILATION");
         }
 
         [Test]

@@ -1,0 +1,91 @@
+[
+  {
+    "id": "WB-CORE-001",
+    "displayName": "Tutorial Process 1 Core",
+    "lines": [
+      { "position": 1, "kind": "FIXED_INSTRUCTION", "operation": { "operator": "ASSIGN", "register": "VALUE", "operand": { "source": "CONSTANT", "constant": 1 } } },
+      { "position": 2, "kind": "OPEN" },
+      { "position": 3, "kind": "OPEN" },
+      { "position": 4, "kind": "OPEN" },
+      { "position": 5, "kind": "OPEN" },
+      { "position": 6, "kind": "OPEN" },
+      { "position": 7, "kind": "FIXED_INSTRUCTION", "operation": { "operator": "ADD", "register": "SCORE", "operand": { "source": "REGISTER", "register": "VALUE" } } }
+    ],
+    "finalOutputPosition": 7
+  },
+  {
+    "id": "WB-CORE-002",
+    "displayName": "Tutorial Process 2 Core",
+    "lines": [
+      { "position": 1, "kind": "FIXED_INSTRUCTION", "operation": { "operator": "ASSIGN", "register": "VALUE", "operand": { "source": "CONSTANT", "constant": 1 } } },
+      { "position": 2, "kind": "FIXED_INSTRUCTION", "operation": { "operator": "ASSIGN", "register": "SIGNAL", "operand": { "source": "CONSTANT", "constant": 0 } } },
+      { "position": 3, "kind": "OPEN" },
+      { "position": 4, "kind": "OPEN" },
+      { "position": 5, "kind": "OPEN" },
+      { "position": 6, "kind": "OPEN" },
+      { "position": 7, "kind": "OPEN" },
+      { "position": 8, "kind": "FIXED_INSTRUCTION", "operation": { "operator": "ADD", "register": "SCORE", "operand": { "source": "REGISTER", "register": "VALUE" } } }
+    ],
+    "finalOutputPosition": 8
+  },
+  {
+    "id": "WB-CORE-003",
+    "displayName": "PARITY CHECK Core",
+    "lines": [
+      { "position": 1, "kind": "FIXED_INSTRUCTION", "operation": { "operator": "ASSIGN", "register": "VALUE", "operand": { "source": "CONSTANT", "constant": 1 } } },
+      { "position": 2, "kind": "FIXED_INSTRUCTION", "operation": { "operator": "ASSIGN", "register": "SIGNAL", "operand": { "source": "CONSTANT", "constant": 0 } } },
+      { "position": 3, "kind": "OPEN" },
+      { "position": 4, "kind": "OPEN" },
+      { "position": 5, "kind": "OPEN" },
+      { "position": 6, "kind": "OPEN" },
+      { "position": 7, "kind": "OPEN" },
+      { "position": 8, "kind": "OPEN" },
+      { "position": 9, "kind": "FIXED_INSTRUCTION", "operation": { "operator": "ADD", "register": "VALUE", "operand": { "source": "REGISTER", "register": "SIGNAL" } } },
+      {
+        "position": 10,
+        "kind": "FIXED_STRUCTURE",
+        "predicate": { "register": "VALUE", "comparison": "IS_EVEN", "operand": 0 },
+        "contained": { "position": 0, "kind": "FIXED_INSTRUCTION", "operation": { "operator": "ADD", "register": "SCORE", "operand": { "source": "REGISTER", "register": "VALUE" } } }
+      },
+      { "position": 11, "kind": "FIXED_INSTRUCTION", "operation": { "operator": "ADD", "register": "SCORE", "operand": { "source": "REGISTER", "register": "VALUE" } } }
+    ],
+    "finalOutputPosition": 11
+  },
+  {
+    "id": "WB-CORE-004",
+    "displayName": "POWER SURGE Core",
+    "lines": [
+      { "position": 1, "kind": "FIXED_INSTRUCTION", "operation": { "operator": "ASSIGN", "register": "VALUE", "operand": { "source": "CONSTANT", "constant": 1 } } },
+      { "position": 2, "kind": "FIXED_INSTRUCTION", "operation": { "operator": "ASSIGN", "register": "SIGNAL", "operand": { "source": "CONSTANT", "constant": 0 } } },
+      { "position": 3, "kind": "OPEN" },
+      { "position": 4, "kind": "OPEN" },
+      { "position": 5, "kind": "OPEN" },
+      { "position": 6, "kind": "OPEN" },
+      { "position": 7, "kind": "OPEN" },
+      { "position": 8, "kind": "OPEN" },
+      { "position": 9, "kind": "FIXED_INSTRUCTION", "operation": { "operator": "ADD", "register": "SCORE", "operand": { "source": "REGISTER", "register": "VALUE" } } },
+      { "position": 10, "kind": "FIXED_INSTRUCTION", "operation": { "operator": "MULTIPLY", "register": "VALUE", "operand": { "source": "CONSTANT", "constant": 2 } } },
+      { "position": 11, "kind": "FIXED_INSTRUCTION", "operation": { "operator": "ADD", "register": "SCORE", "operand": { "source": "REGISTER", "register": "VALUE" } } }
+    ],
+    "finalOutputPosition": 11
+  },
+  {
+    "id": "WB-CORE-005",
+    "displayName": "THERMAL THROTTLE Core",
+    "lines": [
+      { "position": 1, "kind": "FIXED_INSTRUCTION", "operation": { "operator": "ASSIGN", "register": "VALUE", "operand": { "source": "CONSTANT", "constant": 1 } } },
+      { "position": 2, "kind": "FIXED_INSTRUCTION", "operation": { "operator": "ASSIGN", "register": "SIGNAL", "operand": { "source": "CONSTANT", "constant": 0 } } },
+      { "position": 3, "kind": "OPEN" },
+      { "position": 4, "kind": "OPEN" },
+      { "position": 5, "kind": "OPEN" },
+      { "position": 6, "kind": "OPEN" },
+      { "position": 7, "kind": "OPEN" },
+      { "position": 8, "kind": "OPEN" },
+      { "position": 9, "kind": "FIXED_INSTRUCTION", "operation": { "operator": "MULTIPLY", "register": "VALUE", "operand": { "source": "CONSTANT", "constant": 2 } } },
+      { "position": 10, "kind": "FIXED_INSTRUCTION", "operation": { "operator": "ADD", "register": "SCORE", "operand": { "source": "REGISTER", "register": "VALUE" } } },
+      { "position": 11, "kind": "FIXED_INSTRUCTION", "operation": { "operator": "MULTIPLY", "register": "VALUE", "operand": { "source": "CONSTANT", "constant": 2 } } },
+      { "position": 12, "kind": "FIXED_INSTRUCTION", "operation": { "operator": "ADD", "register": "SCORE", "operand": { "source": "REGISTER", "register": "VALUE" } } }
+    ],
+    "finalOutputPosition": 12
+  }
+]

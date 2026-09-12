@@ -1,0 +1,130 @@
+[
+  {
+    "id": "WB-PROC-001",
+    "displayName": "Tutorial Process 1",
+    "role": "TUTORIAL_1",
+    "core": "WB-CORE-001",
+    "processRule": "WB-PRC-002",
+    "thresholds": { "pass": 20, "optimize": 30, "benchmark": 36 },
+    "executions": 3,
+    "mandatoryExecutions": false,
+    "startingBytes": 0,
+    "bufferCapacity": 5,
+    "sourceCapacity": 5,
+    "initialSource": [
+      { "position": 2, "content": "WB-INS-002" },
+      { "position": 3, "content": "WB-INS-002" },
+      { "position": 4, "content": "WB-INS-012" }
+    ],
+    "bufferLoad": {
+      "policy": "SCRIPTED",
+      "initial": [],
+      "arrivals": [
+        { "afterExecution": 1, "items": ["WB-INS-005"] },
+        { "afterExecution": 2, "items": ["WB-INS-003"] }
+      ]
+    },
+    "rewardPackage": "WB-RWD-001"
+  },
+  {
+    "id": "WB-PROC-002",
+    "displayName": "Tutorial Process 2",
+    "role": "TUTORIAL_2",
+    "core": "WB-CORE-002",
+    "thresholds": { "pass": 18, "optimize": 32, "benchmark": 80 },
+    "executions": 4,
+    "mandatoryExecutions": true,
+    "startingBytes": 3,
+    "bufferCapacity": 3,
+    "sourceCapacity": 5,
+    "initialSource": [
+      { "position": 3, "content": "WB-INS-002" },
+      { "position": 4, "content": "WB-INS-002" },
+      { "position": 5, "content": "WB-INS-012" }
+    ],
+    "bufferLoad": {
+      "policy": "SCRIPTED",
+      "initial": ["WB-INS-007"],
+      "arrivals": [
+        { "afterExecution": 1, "items": ["WB-INS-010", "WB-STR-001"] },
+        { "afterExecution": 2, "items": ["WB-INS-005"] },
+        { "afterExecution": 3, "items": ["WB-DIR-001", "WB-INS-003"] }
+      ]
+    },
+    "rewardPackage": "WB-RWD-002",
+    "precedingShop": "WB-SHOP-001"
+  },
+  {
+    "id": "WB-PROC-003",
+    "displayName": "PARITY CHECK",
+    "role": "ROUTE_PROCESS_3",
+    "core": "WB-CORE-003",
+    "thresholds": { "pass": 16, "optimize": 28, "benchmark": 48 },
+    "executions": 4,
+    "mandatoryExecutions": false,
+    "startingBytes": 3,
+    "bufferCapacity": 5,
+    "sourceCapacity": 6,
+    "initialSource": [],
+    "bufferLoad": { "policy": "DRAWN", "initialCount": 3, "arrivalsAfterExecutions": [1, 2, 3] },
+    "exposure": { "guaranteed": ["WB-STR-002"] },
+    "activeBranch": {
+      "capacity": 9,
+      "required": ["WB-STR-002"],
+      "quarantined": [],
+      "recommendedTags": [],
+      "cautionTags": []
+    },
+    "rewardPackage": "WB-RWD-003",
+    "precedingShop": "WB-SHOP-002"
+  },
+  {
+    "id": "WB-PROC-004",
+    "displayName": "POWER SURGE",
+    "role": "ROUTE_PROCESS_3",
+    "core": "WB-CORE-004",
+    "thresholds": { "pass": 28, "optimize": 49, "benchmark": 84 },
+    "executions": 4,
+    "mandatoryExecutions": false,
+    "startingBytes": 3,
+    "bufferCapacity": 5,
+    "sourceCapacity": 6,
+    "initialSource": [],
+    "bufferLoad": { "policy": "DRAWN", "initialCount": 3, "arrivalsAfterExecutions": [1, 2, 3] },
+    "exposure": { "guaranteed": ["WB-STR-002"] },
+    "activeBranch": {
+      "capacity": 9,
+      "required": ["WB-STR-002"],
+      "quarantined": [],
+      "recommendedTags": [],
+      "cautionTags": []
+    },
+    "rewardPackage": "WB-RWD-004",
+    "precedingShop": "WB-SHOP-003"
+  },
+  {
+    "id": "WB-PROC-005",
+    "displayName": "THERMAL THROTTLE",
+    "role": "CRITICAL_PROCESS",
+    "core": "WB-CORE-005",
+    "processRule": "WB-PRC-001",
+    "thresholds": { "pass": 64, "optimize": 112, "benchmark": 192 },
+    "executions": 4,
+    "mandatoryExecutions": false,
+    "startingBytes": 3,
+    "bufferCapacity": 4,
+    "sourceCapacity": 6,
+    "initialSource": [],
+    "bufferLoad": { "policy": "DRAWN", "initialCount": 3, "arrivalsAfterExecutions": [1, 2, 3] },
+    "exposure": { "guaranteed": [] },
+    "activeBranch": {
+      "capacity": 9,
+      "required": [],
+      "quarantined": [],
+      "recommendedTags": [],
+      "cautionTags": []
+    },
+    "rewardPackage": "WB-RWD-005",
+    "precedingShop": "WB-SHOP-004"
+  }
+]

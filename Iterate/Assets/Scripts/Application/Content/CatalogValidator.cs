@@ -30,7 +30,15 @@ namespace Iterate.Application.Content
                 new DependencyRuleSet(),
                 new PatchRuleSet(),
                 new UtilityRuleSet(),
-                new ProcessRuleRuleSet()
+                new ProcessRuleRuleSet(),
+                new CoreRuleSet(),
+                new ProcessConfigurationRuleSet(),
+                new ShopRuleSet(),
+                new PoolRuleSet(),
+                new RewardPackageRuleSet(),
+                new RouteRuleSet(),
+                new StarterArchetypeRuleSet(),
+                new SystemRuleSet()
             };
 
             Dictionary<string, ICategoryRuleSet> byToken = new(StringComparer.Ordinal);

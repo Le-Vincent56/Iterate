@@ -1,0 +1,4 @@
+[
+  { "id": "WB-ROUTE-001", "displayName": "PARITY CHECK", "process": "WB-PROC-003", "shop": "WB-SHOP-002" },
+  { "id": "WB-ROUTE-002", "displayName": "POWER SURGE", "process": "WB-PROC-004", "shop": "WB-SHOP-003" }
+]

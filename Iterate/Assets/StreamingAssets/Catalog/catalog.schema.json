@@ -19,7 +19,7 @@
             "required": ["file", "category"],
             "properties": {
               "file": { "type": "string", "minLength": 1 },
-              "category": { "enum": ["PARAMETERS", "INSTRUCTION", "STRUCTURE", "DIRECTIVE", "DEPENDENCY", "PATCH", "UTILITY", "PROCESS_RULE"] }
+              "category": { "enum": ["PARAMETERS", "INSTRUCTION", "STRUCTURE", "DIRECTIVE", "DEPENDENCY", "PATCH", "UTILITY", "PROCESS_RULE", "CORE", "PROCESS_CONFIGURATION", "SHOP", "POOL", "REWARD_PACKAGE", "ROUTE", "STARTER_ARCHETYPE", "SYSTEM"] }
             }
           }
         }
@@ -263,6 +263,263 @@
         "tags": { "$ref": "#/$defs/tags" },
         "effects": { "type": "array", "items": { "$ref": "#/$defs/effect" } }
       }
+    },
+    "coreLine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["position", "kind"],
+      "properties": {
+        "position": { "type": "integer", "minimum": 0 },
+        "kind": { "enum": ["FIXED_INSTRUCTION", "OPEN", "FIXED_STRUCTURE"] },
+        "operation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["operator", "register", "operand"],
+          "properties": {
+            "operator": { "enum": ["ASSIGN", "ADD", "MULTIPLY"] },
+            "register": { "$ref": "#/$defs/coreRegister" },
+            "operand": { "$ref": "#/$defs/operand" }
+          }
+        },
+        "predicate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["register", "comparison", "operand"],
+          "properties": {
+            "register": { "$ref": "#/$defs/coreRegister" },
+            "comparison": { "enum": ["IS_EVEN", "AT_LEAST"] },
+            "operand": { "type": "integer" }
+          }
+        },
+        "contained": { "$ref": "#/$defs/coreLine" }
+      }
+    },
+    "core": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "displayName", "lines", "finalOutputPosition"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^WB-CORE-[0-9]{3}$" },
+        "displayName": { "type": "string", "minLength": 1 },
+        "lines": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/coreLine" } },
+        "finalOutputPosition": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "processConfiguration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "displayName", "role", "core", "thresholds", "executions", "mandatoryExecutions",
+        "startingBytes", "bufferCapacity", "sourceCapacity", "initialSource", "bufferLoad", "rewardPackage"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^WB-PROC-[0-9]{3}$" },
+        "displayName": { "type": "string", "minLength": 1 },
+        "role": { "enum": ["TUTORIAL_1", "TUTORIAL_2", "ROUTE_PROCESS_3", "CRITICAL_PROCESS"] },
+        "core": { "type": "string", "pattern": "^WB-CORE-[0-9]{3}$" },
+        "processRule": { "type": "string", "pattern": "^WB-PRC-[0-9]{3}$" },
+        "thresholds": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["pass", "optimize", "benchmark"],
+          "properties": {
+            "pass": { "type": "integer" },
+            "optimize": { "type": "integer" },
+            "benchmark": { "type": "integer" }
+          }
+        },
+        "executions": { "type": "integer", "minimum": 1 },
+        "mandatoryExecutions": { "type": "boolean" },
+        "startingBytes": { "type": "integer", "minimum": 0 },
+        "bufferCapacity": { "type": "integer", "minimum": 0 },
+        "sourceCapacity": { "type": "integer", "minimum": 1 },
+        "initialSource": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["position", "content"],
+            "properties": {
+              "position": { "type": "integer", "minimum": 1 },
+              "content": { "$ref": "#/$defs/contentReference" }
+            }
+          }
+        },
+        "bufferLoad": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["policy"],
+          "properties": {
+            "policy": { "enum": ["SCRIPTED", "DRAWN"] },
+            "initial": { "type": "array", "items": { "$ref": "#/$defs/contentReference" } },
+            "arrivals": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["afterExecution", "items"],
+                "properties": {
+                  "afterExecution": { "type": "integer", "minimum": 1 },
+                  "items": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/contentReference" } }
+                }
+              }
+            },
+            "initialCount": { "type": "integer", "minimum": 0 },
+            "arrivalsAfterExecutions": { "type": "array", "items": { "type": "integer", "minimum": 1 } }
+          }
+        },
+        "exposure": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["guaranteed"],
+          "properties": {
+            "guaranteed": { "type": "array", "items": { "$ref": "#/$defs/contentReference" } }
+          }
+        },
+        "activeBranch": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["capacity", "required", "quarantined"],
+          "properties": {
+            "capacity": { "type": "integer", "minimum": 1 },
+            "required": { "type": "array", "items": { "$ref": "#/$defs/contentReference" } },
+            "quarantined": { "type": "array", "items": { "$ref": "#/$defs/contentReference" } },
+            "recommendedTags": { "$ref": "#/$defs/tags" },
+            "cautionTags": { "$ref": "#/$defs/tags" }
+          }
+        },
+        "rewardPackage": { "type": "string", "pattern": "^WB-RWD-[0-9]{3}$" },
+        "precedingShop": { "type": "string", "pattern": "^WB-SHOP-[0-9]{3}$" }
+      }
+    },
+    "shop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "displayName", "slots", "rerollsEnabled", "pinningEnabled",
+        "dependenciesEnabled", "servicesEnabled", "fixedOffers"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^WB-SHOP-[0-9]{3}$" },
+        "displayName": { "type": "string", "minLength": 1 },
+        "slots": { "type": "integer", "minimum": 1 },
+        "rerollsEnabled": { "type": "boolean" },
+        "pinningEnabled": { "type": "boolean" },
+        "dependenciesEnabled": { "type": "boolean" },
+        "servicesEnabled": { "type": "boolean" },
+        "fixedOffers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["offerID", "content", "price"],
+            "properties": {
+              "offerID": { "type": "string", "pattern": "^OFF-[0-9]{3}$" },
+              "content": { "$ref": "#/$defs/contentReference" },
+              "price": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "rerollPool": { "type": "string", "pattern": "^WB-POOL-[0-9]{3}$" }
+      }
+    },
+    "pool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "displayName", "selectionMethod", "members"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^WB-POOL-[0-9]{3}$" },
+        "displayName": { "type": "string", "minLength": 1 },
+        "selectionMethod": { "enum": ["PLAYER_CHOICE", "UNIFORM_WITHOUT_REPLACEMENT"] },
+        "selectionCount": { "type": "integer", "minimum": 1 },
+        "members": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["content"],
+            "properties": {
+              "content": { "$ref": "#/$defs/contentReference" },
+              "price": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    "rewardPackage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "displayName", "components"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^WB-RWD-[0-9]{3}$" },
+        "displayName": { "type": "string", "minLength": 1 },
+        "components": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["tier", "kind"],
+            "properties": {
+              "tier": { "enum": ["PASS", "OPTIMIZE", "BENCHMARK"] },
+              "kind": { "enum": ["TOKENS", "POOL_CHOICE", "GUARANTEED_CONTENT", "CACHED_PATCH", "PATCH", "ROUTE_TOKEN_BONUS", "RAM_SET"] },
+              "amount": { "type": "integer", "minimum": 1 },
+              "reference": { "type": "string", "pattern": "^(WB-INS|WB-STR|WB-DIR|WB-PAT|WB-UTL|WB-DEP|WB-POOL)-[0-9]{3}$" }
+            }
+          }
+        }
+      }
+    },
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "displayName", "process", "shop"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^WB-ROUTE-[0-9]{3}$" },
+        "displayName": { "type": "string", "minLength": 1 },
+        "process": { "type": "string", "pattern": "^WB-PROC-[0-9]{3}$" },
+        "shop": { "type": "string", "pattern": "^WB-SHOP-[0-9]{3}$" }
+      }
+    },
+    "starterArchetype": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "displayName", "startingRepository", "starterDependency"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^WB-ARCH-[0-9]{3}$" },
+        "displayName": { "type": "string", "minLength": 1 },
+        "startingRepository": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/contentReference" } },
+        "starterDependency": { "type": "string", "pattern": "^WB-DEP-[0-9]{3}$" }
+      }
+    },
+    "system": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "displayName", "stages"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^WB-SYS-[0-9]{3}$" },
+        "displayName": { "type": "string", "minLength": 1 },
+        "stages": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind"],
+            "properties": {
+              "kind": { "enum": ["PROCESS", "SHOP", "ROUTE_SELECTION"] },
+              "process": { "type": "string", "pattern": "^WB-PROC-[0-9]{3}$" },
+              "shop": { "type": "string", "pattern": "^WB-SHOP-[0-9]{3}$" },
+              "routes": { "type": "array", "items": { "type": "string", "pattern": "^WB-ROUTE-[0-9]{3}$" } }
+            }
+          }
+        }
+      }
+    },
+    "contentReference": {
+      "type": "string",
+      "pattern": "^(WB-INS|WB-STR|WB-DIR|WB-PAT|WB-UTL|WB-DEP)-[0-9]{3}$"
     }
   }
 }

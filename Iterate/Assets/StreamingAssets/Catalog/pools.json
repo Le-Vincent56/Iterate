@@ -1,0 +1,129 @@
+[
+  {
+    "id": "WB-POOL-001",
+    "displayName": "Process 1 fixed reward pool",
+    "selectionMethod": "PLAYER_CHOICE",
+    "selectionCount": 1,
+    "members": [
+      { "content": "WB-INS-004" },
+      { "content": "WB-INS-008" },
+      { "content": "WB-INS-013" }
+    ]
+  },
+  {
+    "id": "WB-POOL-002",
+    "displayName": "Shared Process 3 reroll pool",
+    "selectionMethod": "UNIFORM_WITHOUT_REPLACEMENT",
+    "members": [
+      { "content": "WB-INS-002", "price": 4 },
+      { "content": "WB-INS-007", "price": 4 },
+      { "content": "WB-INS-010", "price": 6 },
+      { "content": "WB-INS-013", "price": 6 },
+      { "content": "WB-STR-001", "price": 6 },
+      { "content": "WB-DIR-001", "price": 5 },
+      { "content": "WB-PAT-002", "price": 6 },
+      { "content": "WB-UTL-002", "price": 3 }
+    ]
+  },
+  {
+    "id": "WB-POOL-003",
+    "displayName": "PARITY CHECK reroll pool",
+    "selectionMethod": "UNIFORM_WITHOUT_REPLACEMENT",
+    "members": [
+      { "content": "WB-INS-002", "price": 4 },
+      { "content": "WB-INS-007", "price": 4 },
+      { "content": "WB-INS-010", "price": 6 },
+      { "content": "WB-INS-013", "price": 6 },
+      { "content": "WB-STR-001", "price": 6 },
+      { "content": "WB-DIR-001", "price": 5 },
+      { "content": "WB-PAT-002", "price": 6 },
+      { "content": "WB-UTL-002", "price": 3 },
+      { "content": "WB-INS-006", "price": 4 },
+      { "content": "WB-INS-009", "price": 6 },
+      { "content": "WB-STR-004", "price": 6 },
+      { "content": "WB-DIR-002", "price": 5 }
+    ]
+  },
+  {
+    "id": "WB-POOL-004",
+    "displayName": "POWER SURGE reroll pool",
+    "selectionMethod": "UNIFORM_WITHOUT_REPLACEMENT",
+    "members": [
+      { "content": "WB-INS-002", "price": 4 },
+      { "content": "WB-INS-007", "price": 4 },
+      { "content": "WB-INS-010", "price": 6 },
+      { "content": "WB-INS-013", "price": 6 },
+      { "content": "WB-STR-001", "price": 6 },
+      { "content": "WB-DIR-001", "price": 5 },
+      { "content": "WB-PAT-002", "price": 6 },
+      { "content": "WB-UTL-002", "price": 3 },
+      { "content": "WB-INS-003", "price": 4 },
+      { "content": "WB-INS-011", "price": 6 },
+      { "content": "WB-INS-014", "price": 6 },
+      { "content": "WB-DIR-003", "price": 5 }
+    ]
+  },
+  {
+    "id": "WB-POOL-005",
+    "displayName": "Pre-Critical reroll pool",
+    "selectionMethod": "UNIFORM_WITHOUT_REPLACEMENT",
+    "members": [
+      { "content": "WB-DEP-005", "price": 5 },
+      { "content": "WB-DEP-006", "price": 5 },
+      { "content": "WB-DEP-007", "price": 7 },
+      { "content": "WB-DEP-008", "price": 5 },
+      { "content": "WB-UTL-001", "price": 3 },
+      { "content": "WB-UTL-002", "price": 3 },
+      { "content": "WB-UTL-003", "price": 5 },
+      { "content": "WB-DIR-001", "price": 5 },
+      { "content": "WB-INS-012", "price": 4 },
+      { "content": "WB-INS-003", "price": 4 },
+      { "content": "WB-PAT-003", "price": 6 },
+      { "content": "WB-PAT-004", "price": 6 }
+    ]
+  },
+  {
+    "id": "WB-POOL-006",
+    "displayName": "PARITY CHECK Pass reward pool",
+    "selectionMethod": "PLAYER_CHOICE",
+    "selectionCount": 1,
+    "members": [
+      { "content": "WB-STR-005" },
+      { "content": "WB-STR-004" },
+      { "content": "WB-INS-013" }
+    ]
+  },
+  {
+    "id": "WB-POOL-007",
+    "displayName": "POWER SURGE Pass reward pool",
+    "selectionMethod": "PLAYER_CHOICE",
+    "selectionCount": 1,
+    "members": [
+      { "content": "WB-INS-004" },
+      { "content": "WB-INS-013" },
+      { "content": "WB-STR-001" }
+    ]
+  },
+  {
+    "id": "WB-POOL-008",
+    "displayName": "Critical Repository reward pool",
+    "selectionMethod": "PLAYER_CHOICE",
+    "selectionCount": 1,
+    "members": [
+      { "content": "WB-INS-015" },
+      { "content": "WB-STR-006" },
+      { "content": "WB-DIR-004" }
+    ]
+  },
+  {
+    "id": "WB-POOL-009",
+    "displayName": "Critical Dependency reward pool",
+    "selectionMethod": "PLAYER_CHOICE",
+    "selectionCount": 1,
+    "members": [
+      { "content": "WB-DEP-009" },
+      { "content": "WB-DEP-010" },
+      { "content": "WB-DEP-011" }
+    ]
+  }
+]

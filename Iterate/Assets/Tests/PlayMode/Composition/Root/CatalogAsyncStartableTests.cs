@@ -37,7 +37,7 @@ namespace Iterate.Composition.Root.Tests
 
             Assert.AreEqual(CatalogState.Loaded, holder.State);
             Assert.IsTrue(holder.TryGetCatalog(out ContentCatalog catalog));
-            Assert.AreEqual("0.1.0", catalog.Revision);
+            Assert.AreEqual("0.2.0", catalog.Revision);
             Assert.IsTrue(sink.Has(LogLevel.Info, "Catalog loaded"));
         }
 

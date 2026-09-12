@@ -11,7 +11,7 @@ namespace Iterate.Infrastructure.Content.Tests
 {
     /// <summary>
     /// Loads the shipped catalog under StreamingAssets/Catalog through the real pipeline and pins its
-    /// conformance: it loads without errors at revision 0.1.0, carries all 46 definitions with the
+    /// conformance: it loads without errors at revision 0.2.0, carries all 79 definitions with the
     /// per-category counts, exposes the locked parameters, and matches the slice's spot-check items.
     /// This is the standing TA-DAT-004 conformance evidence; it is red until the catalog files exist.
     /// </summary>
@@ -30,11 +30,11 @@ namespace Iterate.Infrastructure.Content.Tests
         {
             ContentCatalog catalog = Load();
 
-            Assert.AreEqual("0.1.0", catalog.Revision);
+            Assert.AreEqual("0.2.0", catalog.Revision);
         }
 
         [Test]
-        public void ShippedCatalog_HasForty6DefinitionsWithPerCategoryCounts()
+        public void ShippedCatalog_HasSeventyNineDefinitionsWithPerCategoryCounts()
         {
             ContentCatalog catalog = Load();
 
@@ -44,8 +44,16 @@ namespace Iterate.Infrastructure.Content.Tests
             Assert.AreEqual(11, catalog.Dependencies.Count, "Dependencies");
             Assert.AreEqual(6, catalog.Patches.Count, "Patches");
             Assert.AreEqual(3, catalog.Utilities.Count, "Utilities");
-            Assert.AreEqual(1, catalog.ProcessRules.Count, "ProcessRules");
-            Assert.AreEqual(46, catalog.DefinitionCount, "total");
+            Assert.AreEqual(2, catalog.ProcessRules.Count, "ProcessRules");
+            Assert.AreEqual(5, catalog.Cores.Count, "Cores");
+            Assert.AreEqual(5, catalog.ProcessConfigurations.Count, "ProcessConfigurations");
+            Assert.AreEqual(4, catalog.Shops.Count, "Shops");
+            Assert.AreEqual(9, catalog.Pools.Count, "Pools");
+            Assert.AreEqual(5, catalog.RewardPackages.Count, "RewardPackages");
+            Assert.AreEqual(2, catalog.Routes.Count, "Routes");
+            Assert.AreEqual(1, catalog.StarterArchetypes.Count, "StarterArchetypes");
+            Assert.AreEqual(1, catalog.Systems.Count, "Systems");
+            Assert.AreEqual(79, catalog.DefinitionCount, "total");
         }
 
         [Test]

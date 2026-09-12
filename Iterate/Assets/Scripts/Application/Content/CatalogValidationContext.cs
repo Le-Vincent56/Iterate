@@ -105,6 +105,8 @@ namespace Iterate.Application.Content
         private readonly HashSet<string> _displayNames = new(StringComparer.Ordinal);
 
         private readonly List<PendingReference> _references = new();
+        
+        private readonly List<PendingIDReference> _idReferences = new();
 
         /// <summary>
         /// The file name stamped on errors added while it is current.
@@ -152,6 +154,25 @@ namespace Iterate.Application.Content
         {
             _references.Add(new PendingReference(CurrentFile, jsonPath, referencedName, ruleName));
         }
+        
+        /// <summary>
+        /// Records a reference to another definition's stable ID, resolved after all files are read.
+        /// Unlike a display-name reference, an ID reference also declares the WB namespace it expects,
+        /// so naming a defined ID of the wrong kind is reported as its own failure.
+        /// </summary>
+        /// <param name="jsonPath">The JSON path of the reference.</param>
+        /// <param name="referencedID">The referenced stable ID.</param>
+        /// <param name="expectedPrefix">The expected WB namespace prefix, such as "WB-POOL-"; "WB-" accepts any canon ID.</param>
+        /// <param name="ruleName">The rule to report when the ID resolves but its namespace does not match.</param>
+        public void RegisterIDReference(
+            string jsonPath,
+            string referencedID,
+            string expectedPrefix,
+            string ruleName
+        )
+        {
+            _idReferences.Add(new PendingIDReference(CurrentFile, jsonPath, referencedID, expectedPrefix, ruleName));
+        }
 
         /// <summary>
         /// Resolves every recorded reference against the collected display names, reporting the
@@ -169,6 +190,31 @@ namespace Iterate.Application.Content
                         reference.JsonPath,
                         reference.RuleName,
                         "'" + reference.ReferencedName + "' does not resolve to a defined item."
+                    ));
+                }
+            }
+            
+            for (int index = 0; index < _idReferences.Count; index++)
+            {
+                PendingIDReference reference = _idReferences[index];
+                if (!_definedIDs.Contains(reference.ReferencedID))
+                {
+                    _errors.Add(new CatalogError(
+                        reference.File,
+                        reference.JsonPath,
+                        "reference.unknown-id",
+                        "'" + reference.ReferencedID + "' does not resolve to a defined id."
+                    ));
+                    continue;
+                }
+
+                if (!reference.ReferencedID.StartsWith(reference.ExpectedPrefix, StringComparison.Ordinal))
+                {
+                    _errors.Add(new CatalogError(
+                        reference.File,
+                        reference.JsonPath,
+                        reference.RuleName,
+                        "'" + reference.ReferencedID + "' is defined but is not a '" + reference.ExpectedPrefix + "' id."
                     ));
                 }
             }
@@ -837,6 +883,22 @@ namespace Iterate.Application.Content
             string File,
             string JsonPath,
             string ReferencedName,
+            string RuleName
+        );
+        
+        /// <summary>
+        /// A reference to another definition's stable ID, pending resolution after all files load.
+        /// </summary>
+        /// <param name="File">The file the reference occurs in.</param>
+        /// <param name="JsonPath">The JSON path of the reference.</param>
+        /// <param name="ReferencedID">The referenced stable ID.</param>
+        /// <param name="ExpectedPrefix">The WB namespace prefix the reference expects.</param>
+        /// <param name="RuleName">The rule to report when the namespace does not match.</param>
+        private readonly record struct PendingIDReference(
+            string File,
+            string JsonPath,
+            string ReferencedID,
+            string ExpectedPrefix,
             string RuleName
         );
     }

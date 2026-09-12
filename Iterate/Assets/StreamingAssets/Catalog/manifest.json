@@ -1,5 +1,5 @@
 {
-  "revision": "0.1.0",
+  "revision": "0.2.0",
   "schemaVersion": "1.0.0",
   "files": [
     { "file": "parameters.json", "category": "PARAMETERS" },
@@ -9,6 +9,14 @@
     { "file": "dependencies.json", "category": "DEPENDENCY" },
     { "file": "patches.json", "category": "PATCH" },
     { "file": "utilities.json", "category": "UTILITY" },
-    { "file": "processrules.json", "category": "PROCESS_RULE" }
+    { "file": "processrules.json", "category": "PROCESS_RULE" },
+    { "file": "cores.json", "category": "CORE" },
+    { "file": "processes.json", "category": "PROCESS_CONFIGURATION" },
+    { "file": "shops.json", "category": "SHOP" },
+    { "file": "pools.json", "category": "POOL" },
+    { "file": "rewards.json", "category": "REWARD_PACKAGE" },
+    { "file": "routes.json", "category": "ROUTE" },
+    { "file": "archetypes.json", "category": "STARTER_ARCHETYPE" },
+    { "file": "systems.json", "category": "SYSTEM" }
   ]
 }

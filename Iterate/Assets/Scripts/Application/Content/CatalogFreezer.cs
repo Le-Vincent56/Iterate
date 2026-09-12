@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Iterate.Application.Content.Json;
+using Iterate.Domain.Compilation;
 using Iterate.Domain.Content;
 using Iterate.Domain.Values;
 
@@ -30,6 +31,14 @@ namespace Iterate.Application.Content
             List<PatchDefinition> patches = new();
             List<UtilityDefinition> utilities = new();
             List<ProcessRuleDefinition> processRules = new();
+            List<CoreDefinition> cores = new();
+            List<ProcessConfigurationDefinition> processConfigurations = new();
+            List<ShopDefinition> shops = new();
+            List<PoolDefinition> pools = new();
+            List<RewardPackageDefinition> rewardPackages = new();
+            List<RouteDefinition> routes = new();
+            List<StarterArchetypeDefinition> starterArchetypes = new();
+            List<SystemDefinition> systems = new();
 
             for (int index = 0; index < manifest.Files.Count; index++)
             {
@@ -71,6 +80,38 @@ namespace Iterate.Application.Content
                         case CatalogFileKind.ProcessRule:
                             FreezeProcessRules(rows, processRules);
                             break;
+                        
+                        case CatalogFileKind.Core:
+                            FreezeCores(rows, cores);
+                            break;
+
+                        case CatalogFileKind.ProcessConfiguration:
+                            FreezeProcessConfigurations(rows, processConfigurations);
+                            break;
+
+                        case CatalogFileKind.Shop:
+                            FreezeShops(rows, shops);
+                            break;
+
+                        case CatalogFileKind.Pool:
+                            FreezePools(rows, pools);
+                            break;
+
+                        case CatalogFileKind.RewardPackage:
+                            FreezeRewardPackages(rows, rewardPackages);
+                            break;
+
+                        case CatalogFileKind.Route:
+                            FreezeRoutes(rows, routes);
+                            break;
+
+                        case CatalogFileKind.StarterArchetype:
+                            FreezeStarterArchetypes(rows, starterArchetypes);
+                            break;
+
+                        case CatalogFileKind.System:
+                            FreezeSystems(rows, systems);
+                            break;
                     }
                 }
                 catch (CatalogLoadException)
@@ -95,7 +136,15 @@ namespace Iterate.Application.Content
                 dependencies,
                 patches,
                 utilities,
-                processRules
+                processRules,
+                cores,
+                processConfigurations,
+                shops,
+                pools,
+                rewardPackages,
+                routes,
+                starterArchetypes,
+                systems
             );
         }
 
@@ -290,6 +339,406 @@ namespace Iterate.Application.Content
             }
         }
 
+        /// <summary>
+        /// Freezes each Core row into the target list.
+        /// </summary>
+        /// <param name="rows">The Core rows.</param>
+        /// <param name="target">The list to append the frozen Cores to.</param>
+        private static void FreezeCores(JsonArray rows, List<CoreDefinition> target)
+        {
+            for (int index = 0; index < rows.Items.Count; index++)
+            {
+                JsonObject row = (JsonObject)rows.Items[index];
+                target.Add(new CoreDefinition(
+                    new CoreID(ReadString(row, "id")),
+                    ReadString(row, "displayName"),
+                    FreezeCoreLines(ReadArray(row, "lines")),
+                    new SourcePosition(ReadInteger(row, "finalOutputPosition"))
+                ));
+            }
+        }
+
+        /// <summary>
+        /// Freezes a Core's ordered line array.
+        /// </summary>
+        /// <param name="rows">The Core line rows.</param>
+        /// <returns>The frozen line specs in authored order.</returns>
+        private static IReadOnlyList<CoreLineSpec> FreezeCoreLines(JsonArray rows)
+        {
+            List<CoreLineSpec> lines = new(rows.Items.Count);
+            for (int index = 0; index < rows.Items.Count; index++)
+            {
+                lines.Add(FreezeCoreLine((JsonObject)rows.Items[index]));
+            }
+
+            return lines;
+        }
+
+        /// <summary>
+        /// Freezes one Core line, recursing into a fixed Structure's contained instruction.
+        /// </summary>
+        /// <param name="line">The Core line row.</param>
+        /// <returns>The frozen line spec.</returns>
+        private static CoreLineSpec FreezeCoreLine(JsonObject line)
+        {
+            CoreLineOperation operation = Has(line, "operation")
+                ? FreezeCoreLineOperation(ReadObject(line, "operation"))
+                : null;
+            StructurePredicate predicate = Has(line, "predicate")
+                ? FreezePredicate(ReadObject(line, "predicate"))
+                : null;
+            CoreLineSpec contained = Has(line, "contained")
+                ? FreezeCoreLine(ReadObject(line, "contained"))
+                : null;
+
+            return new CoreLineSpec(
+                ReadInteger(line, "position"),
+                ParseEnum<CoreLineKind>(ReadString(line, "kind")),
+                operation,
+                predicate,
+                contained
+            );
+        }
+
+        /// <summary>
+        /// Freezes a Core line's typed operation.
+        /// </summary>
+        /// <param name="operation">The operation object.</param>
+        /// <returns>The frozen Core line operation.</returns>
+        private static CoreLineOperation FreezeCoreLineOperation(JsonObject operation)
+        {
+            return new CoreLineOperation(
+                ParseEnum<CoreLineOperator>(ReadString(operation, "operator")),
+                ParseEnum<CoreRegister>(ReadString(operation, "register")),
+                FreezeOperand(ReadObject(operation, "operand"))
+            );
+        }
+
+        /// <summary>
+        /// Freezes each Process-configuration row into the target list.
+        /// </summary>
+        /// <param name="rows">The Process-configuration rows.</param>
+        /// <param name="target">The list to append the frozen configurations to.</param>
+        private static void FreezeProcessConfigurations(JsonArray rows, List<ProcessConfigurationDefinition> target)
+        {
+            for (int index = 0; index < rows.Items.Count; index++)
+            {
+                JsonObject row = (JsonObject)rows.Items[index];
+                ProcessRuleID? processRule = Has(row, "processRule")
+                    ? new ProcessRuleID(ReadString(row, "processRule"))
+                    : null;
+                ShopID? precedingShop = Has(row, "precedingShop")
+                    ? new ShopID(ReadString(row, "precedingShop"))
+                    : null;
+                ExposureSpec exposure = Has(row, "exposure")
+                    ? new ExposureSpec(ReadStringList(ReadArray(ReadObject(row, "exposure"), "guaranteed")))
+                    : null;
+                ActiveBranchSpec activeBranch = Has(row, "activeBranch")
+                    ? FreezeActiveBranch(ReadObject(row, "activeBranch"))
+                    : null;
+
+                JsonObject thresholds = ReadObject(row, "thresholds");
+                target.Add(new ProcessConfigurationDefinition(
+                    new ProcessID(ReadString(row, "id")),
+                    ReadString(row, "displayName"),
+                    ParseEnum<ProcessRole>(ReadString(row, "role")),
+                    new CoreID(ReadString(row, "core")),
+                    processRule,
+                    new ProcessThresholdSpec(
+                        ReadInteger(thresholds, "pass"),
+                        ReadInteger(thresholds, "optimize"),
+                        ReadInteger(thresholds, "benchmark")
+                    ),
+                    ReadInteger(row, "executions"),
+                    ReadBoolean(row, "mandatoryExecutions"),
+                    ReadInteger(row, "startingBytes"),
+                    ReadInteger(row, "bufferCapacity"),
+                    ReadInteger(row, "sourceCapacity"),
+                    FreezeInitialSource(ReadArray(row, "initialSource")),
+                    FreezeBufferLoad(ReadObject(row, "bufferLoad")),
+                    exposure,
+                    activeBranch,
+                    new RewardPackageID(ReadString(row, "rewardPackage")),
+                    precedingShop
+                ));
+            }
+        }
+
+        /// <summary>
+        /// Freezes a Process's Active Branch constraints.
+        /// </summary>
+        /// <param name="branch">The Active Branch object.</param>
+        /// <returns>The frozen Branch constraints.</returns>
+        private static ActiveBranchSpec FreezeActiveBranch(JsonObject branch)
+        {
+            return new ActiveBranchSpec(
+                ReadInteger(branch, "capacity"),
+                ReadStringList(ReadArray(branch, "required")),
+                ReadStringList(ReadArray(branch, "quarantined")),
+                Has(branch, "recommendedTags") ? ReadStringList(ReadArray(branch, "recommendedTags")) : Array.Empty<string>(),
+                Has(branch, "cautionTags") ? ReadStringList(ReadArray(branch, "cautionTags")) : Array.Empty<string>()
+            );
+        }
+
+        /// <summary>
+        /// Freezes a Process's pre-installed source entries.
+        /// </summary>
+        /// <param name="rows">The initial-source rows.</param>
+        /// <returns>The frozen entries in authored order.</returns>
+        private static IReadOnlyList<InitialSourceSpec> FreezeInitialSource(JsonArray rows)
+        {
+            List<InitialSourceSpec> entries = new(rows.Items.Count);
+            for (int index = 0; index < rows.Items.Count; index++)
+            {
+                JsonObject row = (JsonObject)rows.Items[index];
+                entries.Add(new InitialSourceSpec(ReadInteger(row, "position"), ReadString(row, "content")));
+            }
+
+            return entries;
+        }
+
+        /// <summary>
+        /// Freezes a Process's Buffer load plan, filling the pair its policy does not use with empty
+        /// lists rather than nulls.
+        /// </summary>
+        /// <param name="load">The Buffer load object.</param>
+        /// <returns>The frozen load plan.</returns>
+        private static BufferLoadSpec FreezeBufferLoad(JsonObject load)
+        {
+            List<ArrivalLoadSpec> arrivals = new();
+            if (Has(load, "arrivals"))
+            {
+                JsonArray rows = ReadArray(load, "arrivals");
+                for (int index = 0; index < rows.Items.Count; index++)
+                {
+                    JsonObject row = (JsonObject)rows.Items[index];
+                    arrivals.Add(new ArrivalLoadSpec(
+                        ReadInteger(row, "afterExecution"),
+                        ReadStringList(ReadArray(row, "items"))
+                    ));
+                }
+            }
+
+            return new BufferLoadSpec(
+                ParseEnum<BufferLoadPolicy>(ReadString(load, "policy")),
+                Has(load, "initial") ? ReadStringList(ReadArray(load, "initial")) : Array.Empty<string>(),
+                arrivals,
+                Has(load, "initialCount") ? ReadInteger(load, "initialCount") : 0,
+                Has(load, "arrivalsAfterExecutions") ? ReadIntegerList(ReadArray(load, "arrivalsAfterExecutions")) : Array.Empty<int>()
+            );
+        }
+
+        /// <summary>
+        /// Freezes each shop row into the target list.
+        /// </summary>
+        /// <param name="rows">The shop rows.</param>
+        /// <param name="target">The list to append the frozen shops to.</param>
+        private static void FreezeShops(JsonArray rows, List<ShopDefinition> target)
+        {
+            for (int index = 0; index < rows.Items.Count; index++)
+            {
+                JsonObject row = (JsonObject)rows.Items[index];
+                PoolID? rerollPool = Has(row, "rerollPool") ? new PoolID(ReadString(row, "rerollPool")) : null;
+
+                List<ShopOffer> offers = new();
+                JsonArray offerRows = ReadArray(row, "fixedOffers");
+                for (int offerIndex = 0; offerIndex < offerRows.Items.Count; offerIndex++)
+                {
+                    JsonObject offer = (JsonObject)offerRows.Items[offerIndex];
+                    offers.Add(new ShopOffer(
+                        ReadString(offer, "offerID"),
+                        ReadString(offer, "content"),
+                        ReadInteger(offer, "price")
+                    ));
+                }
+
+                target.Add(new ShopDefinition(
+                    new ShopID(ReadString(row, "id")),
+                    ReadString(row, "displayName"),
+                    ReadInteger(row, "slots"),
+                    ReadBoolean(row, "rerollsEnabled"),
+                    ReadBoolean(row, "pinningEnabled"),
+                    ReadBoolean(row, "dependenciesEnabled"),
+                    ReadBoolean(row, "servicesEnabled"),
+                    offers,
+                    rerollPool
+                ));
+            }
+        }
+
+        /// <summary>
+        /// Freezes each acquisition-pool row into the target list.
+        /// </summary>
+        /// <param name="rows">The pool rows.</param>
+        /// <param name="target">The list to append the frozen pools to.</param>
+        private static void FreezePools(JsonArray rows, List<PoolDefinition> target)
+        {
+            for (int index = 0; index < rows.Items.Count; index++)
+            {
+                JsonObject row = (JsonObject)rows.Items[index];
+                int? selectionCount = Has(row, "selectionCount") ? ReadInteger(row, "selectionCount") : null;
+
+                List<PoolMember> members = new();
+                JsonArray memberRows = ReadArray(row, "members");
+                for (int memberIndex = 0; memberIndex < memberRows.Items.Count; memberIndex++)
+                {
+                    JsonObject member = (JsonObject)memberRows.Items[memberIndex];
+                    int? price = Has(member, "price") ? ReadInteger(member, "price") : null;
+                    members.Add(new PoolMember(ReadString(member, "content"), price));
+                }
+
+                target.Add(new PoolDefinition(
+                    new PoolID(ReadString(row, "id")),
+                    ReadString(row, "displayName"),
+                    ReadString(row, "selectionMethod"),
+                    selectionCount,
+                    members
+                ));
+            }
+        }
+
+        /// <summary>
+        /// Freezes each reward-package row into the target list, preserving component order.
+        /// </summary>
+        /// <param name="rows">The reward-package rows.</param>
+        /// <param name="target">The list to append the frozen packages to.</param>
+        private static void FreezeRewardPackages(JsonArray rows, List<RewardPackageDefinition> target)
+        {
+            for (int index = 0; index < rows.Items.Count; index++)
+            {
+                JsonObject row = (JsonObject)rows.Items[index];
+
+                List<RewardComponent> components = new();
+                JsonArray componentRows = ReadArray(row, "components");
+                for (int componentIndex = 0; componentIndex < componentRows.Items.Count; componentIndex++)
+                {
+                    JsonObject component = (JsonObject)componentRows.Items[componentIndex];
+                    int? amount = Has(component, "amount") ? ReadInteger(component, "amount") : null;
+                    string reference = Has(component, "reference") ? ReadString(component, "reference") : null;
+                    components.Add(new RewardComponent(
+                        ParseEnum<RewardTier>(ReadString(component, "tier")),
+                        ParseEnum<RewardComponentKind>(ReadString(component, "kind")),
+                        amount,
+                        reference
+                    ));
+                }
+
+                target.Add(new RewardPackageDefinition(
+                    new RewardPackageID(ReadString(row, "id")),
+                    ReadString(row, "displayName"),
+                    components
+                ));
+            }
+        }
+
+        /// <summary>
+        /// Freezes each route row into the target list.
+        /// </summary>
+        /// <param name="rows">The route rows.</param>
+        /// <param name="target">The list to append the frozen routes to.</param>
+        private static void FreezeRoutes(JsonArray rows, List<RouteDefinition> target)
+        {
+            for (int index = 0; index < rows.Items.Count; index++)
+            {
+                JsonObject row = (JsonObject)rows.Items[index];
+                target.Add(new RouteDefinition(
+                    new RouteID(ReadString(row, "id")),
+                    ReadString(row, "displayName"),
+                    new ProcessID(ReadString(row, "process")),
+                    new ShopID(ReadString(row, "shop"))
+                ));
+            }
+        }
+
+        /// <summary>
+        /// Freezes each Starter Archetype row into the target list.
+        /// </summary>
+        /// <param name="rows">The archetype rows.</param>
+        /// <param name="target">The list to append the frozen archetypes to.</param>
+        private static void FreezeStarterArchetypes(JsonArray rows, List<StarterArchetypeDefinition> target)
+        {
+            for (int index = 0; index < rows.Items.Count; index++)
+            {
+                JsonObject row = (JsonObject)rows.Items[index];
+                target.Add(new StarterArchetypeDefinition(
+                    new StarterArchetypeID(ReadString(row, "id")),
+                    ReadString(row, "displayName"),
+                    ReadStringList(ReadArray(row, "startingRepository")),
+                    new DependencyID(ReadString(row, "starterDependency"))
+                ));
+            }
+        }
+
+        /// <summary>
+        /// Freezes each System row into the target list, preserving stage order.
+        /// </summary>
+        /// <param name="rows">The System rows.</param>
+        /// <param name="target">The list to append the frozen Systems to.</param>
+        private static void FreezeSystems(JsonArray rows, List<SystemDefinition> target)
+        {
+            for (int index = 0; index < rows.Items.Count; index++)
+            {
+                JsonObject row = (JsonObject)rows.Items[index];
+
+                List<SystemStage> stages = new();
+                JsonArray stageRows = ReadArray(row, "stages");
+                for (int stageIndex = 0; stageIndex < stageRows.Items.Count; stageIndex++)
+                {
+                    stages.Add(FreezeSystemStage((JsonObject)stageRows.Items[stageIndex]));
+                }
+
+                target.Add(new SystemDefinition(
+                    new SystemID(ReadString(row, "id")),
+                    ReadString(row, "displayName"),
+                    stages
+                ));
+            }
+        }
+
+        /// <summary>
+        /// Freezes one System stage, carrying only the reference its kind admits.
+        /// </summary>
+        /// <param name="stage">The stage object.</param>
+        /// <returns>The frozen stage.</returns>
+        private static SystemStage FreezeSystemStage(JsonObject stage)
+        {
+            ProcessID? process = Has(stage, "process") ? new ProcessID(ReadString(stage, "process")) : null;
+            ShopID? shop = Has(stage, "shop") ? new ShopID(ReadString(stage, "shop")) : null;
+
+            List<RouteID> routes = new();
+            if (Has(stage, "routes"))
+            {
+                JsonArray rows = ReadArray(stage, "routes");
+                for (int index = 0; index < rows.Items.Count; index++)
+                {
+                    routes.Add(new RouteID(((JsonString)rows.Items[index]).Value));
+                }
+            }
+
+            return new SystemStage(
+                ParseEnum<SystemStageKind>(ReadString(stage, "kind")),
+                process,
+                shop,
+                routes
+            );
+        }
+
+        /// <summary>
+        /// Reads a JSON array of integers into an integer list.
+        /// </summary>
+        /// <param name="array">The array of integer values.</param>
+        /// <returns>The read integer list.</returns>
+        private static IReadOnlyList<int> ReadIntegerList(JsonArray array)
+        {
+            List<int> values = new(array.Items.Count);
+            for (int index = 0; index < array.Items.Count; index++)
+            {
+                values.Add((int)((JsonNumber)array.Items[index]).IntegerValue);
+            }
+
+            return values;
+        }
+        
         /// <summary>
         /// Freezes a definition's effects array.
         /// </summary>
