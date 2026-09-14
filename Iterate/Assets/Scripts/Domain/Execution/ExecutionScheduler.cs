@@ -147,6 +147,21 @@ namespace Iterate.Domain.Execution
             {
                 installedDependencies.Add(installed[i].InstanceID);
             }
+            
+            IReadOnlyList<SourceSlot> slots = request.Source.Arrangement.Slots;
+            List<InstanceID> relevantPatches = new List<InstanceID>();
+            for (int i = 0; i < slots.Count; i++)
+            {
+                SourceSlot slot = slots[i];
+                if (slot.Kind != SourceSlotKind.Instruction && slot.Kind != SourceSlotKind.ContainedInstruction)
+                    continue;
+
+                IReadOnlyList<PatchAttachment> attachments = slot.Instruction.AttachedPatches;
+                for (int j = 0; j < attachments.Count; j++)
+                {
+                    relevantPatches.Add(attachments[j].Patch.InstanceID);
+                }
+            }
 
             ExecutionEvidenceHeader header = new ExecutionEvidenceHeader(
                 configuration.ExecutionIdentity,
@@ -159,7 +174,7 @@ namespace Iterate.Domain.Execution
                 request.RevisionStamps,
                 activeDirectives,
                 installedDependencies,
-                new List<InstanceID>(),
+                relevantPatches,
                 request.InitialState
             );
 

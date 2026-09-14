@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Iterate.Domain.Content;
 
 namespace Iterate.Domain.Compilation
@@ -61,31 +62,41 @@ namespace Iterate.Domain.Compilation
         }
 
         /// <summary>
-        /// Compares two Instruction occupants by instance identity and attached-Patch identity.
+        /// Compares two Instruction occupants by instance identity and by attachments.
         /// </summary>
         /// <param name="left">The first Instruction occupant.</param>
         /// <param name="right">The second Instruction occupant.</param>
-        /// <returns>True when both identities match; false otherwise.</returns>
+        /// <returns>True when both identities and both attachment lists match; false otherwise.</returns>
         private static bool InstructionsEquivalent(InstructionInstance left, InstructionInstance right)
         {
-            return left.InstanceID == right.InstanceID && AttachedPatchesEquivalent(left.AttachedPatch, right.AttachedPatch);
+            return left.InstanceID == right.InstanceID && AttachmentsEquivalent(left.AttachedPatches, right.AttachedPatches);
         }
 
         /// <summary>
-        /// Compares two attached Patches by instance identity, treating both-absent as equivalent.
+        /// Compares two attachment lists pairwise by socket and Patch instance identity. Both lists are
+        /// ascending by socket, so a positional walk is a socket-keyed comparison.
         /// </summary>
-        /// <param name="left">The first attached Patch, or null.</param>
-        /// <param name="right">The second attached Patch, or null.</param>
-        /// <returns>True when both are absent or share an identity; false otherwise.</returns>
-        private static bool AttachedPatchesEquivalent(PatchInstance left, PatchInstance right)
+        /// <param name="left">The first attachment list.</param>
+        /// <param name="right">The second attachment list.</param>
+        /// <returns>True when the lists match entry for entry; false otherwise.</returns>
+        private static bool AttachmentsEquivalent(
+            IReadOnlyList<PatchAttachment> left,
+            IReadOnlyList<PatchAttachment> right
+        )
         {
-            if (left == null && right == null)
-                return true;
-
-            if (left == null || right == null)
+            if (left.Count != right.Count)
                 return false;
 
-            return left.InstanceID == right.InstanceID;
+            for (int i = 0; i < left.Count; i++)
+            {
+                if (left[i].Socket != right[i].Socket)
+                    return false;
+
+                if (left[i].Patch.InstanceID != right[i].Patch.InstanceID)
+                    return false;
+            }
+
+            return true;
         }
     }
 }

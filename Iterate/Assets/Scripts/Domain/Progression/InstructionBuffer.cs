@@ -19,15 +19,10 @@ namespace Iterate.Domain.Progression
     public sealed class InstructionBuffer : IBuildBuffer
     {
         private readonly RepositoryItem[] _slots;
-
         private readonly List<RepositoryItem> _queue = new();
-
         private readonly List<RepositoryItem> _archived = new();
-
         private readonly List<RepositoryItem> _consumed = new();
-
         private readonly List<BufferRecord> _records = new();
-
         private readonly Dictionary<InstanceID, BufferItemState> _states = new();
 
         /// <summary>
@@ -133,6 +128,10 @@ namespace Iterate.Domain.Progression
         /// </summary>
         /// <param name="id">The buffered instance to archive.</param>
         /// <returns>The archive result.</returns>
+        /// <remarks>
+        /// Archive through <see cref="ProcessState.Archive"/> rather than here: this method commits the
+        /// archive but does not fire the Dependencies that observe one.
+        /// </remarks>
         public ArchiveResult Archive(InstanceID id)
         {
             int slot = FindSlotOf(id);
@@ -153,6 +152,10 @@ namespace Iterate.Domain.Progression
         /// queued arrival becomes the incoming one.
         /// </summary>
         /// <returns>The archive result.</returns>
+        /// <remarks>
+        /// Archive through <see cref="ProcessState.ArchiveIncoming"/> rather than here, for the same
+        /// reason as <see cref="Archive"/>.
+        /// </remarks>
         public ArchiveResult ArchiveIncoming()
         {
             if (!IsOverflowing)
@@ -246,7 +249,15 @@ namespace Iterate.Domain.Progression
         /// <inheritdoc />
         public void AcceptRemoved(InstructionInstance removed)
         {
-            AcceptRemovedItem(RepositoryItem.From(removed.Definition, removed.InstanceID));
+            AcceptRemovedItem(new RepositoryItem(
+                RepositoryItemKind.Instruction,
+                removed.InstanceID,
+                removed.Definition.ID.Value,
+                removed.Definition.Tags,
+                removed,
+                null,
+                null)
+            );
         }
 
         /// <inheritdoc />

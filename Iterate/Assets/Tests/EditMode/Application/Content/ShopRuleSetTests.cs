@@ -23,6 +23,64 @@ namespace Iterate.Application.Content.Tests
         }
 
         [Test]
+        public void ADependencyFixedOfferInADependenciesDisabledShop_ReportsDependencyOfferDisabled()
+        {
+            string shops = CatalogExtensionFixtures.ValidShopsFile.Replace(
+                @"""content"": ""WB-INS-002""",
+                @"""content"": ""WB-DEP-002"""
+            );
+
+            IReadOnlyList<CatalogError> errors = CatalogExtensionFixtures.ValidateWith(
+                (CatalogExtensionFixtures.ShopsFile, shops)
+            );
+
+            Assert.IsTrue(
+                CatalogTestFixtures.HasRule(errors, "shop.dependency-offer-disabled"),
+                CatalogExtensionFixtures.Describe(errors)
+            );
+        }
+
+        [Test]
+        public void ADependencyFixedOfferInADependenciesEnabledShop_IsAccepted()
+        {
+            string shops = CatalogExtensionFixtures.ValidShopsFile
+                .Replace(@"""content"": ""WB-INS-002""", @"""content"": ""WB-DEP-002""")
+                .Replace(@"""dependenciesEnabled"": false", @"""dependenciesEnabled"": true");
+
+            IReadOnlyList<CatalogError> errors = CatalogExtensionFixtures.ValidateWith(
+                (CatalogExtensionFixtures.ShopsFile, shops)
+            );
+
+            Assert.IsFalse(
+                CatalogTestFixtures.HasRule(errors, "shop.dependency-offer-disabled"),
+                CatalogExtensionFixtures.Describe(errors)
+            );
+        }
+
+        [Test]
+        public void ADependencyPoolMemberBoundToADependenciesDisabledShop_ReportsDependencyOfferDisabled()
+        {
+            string shops = CatalogExtensionFixtures.ValidShopsFile.Replace(
+                @"""rerollsEnabled"": false",
+                @"""rerollsEnabled"": true, ""rerollPool"": ""WB-POOL-001"""
+            );
+            string pools = CatalogExtensionFixtures.ValidPoolsFile.Replace(
+                @"{ ""content"": ""WB-INS-003"" }",
+                @"{ ""content"": ""WB-DEP-002"" }"
+            );
+
+            IReadOnlyList<CatalogError> errors = CatalogExtensionFixtures.ValidateWith(
+                (CatalogExtensionFixtures.ShopsFile, shops),
+                (CatalogExtensionFixtures.PoolsFile, pools)
+            );
+
+            Assert.IsTrue(
+                CatalogTestFixtures.HasRule(errors, "shop.dependency-offer-disabled"),
+                CatalogExtensionFixtures.Describe(errors)
+            );
+        }
+
+        [Test]
         public void RerollsEnabledWithoutARerollPool_ReportsRerollPoolMissing()
         {
             string shops = CatalogExtensionFixtures.ValidShopsFile.Replace(

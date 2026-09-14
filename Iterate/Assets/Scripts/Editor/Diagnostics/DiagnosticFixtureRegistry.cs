@@ -275,7 +275,7 @@ namespace Iterate.Editor.Diagnostics
             if (!catalog.TryGetInstruction(new InstructionID(id), out InstructionDefinition definition))
                 throw new ArgumentException("The catalog does not define " + id + ".", nameof(id));
 
-            return new InstructionInstance(new InstanceID(instance), definition, null);
+            return new InstructionInstance(new InstanceID(instance), definition, Array.Empty<PatchAttachment>());
         }
 
         /// <summary>
@@ -300,7 +300,11 @@ namespace Iterate.Editor.Diagnostics
             if (!catalog.TryGetPatch(new PatchID(patchID), out PatchDefinition patch))
                 throw new ArgumentException("The catalog does not define " + patchID + ".", nameof(patchID));
 
-            return new InstructionInstance(new InstanceID(hostInstance), definition, new PatchInstance(new InstanceID(patchInstance), patch));
+            return new InstructionInstance(
+                new InstanceID(hostInstance),
+                definition,
+                new PatchAttachment[] { new PatchAttachment(1, new PatchInstance(new InstanceID(patchInstance), patch)) }
+           );
         }
 
         /// <summary>

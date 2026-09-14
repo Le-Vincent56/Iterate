@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Iterate.Domain.Content
 {
     /// <summary>
-    /// The locked WB-PAR parameter register as typed accessors. Construction requires exactly the 30
+    /// The locked WB-PAR parameter register as typed accessors. Construction requires exactly the 33
     /// canonical register IDs; a missing ID, an unknown ID, or a fractional value for an integer
     /// parameter is a construction failure naming the offending ID (honoring missing-is-not-zero).
     /// </summary>
@@ -17,7 +17,8 @@ namespace Iterate.Domain.Content
             "WB-PAR-011", "WB-PAR-012", "WB-PAR-013", "WB-PAR-014", "WB-PAR-015",
             "WB-PAR-016", "WB-PAR-017", "WB-PAR-018", "WB-PAR-019", "WB-PAR-020",
             "WB-PAR-021", "WB-PAR-022", "WB-PAR-023", "WB-PAR-024", "WB-PAR-026",
-            "WB-PAR-028", "WB-PAR-029", "WB-PAR-030", "WB-PAR-035", "WB-PAR-036"
+            "WB-PAR-028", "WB-PAR-029", "WB-PAR-030", "WB-PAR-035", "WB-PAR-036",
+            "WB-PAR-037", "WB-PAR-038", "WB-PAR-039"
         };
 
         private static readonly HashSet<string> _ratioIDs = new(StringComparer.Ordinal)
@@ -177,6 +178,21 @@ namespace Iterate.Domain.Content
         /// </summary>
         public int PatchSocketsPerRepositoryInstance => Integer("WB-PAR-036");
 
+        /// <summary>
+        /// The Token price of the Delete Repository item Service.
+        /// </summary>
+        public int DeleteRepositoryItemPrice => Integer("WB-PAR-037");
+
+        /// <summary>
+        /// The Token price of the Duplicate Repository item Service.
+        /// </summary>
+        public int DuplicateRepositoryItemPrice => Integer("WB-PAR-038");
+
+        /// <summary>
+        /// The Token fee added to a Patch's price when it replaces an occupied socket.
+        /// </summary>
+        public int PatchReplacementFee => Integer("WB-PAR-039");
+        
         public ParameterSet(IReadOnlyDictionary<string, double> values)
         {
             if (values == null)

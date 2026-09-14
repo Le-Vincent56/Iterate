@@ -89,9 +89,9 @@ namespace Iterate.Domain.Execution.Tests
             CoreLine coreOne = new CoreLine("core-01", new CoreLineOperation(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(1)));
             CoreLine coreSeven = new CoreLine("core-07", new CoreLineOperation(CoreLineOperator.Add, CoreRegister.Score, OperandSpec.FromRegister(CoreRegister.Value)));
 
-            InstructionInstance addA = new InstructionInstance(ids.Next(), AddValueInstruction(2), null);
-            InstructionInstance addB = new InstructionInstance(ids.Next(), AddValueInstruction(2), null);
-            InstructionInstance scoreAdd = new InstructionInstance(ids.Next(), ScoreAddValueInstruction(), null);
+            InstructionInstance addA = new InstructionInstance(ids.Next(), AddValueInstruction(2), Array.Empty<PatchAttachment>());
+            InstructionInstance addB = new InstructionInstance(ids.Next(), AddValueInstruction(2), Array.Empty<PatchAttachment>());
+            InstructionInstance scoreAdd = new InstructionInstance(ids.Next(), ScoreAddValueInstruction(), Array.Empty<PatchAttachment>());
 
             SourceArrangement arrangement = new SourceArrangement(new List<SourceSlot>
             {
@@ -119,7 +119,7 @@ namespace Iterate.Domain.Execution.Tests
             CoreLine coreOne = new CoreLine("core-01", new CoreLineOperation(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(1)));
             CoreLine coreThree = new CoreLine("core-03", new CoreLineOperation(CoreLineOperator.Add, CoreRegister.Score, OperandSpec.FromRegister(CoreRegister.Value)));
 
-            InstructionInstance boost = new InstructionInstance(ids.Next(), AddValueInstruction(20), null);
+            InstructionInstance boost = new InstructionInstance(ids.Next(), AddValueInstruction(20), Array.Empty<PatchAttachment>());
 
             SourceArrangement arrangement = new SourceArrangement(new List<SourceSlot>
             {
@@ -302,7 +302,7 @@ namespace Iterate.Domain.Execution.Tests
             return new InstructionInstance(
                 new InstanceID(instance),
                 InstructionWith(new QuantityChangeOperation(CoreRegister.Value, QuantityOperator.Multiply, OperandSpec.FromConstant(constant))),
-                null);
+                Array.Empty<PatchAttachment>());
         }
 
         /// <summary>
@@ -313,7 +313,7 @@ namespace Iterate.Domain.Execution.Tests
         /// <returns>The Instruction instance.</returns>
         public static InstructionInstance ScoreAddValueInstance(int instance)
         {
-            return new InstructionInstance(new InstanceID(instance), ScoreAddValueInstruction(), null);
+            return new InstructionInstance(new InstanceID(instance), ScoreAddValueInstruction(), Array.Empty<PatchAttachment>());
         }
 
         /// <summary>
@@ -544,7 +544,7 @@ namespace Iterate.Domain.Execution.Tests
             return new InstructionInstance(
                 new InstanceID(instance),
                 InstructionWith(new QuantityChangeOperation(CoreRegister.Signal, QuantityOperator.Add, OperandSpec.FromConstant(constant))),
-                null);
+                Array.Empty<PatchAttachment>());
         }
 
         /// <summary>
@@ -555,7 +555,7 @@ namespace Iterate.Domain.Execution.Tests
         /// <returns>The Instruction instance.</returns>
         public static InstructionInstance ValueAddInstance(int instance, int constant)
         {
-            return new InstructionInstance(new InstanceID(instance), AddValueInstruction(constant), null);
+            return new InstructionInstance(new InstanceID(instance), AddValueInstruction(constant), Array.Empty<PatchAttachment>());
         }
 
         /// <summary>

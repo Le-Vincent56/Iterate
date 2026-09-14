@@ -183,12 +183,12 @@ namespace Iterate.Domain.Compilation.Tests
 
         private static InstructionInstance NewInstruction(int idValue)
         {
-            return new InstructionInstance(new InstanceID(idValue), _ordinaryDefinition, null);
+            return new InstructionInstance(new InstanceID(idValue), _ordinaryDefinition, Array.Empty<PatchAttachment>());
         }
 
         private static InstructionInstance NewOverwrite(int idValue)
         {
-            return new InstructionInstance(new InstanceID(idValue), _overwriteDefinition, null);
+            return new InstructionInstance(new InstanceID(idValue), _overwriteDefinition, Array.Empty<PatchAttachment>());
         }
 
         private static SourceSlot Empty(int line)
@@ -221,7 +221,8 @@ namespace Iterate.Domain.Compilation.Tests
                 "WB-PAR-011", "WB-PAR-012", "WB-PAR-013", "WB-PAR-014", "WB-PAR-015",
                 "WB-PAR-016", "WB-PAR-017", "WB-PAR-018", "WB-PAR-019", "WB-PAR-020",
                 "WB-PAR-021", "WB-PAR-022", "WB-PAR-023", "WB-PAR-024", "WB-PAR-026",
-                "WB-PAR-028", "WB-PAR-029", "WB-PAR-030", "WB-PAR-035", "WB-PAR-036"
+                "WB-PAR-028", "WB-PAR-029", "WB-PAR-030", "WB-PAR-035", "WB-PAR-036",
+                "WB-PAR-037", "WB-PAR-038", "WB-PAR-039"
             };
 
             Dictionary<string, double> values = new Dictionary<string, double>();

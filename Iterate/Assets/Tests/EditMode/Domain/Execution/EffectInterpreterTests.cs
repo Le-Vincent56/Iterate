@@ -682,7 +682,7 @@ namespace Iterate.Domain.Execution.Tests
         [Test]
         public void Interpret_ConstantPatchShape_YieldsSocketedOperationModification()
         {
-            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-001", ConstantPatchEffect())));
+            InstructionInstance host = Host(50, PatchOn(60, Patch("WB-PAT-001", ConstantPatchEffect())));
 
             IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(host);
 
@@ -695,7 +695,7 @@ namespace Iterate.Domain.Execution.Tests
         [Test]
         public void Interpret_PatchEffect_CarriesPatchOriginAndHostInstance()
         {
-            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-001", ConstantPatchEffect())));
+            InstructionInstance host = Host(50, PatchOn(60, Patch("WB-PAT-001", ConstantPatchEffect())));
 
             IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(host);
 
@@ -705,11 +705,61 @@ namespace Iterate.Domain.Execution.Tests
         }
 
         [Test]
+        public void Interpret_TwoAttachmentsOnOneHost_YieldTwoEffectsWithDistinctOrigins()
+        {
+            PatchDefinition definition = Patch("WB-PAT-001", ConstantPatchEffect());
+            InstructionInstance host = HostWith(
+                50,
+                new PatchAttachment(1, PatchOn(60, definition)),
+                new PatchAttachment(2, PatchOn(61, definition)));
+
+            IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(host);
+
+            Assert.AreEqual(2, effects.Count);
+            Assert.AreEqual(new InstanceID(60), effects[0].Origin);
+            Assert.AreEqual(new InstanceID(61), effects[1].Origin);
+            Assert.AreEqual(new InstanceID(50), effects[0].HostInstance);
+            Assert.AreEqual(new InstanceID(50), effects[1].HostInstance);
+        }
+
+        [Test]
+        public void Interpret_TwoAttachmentsOnOneHost_KeepIndependentFrequencyKeys()
+        {
+            PatchDefinition definition = Patch("WB-PAT-001", ConstantPatchEffect());
+            InstructionInstance host = HostWith(
+                50,
+                new PatchAttachment(1, PatchOn(60, definition)),
+                new PatchAttachment(2, PatchOn(61, definition)));
+
+            IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(host);
+
+            Assert.AreEqual("WB-PAT-001:0#60", effects[0].FrequencyKey);
+            Assert.AreEqual("WB-PAT-001:0#61", effects[1].FrequencyKey);
+        }
+
+        [Test]
+        public void Interpret_AttachmentsOutOfInsertionOrder_YieldEffectsInSocketOrder()
+        {
+            PatchDefinition definition = Patch("WB-PAT-001", ConstantPatchEffect());
+            InstructionInstance host = new InstructionInstance(
+                    new InstanceID(50),
+                    InstructionDefinitionForHost(),
+                    Array.Empty<PatchAttachment>())
+                .WithAttachment(new PatchAttachment(2, PatchOn(61, definition)))
+                .WithAttachment(new PatchAttachment(1, PatchOn(60, definition)));
+
+            IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(host);
+
+            Assert.AreEqual(new InstanceID(60), effects[0].Origin);
+            Assert.AreEqual(new InstanceID(61), effects[1].Origin);
+        }
+
+        [Test]
         public void Interpret_TwoAttachmentsOfOneDefinition_YieldDistinctOriginsAndKeys()
         {
             PatchDefinition definition = Patch("WB-PAT-001", ConstantPatchEffect());
-            InstructionInstance first = Host(50, PatchAttachment(60, definition));
-            InstructionInstance second = Host(51, PatchAttachment(61, definition));
+            InstructionInstance first = Host(50, PatchOn(60, definition));
+            InstructionInstance second = Host(51, PatchOn(61, definition));
 
             IReadOnlyList<ActiveEffect> firstEffects = EffectInterpreter.Interpret(first);
             IReadOnlyList<ActiveEffect> secondEffects = EffectInterpreter.Interpret(second);
@@ -722,7 +772,7 @@ namespace Iterate.Domain.Execution.Tests
         [Test]
         public void Interpret_EchoPatchShape_YieldsSocketedAddedExecution()
         {
-            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-002", EchoPatchEffect())));
+            InstructionInstance host = Host(50, PatchOn(60, Patch("WB-PAT-002", EchoPatchEffect())));
 
             IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(host);
 
@@ -735,7 +785,7 @@ namespace Iterate.Domain.Execution.Tests
         [Test]
         public void Interpret_TerminalPatchShape_YieldsSocketedAddedExecution()
         {
-            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-003", PostUnitPatchEffect("POSITIONAL", "FINAL_OCCUPIED_PLAYER_LINE"))));
+            InstructionInstance host = Host(50, PatchOn(60, Patch("WB-PAT-003", PostUnitPatchEffect("POSITIONAL", "FINAL_OCCUPIED_PLAYER_LINE"))));
 
             IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(host);
 
@@ -746,7 +796,7 @@ namespace Iterate.Domain.Execution.Tests
         [Test]
         public void Interpret_TruePatchShape_YieldsSocketedAddedExecution()
         {
-            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-004", PostUnitPatchEffect("STRUCTURE_CONTEXT", "INSIDE_SUCCEEDING_CONDITION"))));
+            InstructionInstance host = Host(50, PatchOn(60, Patch("WB-PAT-004", PostUnitPatchEffect("STRUCTURE_CONTEXT", "INSIDE_SUCCEEDING_CONDITION"))));
 
             IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(host);
 
@@ -757,7 +807,7 @@ namespace Iterate.Domain.Execution.Tests
         [Test]
         public void Interpret_PipelinePatchShape_YieldsSocketedAddedExecution()
         {
-            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-006", PostUnitPatchEffect("STRUCTURE_CONTEXT", "ADJACENT_AFTER_SUCCESSFUL_SCORE"))));
+            InstructionInstance host = Host(50, PatchOn(60, Patch("WB-PAT-006", PostUnitPatchEffect("STRUCTURE_CONTEXT", "ADJACENT_AFTER_SUCCESSFUL_SCORE"))));
 
             IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(host);
 
@@ -768,7 +818,7 @@ namespace Iterate.Domain.Execution.Tests
         [Test]
         public void Interpret_FeedbackPatchShape_YieldsSocketedReaction()
         {
-            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-005", FeedbackPatchEffect())));
+            InstructionInstance host = Host(50, PatchOn(60, Patch("WB-PAT-005", FeedbackPatchEffect())));
 
             IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(host);
 
@@ -880,7 +930,7 @@ namespace Iterate.Domain.Execution.Tests
         [Test]
         public void Interpret_TargetLockUpdateOnPatch_ThrowsNamingKind()
         {
-            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-901", BurstLockEffect())));
+            InstructionInstance host = Host(50, PatchOn(60, Patch("WB-PAT-901", BurstLockEffect())));
 
             ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(host));
 
@@ -890,7 +940,7 @@ namespace Iterate.Domain.Execution.Tests
         [Test]
         public void Interpret_BoundaryPairOnPatch_ThrowsNamingSocketing()
         {
-            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-902", BurstBoundaryEffect(true))));
+            InstructionInstance host = Host(50, PatchOn(60, Patch("WB-PAT-902", BurstBoundaryEffect(true))));
 
             ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(host));
 
@@ -905,7 +955,7 @@ namespace Iterate.Domain.Execution.Tests
                 new AddedExecutionRequestOperation(new TargetingRule("TRIGGERING_UNIT", string.Empty), false),
                 new EffectFrequency("ONCE", "SOURCE_EXECUTION"),
                 new TargetingRule("TRIGGERING_UNIT", string.Empty));
-            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-903", effect)));
+            InstructionInstance host = Host(50, PatchOn(60, Patch("WB-PAT-903", effect)));
 
             ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(host));
 
@@ -920,7 +970,7 @@ namespace Iterate.Domain.Execution.Tests
                 new AddedExecutionRequestOperation(new TargetingRule("OWN_HOST", string.Empty), false),
                 new EffectFrequency("ONCE", "SOURCE_EXECUTION"),
                 new TargetingRule("OWN_HOST", string.Empty));
-            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-904", effect)));
+            InstructionInstance host = Host(50, PatchOn(60, Patch("WB-PAT-904", effect)));
 
             ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(host));
 
@@ -935,7 +985,7 @@ namespace Iterate.Domain.Execution.Tests
                 new AddedExecutionRequestOperation(new TargetingRule("OWN_HOST", string.Empty), false),
                 new EffectFrequency("ONCE", "SOURCE_EXECUTION"),
                 new TargetingRule("NO_TARGET", string.Empty));
-            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-905", effect)));
+            InstructionInstance host = Host(50, PatchOn(60, Patch("WB-PAT-905", effect)));
 
             ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(host));
 
@@ -954,7 +1004,7 @@ namespace Iterate.Domain.Execution.Tests
                 Operation(),
                 new EffectFrequency("EVERY_QUALIFYING_EVENT", "DECLARED_SCOPE"),
                 new TargetingRule("NO_TARGET", string.Empty));
-            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-906", effect)));
+            InstructionInstance host = Host(50, PatchOn(60, Patch("WB-PAT-906", effect)));
 
             ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(host));
 
@@ -969,7 +1019,7 @@ namespace Iterate.Domain.Execution.Tests
                 new AddedExecutionRequestOperation(new TargetingRule("OWN_HOST", string.Empty), true),
                 new EffectFrequency("ONCE", "SOURCE_EXECUTION"),
                 new TargetingRule("OWN_HOST", string.Empty));
-            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-907", effect)));
+            InstructionInstance host = Host(50, PatchOn(60, Patch("WB-PAT-907", effect)));
 
             ArgumentException exception = Assert.Throws<ArgumentException>(() => EffectInterpreter.Interpret(host));
 
@@ -979,7 +1029,7 @@ namespace Iterate.Domain.Execution.Tests
         [Test]
         public void Interpret_SourceExecutionScope_Accepted()
         {
-            InstructionInstance host = Host(50, PatchAttachment(60, Patch("WB-PAT-002", EchoPatchEffect())));
+            InstructionInstance host = Host(50, PatchOn(60, Patch("WB-PAT-002", EchoPatchEffect())));
 
             IReadOnlyList<ActiveEffect> effects = EffectInterpreter.Interpret(host);
 
@@ -1337,9 +1387,43 @@ namespace Iterate.Domain.Execution.Tests
         /// <param name="instanceID">The instance identity value.</param>
         /// <param name="definition">The frozen definition.</param>
         /// <returns>The Patch instance.</returns>
-        private static PatchInstance PatchAttachment(int instanceID, PatchDefinition definition)
+        private static PatchInstance PatchOn(int instanceID, PatchDefinition definition)
         {
             return new PatchInstance(new InstanceID(instanceID), definition);
+        }
+
+        /// <summary>
+        /// Builds a host Instruction instance carrying the given attachments.
+        /// </summary>
+        /// <param name="instanceID">The host's instance identity value.</param>
+        /// <param name="first">The first socket's attachment.</param>
+        /// <param name="second">The second socket's attachment.</param>
+        /// <returns>The Instruction instance.</returns>
+        private static InstructionInstance HostWith(int instanceID, PatchAttachment first, PatchAttachment second)
+        {
+            return new InstructionInstance(
+                new InstanceID(instanceID),
+                InstructionDefinitionForHost(),
+                new PatchAttachment[] { first, second });
+        }
+
+        /// <summary>
+        /// The Instruction definition every host fixture in this suite realises.
+        /// </summary>
+        /// <returns>The frozen definition.</returns>
+        private static InstructionDefinition InstructionDefinitionForHost()
+        {
+            return new InstructionDefinition(
+                new InstructionID("WB-INS-001"),
+                "Test rules.",
+                "TEST INSTRUCTION",
+                ContentCategory.Instruction,
+                Rarity.Starter,
+                new List<string>(),
+                1,
+                Operation(),
+                null,
+                new List<string>());
         }
 
         /// <summary>
@@ -1362,7 +1446,11 @@ namespace Iterate.Domain.Execution.Tests
                 null,
                 new List<string>());
 
-            return new InstructionInstance(new InstanceID(instanceID), definition, attachedPatch);
+            IReadOnlyList<PatchAttachment> attachments = attachedPatch == null
+                ? Array.Empty<PatchAttachment>()
+                : new PatchAttachment[] { new PatchAttachment(1, attachedPatch) };
+
+            return new InstructionInstance(new InstanceID(instanceID), definition, attachments);
         }
 
         /// <summary>

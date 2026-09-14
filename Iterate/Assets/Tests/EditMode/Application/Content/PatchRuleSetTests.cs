@@ -46,6 +46,49 @@ namespace Iterate.Application.Content.Tests
         }
 
         [Test]
+        public void Validate_UnknownHostEligibility_ReportsUnknownHostEligibility()
+        {
+            string json = @"[
+                {
+                    ""id"": ""WB-PAT-001"", ""rulesText"": ""x"", ""displayName"": ""CONSTANT PATCH"",
+                    ""category"": ""PATCH"", ""rarity"": ""COMMON"", ""tags"": [""Value""],
+                    ""hostEligibility"": ""NO_SUCH_RULE"",
+                    ""effects"": [
+                        { ""phaseDomain"": ""EXECUTION"", ""operation"": { ""kind"": ""OPERATION_MODIFICATION"", ""operandDelta"": 1 }, ""targeting"": { ""kind"": ""OWN_HOST"", ""argument"": """" }, ""stacking"": ""ADDITIVE_PARAMETER"" }
+                    ]
+                }
+            ]";
+
+            IReadOnlyList<CatalogError> errors = Validate(PatchesManifest, (ManifestFileName, json));
+
+            Assert.IsTrue(HasError(errors, ManifestFileName, "patch.unknown-host-eligibility"));
+        }
+
+        [Test]
+        public void Validate_EveryVocabularyRule_IsAccepted()
+        {
+            foreach (string rule in Iterate.Domain.Content.CatalogVocabulary.PatchHostEligibilityRules)
+            {
+                string json = @"[
+                    {
+                        ""id"": ""WB-PAT-001"", ""rulesText"": ""x"", ""displayName"": ""CONSTANT PATCH"",
+                        ""category"": ""PATCH"", ""rarity"": ""COMMON"", ""tags"": [""Value""],
+                        ""hostEligibility"": """ + rule + @""",
+                        ""effects"": [
+                            { ""phaseDomain"": ""EXECUTION"", ""operation"": { ""kind"": ""OPERATION_MODIFICATION"", ""operandDelta"": 1 }, ""targeting"": { ""kind"": ""OWN_HOST"", ""argument"": """" }, ""stacking"": ""ADDITIVE_PARAMETER"" }
+                        ]
+                    }
+                ]";
+
+                IReadOnlyList<CatalogError> errors = Validate(PatchesManifest, (ManifestFileName, json));
+
+                Assert.IsFalse(
+                    HasError(errors, ManifestFileName, "patch.unknown-host-eligibility"),
+                    rule + " is in the vocabulary but rejected by the rule set");
+            }
+        }
+
+        [Test]
         public void Validate_OperationModificationMissingDelta_ReportsOperationPayload()
         {
             string json = @"[

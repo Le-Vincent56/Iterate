@@ -28,5 +28,8 @@
   { "id": "WB-PAR-029", "name": "Second reroll cost", "value": 2, "unit": "tokens", "scope": "GLOBAL" },
   { "id": "WB-PAR-030", "name": "Third reroll cost", "value": 3, "unit": "tokens", "scope": "GLOBAL" },
   { "id": "WB-PAR-035", "name": "Dependency destruction refund ratio", "value": 0.5, "unit": "ratio", "scope": "GLOBAL" },
-  { "id": "WB-PAR-036", "name": "Patch sockets per Repository instance", "value": 2, "unit": "count", "scope": "GLOBAL" }
+  { "id": "WB-PAR-036", "name": "Patch sockets per Repository instance", "value": 2, "unit": "count", "scope": "GLOBAL" },
+  { "id": "WB-PAR-037", "name": "Delete Repository item price", "value": 3, "unit": "tokens", "scope": "GLOBAL" },
+  { "id": "WB-PAR-038", "name": "Duplicate Repository item price", "value": 7, "unit": "tokens", "scope": "GLOBAL" },
+  { "id": "WB-PAR-039", "name": "Patch replacement fee", "value": 3, "unit": "tokens", "scope": "GLOBAL" }
 ]

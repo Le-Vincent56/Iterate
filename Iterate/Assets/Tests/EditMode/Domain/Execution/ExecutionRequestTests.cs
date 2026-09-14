@@ -286,7 +286,7 @@ namespace Iterate.Domain.Execution.Tests
         private static SourceArrangement CoreAndInstructionArrangement()
         {
             CoreLine core = new("core-01", new CoreLineOperation(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(1)));
-            InstructionInstance instruction = new(new InstanceID(1), _instructionDefinition, null);
+            InstructionInstance instruction = new(new InstanceID(1), _instructionDefinition, Array.Empty<PatchAttachment>());
 
             return new SourceArrangement(new List<SourceSlot>
             {
@@ -300,7 +300,7 @@ namespace Iterate.Domain.Execution.Tests
         {
             CoreLine core = new("core-01", new CoreLineOperation(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(1)));
             StructureInstance structure = new(new InstanceID(4), _repeatDefinition);
-            InstructionInstance contained = new(new InstanceID(5), _instructionDefinition, null);
+            InstructionInstance contained = new(new InstanceID(5), _instructionDefinition, Array.Empty<PatchAttachment>());
 
             return new SourceArrangement(new List<SourceSlot>
             {
@@ -323,7 +323,7 @@ namespace Iterate.Domain.Execution.Tests
             return new SourceArrangement(new List<SourceSlot>
             {
                 SourceSlot.ForCore(new SourcePosition(1), core),
-                SourceSlot.ForInstruction(new SourcePosition(2), new InstructionInstance(new InstanceID(50), _instructionDefinition, null)),
+                SourceSlot.ForInstruction(new SourcePosition(2), new InstructionInstance(new InstanceID(50), _instructionDefinition, Array.Empty<PatchAttachment>())),
                 SourceSlot.ForInstruction(new SourcePosition(3), PatchedHost(51, 61)),
                 SourceSlot.ForInstruction(new SourcePosition(4), PatchedHost(53, 63))
             });
@@ -371,7 +371,10 @@ namespace Iterate.Domain.Execution.Tests
             InstructionInstance host = new(
                 new InstanceID(55),
                 _instructionDefinition,
-                new PatchInstance(new InstanceID(67), PatchWith("WB-PAT-908", effect)));
+                new PatchAttachment[]
+                {
+                    new PatchAttachment(1, new PatchInstance(new InstanceID(67), PatchWith("WB-PAT-908", effect)))
+                });
 
             return new SourceArrangement(new List<SourceSlot>
             {
@@ -403,7 +406,7 @@ namespace Iterate.Domain.Execution.Tests
             return new InstructionInstance(
                 new InstanceID(hostInstanceID),
                 _instructionDefinition,
-                new PatchInstance(new InstanceID(patchInstanceID), PatchWith("WB-PAT-002", effect)));
+                new[] { new PatchAttachment(1, new PatchInstance(new InstanceID(patchInstanceID), PatchWith("WB-PAT-002", effect))) });
         }
 
         /// <summary>

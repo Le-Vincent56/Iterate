@@ -46,6 +46,12 @@ namespace Iterate.Infrastructure.Content.Tests
         /// <summary>
         /// The Session this driver sequences.
         /// </summary>
+        /// <summary>
+        /// How many archives went through the Process rather than straight to the Buffer. Counted here
+        /// because ProcessState exposes no archive count, and this card is tests-only.
+        /// </summary>
+        private int _archivesThroughProcess;
+
         public SessionState Session { get; }
 
         /// <summary>
@@ -57,6 +63,11 @@ namespace Iterate.Infrastructure.Content.Tests
         /// The Build state over the Process's arrangement and Buffer, or null before a Process opens.
         /// </summary>
         public BuildState Build => _build;
+
+        /// <summary>
+        /// The shop most recently opened, or null before the first one.
+        /// </summary>
+        public ShopState Shop { get; private set; }
 
         /// <summary>
         /// The execution records produced so far, in order.
@@ -137,7 +148,7 @@ namespace Iterate.Infrastructure.Content.Tests
             ProcessSetup setup = ProcessSetupResolver.Resolve(
                 configuration,
                 _catalog.Parameters,
-                Array.Empty<ActiveSetupEffect>()
+                Session.Economy.SetupEffectsFor(configuration.ID)
             );
 
             ProcessCreationResult result = ProcessState.Create(
@@ -152,6 +163,7 @@ namespace Iterate.Infrastructure.Content.Tests
             {
                 Process = result.State;
                 _build = new BuildState(Process.InitialArrangement, Process.Buffer, _catalog.Parameters);
+                _archivesThroughProcess = 0;
             }
 
             return result;
@@ -253,7 +265,7 @@ namespace Iterate.Infrastructure.Content.Tests
                 new RevisionStamp(RandomServiceStamp, DeterminismService.RevisionIdentity)
             };
 
-            List<DependencyInstance> installed = new() { Session.StarterDependency };
+            List<DependencyInstance> installed = new(Session.Economy.Dependencies.AllInstalled);
 
             return new ExecutionRequest(
                 source,
@@ -262,6 +274,126 @@ namespace Iterate.Infrastructure.Content.Tests
                 new InitialExecutionState(new ValueAmount(0), new SignalValue(0), new ScoreValue(0)),
                 installed
             );
+        }
+
+        /// <summary>
+        /// Opens the shop preceding a Process. The shop is held so a test can pin, reroll and buy
+        /// through the driver rather than reaching past it.
+        /// </summary>
+        /// <param name="shop">The shop's surrogate-key identity.</param>
+        /// <param name="target">The Process the shop precedes.</param>
+        /// <returns>The open result.</returns>
+        public ShopOpenResult OpenShop(ShopID shop, ProcessID target)
+        {
+            if (!_catalog.TryGetShop(shop, out ShopDefinition definition))
+                throw new ArgumentException("The catalog does not define " + shop.Value + ".", nameof(shop));
+
+            ShopOpenResult result = ShopState.Open(definition, _catalog, Session, target);
+            if (result.Succeeded)
+                Shop = result.Shop;
+
+            AssertArchiveAgreement();
+            return result;
+        }
+
+        /// <summary>
+        /// Evaluates the current Process's thresholds against an execution, through the record overload
+        /// so result validity is the record's own rather than a forwarded guess.
+        /// </summary>
+        /// <param name="record">The execution to evaluate.</param>
+        /// <returns>The evaluation.</returns>
+        public ThresholdEvaluation EvaluateThresholds(ExecutionRecord record)
+        {
+            AssertArchiveAgreement();
+            return ThresholdEvaluator.Evaluate(record, Process.Configuration.Thresholds);
+        }
+
+        /// <summary>
+        /// Resolves the current Process's reward package for an execution, in both phases: the plan is
+        /// built and then applied, so a package that cannot resolve awards nothing.
+        /// </summary>
+        /// <param name="record">The execution whose tier is rewarded.</param>
+        /// <returns>The applied resolution.</returns>
+        public RewardResolution ResolveRewards(ExecutionRecord record)
+        {
+            RewardPackageID packageID = Process.Configuration.RewardPackage;
+            if (!_catalog.TryGetRewardPackage(packageID, out RewardPackageDefinition package))
+                throw new ArgumentException("The catalog does not define " + packageID.Value + ".", nameof(record));
+
+            ThresholdEvaluation evaluation = EvaluateThresholds(record);
+            RewardPlanResult planned = RewardResolver.Plan(package, evaluation.Reached, Session, _catalog);
+            if (!planned.Succeeded)
+                throw new InvalidOperationException("The reward package " + package.ID.Value + " did not resolve.");
+
+            RewardResolution resolution = RewardResolver.Apply(planned.Plan, Session, _catalog);
+            AssertArchiveAgreement();
+            return resolution;
+        }
+
+        /// <summary>
+        /// Archives a buffered item through the Process, so the Dependencies that observe an archive
+        /// fire. Archiving through the Buffer directly would commit the archive and skip them.
+        /// </summary>
+        /// <param name="item">The buffered instance to archive.</param>
+        /// <returns>The archive result.</returns>
+        public ArchiveResult Archive(InstanceID item)
+        {
+            ArchiveResult result = Process.Archive(item);
+            if (result.Succeeded)
+                _archivesThroughProcess += 1;
+
+            AssertArchiveAgreement();
+            return result;
+        }
+
+        /// <summary>
+        /// Archives the item held outside a full Buffer through the Process.
+        /// </summary>
+        /// <returns>The archive result.</returns>
+        public ArchiveResult ArchiveIncoming()
+        {
+            ArchiveResult result = Process.ArchiveIncoming();
+            if (result.Succeeded)
+                _archivesThroughProcess += 1;
+
+            AssertArchiveAgreement();
+            return result;
+        }
+
+        /// <summary>
+        /// Ends the current Process, expiring the Utilities committed to it.
+        /// </summary>
+        /// <returns>How many commitments ended.</returns>
+        public int CompleteProcess()
+        {
+            AssertArchiveAgreement();
+            return Session.Economy.ExpireUtilitiesFor(Process.Configuration.ID);
+        }
+
+        /// <summary>
+        /// Checks that every archive the Buffer committed was one the Process observed. The Buffer's
+        /// own archive methods stay public for Compilation's seam, so this is the standing proof that
+        /// no driver step reached past the Process and silently skipped the archive observers.
+        /// </summary>
+        private void AssertArchiveAgreement()
+        {
+            if (Process == null)
+                return;
+
+            int archived = 0;
+            IReadOnlyList<BufferRecord> records = Process.Buffer.Records;
+            for (int i = 0; i < records.Count; i++)
+            {
+                if (records[i] is ArchiveRecord)
+                    archived++;
+            }
+
+            if (archived != _archivesThroughProcess)
+            {
+                throw new InvalidOperationException(
+                    "The Buffer committed " + archived + " archives but " + _archivesThroughProcess
+                        + " went through the Process: something archived through the Buffer directly.");
+            }
         }
 
         /// <summary>

@@ -11,7 +11,7 @@ using Iterate.Infrastructure.Content;
 namespace Iterate.Infrastructure.Content.Tests
 {
     /// <summary>
-    /// Verifies the shipped catalog at revision 0.2.0: the eight new files load through the real
+    /// Verifies the shipped catalog at revision 0.3.0: the eight new files load through the real
     /// pipeline, carry the authored counts, and every ID they reference resolves through the catalog's
     /// own lookups. The authored values themselves are checked against the Design and Balance lines
     /// the proposal cites, so a transcription slip fails here rather than at the first playtest.
@@ -23,7 +23,7 @@ namespace Iterate.Infrastructure.Content.Tests
         {
             ContentCatalog catalog = Load();
 
-            Assert.AreEqual("0.2.0", catalog.Revision);
+            Assert.AreEqual("0.3.0", catalog.Revision);
         }
 
         [Test]

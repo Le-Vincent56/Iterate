@@ -38,7 +38,7 @@ namespace Iterate.Domain.Compilation.Tests
             null);
 
         private static readonly InstructionInstance _instruction =
-            new(new InstanceID(1), _instructionDefinition, null);
+            new(new InstanceID(1), _instructionDefinition, Array.Empty<PatchAttachment>());
 
         private static readonly StructureInstance _structure =
             new(new InstanceID(2), _structureDefinition);

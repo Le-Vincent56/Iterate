@@ -148,7 +148,7 @@ namespace Iterate.Domain.Execution.Tests
             InstanceIDSource ids = new InstanceIDSource();
             SourceArrangement arrangement = new SourceArrangement(new List<SourceSlot>
             {
-                SourceSlot.ForInstruction(new SourcePosition(1), new InstructionInstance(ids.Next(), ValueAddSignalInstruction(), null))
+                SourceSlot.ForInstruction(new SourcePosition(1), new InstructionInstance(ids.Next(), ValueAddSignalInstruction(), Array.Empty<PatchAttachment>()))
             });
 
             return Request(arrangement, new List<DependencyInstance>
@@ -170,9 +170,9 @@ namespace Iterate.Domain.Execution.Tests
             SourceArrangement arrangement = new SourceArrangement(new List<SourceSlot>
             {
                 SourceSlot.ForCore(new SourcePosition(1), new CoreLine("core-01", new CoreLineOperation(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(1)))),
-                SourceSlot.ForInstruction(new SourcePosition(2), new InstructionInstance(ids.Next(), AddValueInstruction(2), null)),
-                SourceSlot.ForInstruction(new SourcePosition(3), new InstructionInstance(ids.Next(), AddValueInstruction(2), null)),
-                SourceSlot.ForInstruction(new SourcePosition(4), new InstructionInstance(ids.Next(), ScoreAddValueInstruction(), null)),
+                SourceSlot.ForInstruction(new SourcePosition(2), new InstructionInstance(ids.Next(), AddValueInstruction(2), Array.Empty<PatchAttachment>())),
+                SourceSlot.ForInstruction(new SourcePosition(3), new InstructionInstance(ids.Next(), AddValueInstruction(2), Array.Empty<PatchAttachment>())),
+                SourceSlot.ForInstruction(new SourcePosition(4), new InstructionInstance(ids.Next(), ScoreAddValueInstruction(), Array.Empty<PatchAttachment>())),
                 SourceSlot.ForEmpty(new SourcePosition(5)),
                 SourceSlot.ForEmpty(new SourcePosition(6)),
                 SourceSlot.ForCore(new SourcePosition(7), new CoreLine("core-07", new CoreLineOperation(CoreLineOperator.Add, CoreRegister.Score, OperandSpec.FromRegister(CoreRegister.Value))))

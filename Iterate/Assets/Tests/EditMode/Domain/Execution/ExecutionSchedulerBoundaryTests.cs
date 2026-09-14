@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using NUnit.Framework;
 using Iterate.Domain.Compilation;
@@ -921,7 +922,7 @@ namespace Iterate.Domain.Execution.Tests
         /// <returns>The Instruction instance.</returns>
         private static InstructionInstance UnpatchedHost(int hostID, QuantityChangeOperation primary)
         {
-            return new InstructionInstance(new InstanceID(hostID), InstructionWith(primary), null);
+            return new InstructionInstance(new InstanceID(hostID), InstructionWith(primary), Array.Empty<PatchAttachment>());
         }
 
         /// <summary>
@@ -954,7 +955,7 @@ namespace Iterate.Domain.Execution.Tests
             return new InstructionInstance(
                 new InstanceID(hostID),
                 InstructionWith(primary),
-                new PatchInstance(new InstanceID(patchID), definition));
+                new[] { new PatchAttachment(1, new PatchInstance(new InstanceID(patchID), definition)) });
         }
 
         /// <summary>

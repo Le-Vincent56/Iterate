@@ -87,7 +87,7 @@ namespace Iterate.Domain.Execution.Tests
         /// <returns>The Instruction slot.</returns>
         private static SourceSlot Host(int instanceID, int position)
         {
-            InstructionInstance instance = new InstructionInstance(new InstanceID(instanceID), ValueAdd(), null);
+            InstructionInstance instance = new InstructionInstance(new InstanceID(instanceID), ValueAdd(), Array.Empty<PatchAttachment>());
             return SourceSlot.ForInstruction(new SourcePosition(position), instance);
         }
 

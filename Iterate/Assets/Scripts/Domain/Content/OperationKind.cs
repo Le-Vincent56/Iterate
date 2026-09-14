@@ -16,6 +16,7 @@ namespace Iterate.Domain.Content
         PredictionVisibility,
         ConfigurationModification,
         OperationModification,
-        TargetLockUpdate
+        TargetLockUpdate,
+        ResourceGain
     }
 }

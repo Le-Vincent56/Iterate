@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
@@ -119,13 +120,14 @@ namespace Iterate.Infrastructure.Content.Tests
             // is one of its own Patch instances.
             Assert.Greater(PatchOriginsPresent(baseline, PatchInstances()), 0, "the fixture must actually carry Patch origins");
 
-            // The header's relevant-Patch list is empty, and that is not a property of this fixture:
-            // the engine supplies an empty list for that field unconditionally, so it is empty for
-            // every execution at current content however many Patches an arrangement carries. Pinned
-            // here as absence rather than left unstated, so that wiring the field fails this line and
-            // points at the comparer's RELEVANT_PATCHES correspondence component, which has no
-            // request-reachable producer until that day.
-            Assert.IsEmpty(baseline.Header.RelevantPatchInstances);
+            // The header's relevant-Patch list now names this fixture's six Patch instances in slot
+            // order, 60..65 — the producer ECO-02 gave the field, replacing the absence this line
+            // pinned while it had none. With it populated, AssertReplaysToMatch below exercises the
+            // comparer's RELEVANT_PATCHES correspondence component against real content for the first
+            // time rather than comparing two empty lists.
+            Assert.AreEqual(
+                new[] { new InstanceID(60), new InstanceID(61), new InstanceID(62), new InstanceID(63), new InstanceID(64), new InstanceID(65) },
+                baseline.Header.RelevantPatchInstances);
 
             AssertReplaysToMatch(baseline, request);
         }
@@ -325,7 +327,7 @@ namespace Iterate.Infrastructure.Content.Tests
         {
             Assert.IsTrue(_catalog.TryGetInstruction(new InstructionID(id), out InstructionDefinition definition), id);
 
-            return new InstructionInstance(new InstanceID(instance), definition, null);
+            return new InstructionInstance(new InstanceID(instance), definition, Array.Empty<PatchAttachment>());
         }
 
         private InstructionInstance Patched(
@@ -337,7 +339,7 @@ namespace Iterate.Infrastructure.Content.Tests
             Assert.IsTrue(_catalog.TryGetInstruction(new InstructionID(instructionID), out InstructionDefinition definition), instructionID);
             Assert.IsTrue(_catalog.TryGetPatch(new PatchID(patchID), out PatchDefinition patch), patchID);
 
-            return new InstructionInstance(new InstanceID(hostInstance), definition, new PatchInstance(new InstanceID(patchInstance), patch));
+            return new InstructionInstance(new InstanceID(hostInstance), definition, new[] { new PatchAttachment(1, new PatchInstance(new InstanceID(patchInstance), patch)) });
         }
 
         private StructureInstance Structure(string id, int instance)

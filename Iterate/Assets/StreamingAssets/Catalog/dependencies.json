@@ -103,7 +103,16 @@
   {
     "id": "WB-DEP-008", "rulesText": "The first time an item is archived each Process, gain 1 Byte. Buffered and incoming-overflow archives qualify; consuming a Directive does not.", "displayName": "GARBAGE COLLECTOR",
     "category": "DEPENDENCY", "rarity": "UNCOMMON", "tags": ["Buffer", "Archive", "Bytes"], "ram": 1,
-    "effects": []
+    "effects": [
+      {
+        "phaseDomain": "BUILD_INTERACTION",
+        "trigger": { "eventFamily": "CONTENT_LIFECYCLE", "eventSubtype": "OBJECT_ARCHIVED", "qualifiers": [] },
+        "operation": { "kind": "RESOURCE_GAIN", "resource": "BYTES", "amount": 1 },
+        "targeting": { "kind": "NO_TARGET", "argument": "" },
+        "stacking": "INDEPENDENT_RESOLUTION",
+        "frequency": { "allowance": "FIRST_QUALIFYING_EVENT", "scope": "PROCESS" }
+      }
+    ]
   },
   {
     "id": "WB-DEP-009", "rulesText": "The first time an Instruction inside a Repeat executes each execution, execute it one additional time.", "displayName": "LOOP UNROLLER",

@@ -56,7 +56,7 @@ namespace Iterate.Domain.Compilation.Tests
         [Test]
         public void AreEquivalent_IdenticalArrangements_True()
         {
-            InstructionInstance instruction = new(new InstanceID(7), _instructionDefinition, null);
+            InstructionInstance instruction = new(new InstanceID(7), _instructionDefinition, Array.Empty<PatchAttachment>());
 
             Assert.IsTrue(ArrangementEquivalence.AreEquivalent(
                 WithInstructionAt3(instruction),
@@ -79,8 +79,8 @@ namespace Iterate.Domain.Compilation.Tests
         [Test]
         public void AreEquivalent_SameDefinitionDifferentInstanceID_False()
         {
-            InstructionInstance left = new(new InstanceID(7), _instructionDefinition, null);
-            InstructionInstance right = new(new InstanceID(8), _instructionDefinition, null);
+            InstructionInstance left = new(new InstanceID(7), _instructionDefinition, Array.Empty<PatchAttachment>());
+            InstructionInstance right = new(new InstanceID(8), _instructionDefinition, Array.Empty<PatchAttachment>());
 
             Assert.IsFalse(ArrangementEquivalence.AreEquivalent(
                 WithInstructionAt3(left),
@@ -90,7 +90,7 @@ namespace Iterate.Domain.Compilation.Tests
         [Test]
         public void AreEquivalent_SameInstanceMovedToDifferentPosition_False()
         {
-            InstructionInstance instruction = new(new InstanceID(7), _instructionDefinition, null);
+            InstructionInstance instruction = new(new InstanceID(7), _instructionDefinition, Array.Empty<PatchAttachment>());
 
             Assert.IsFalse(ArrangementEquivalence.AreEquivalent(
                 WithInstructionAt3(instruction),
@@ -100,11 +100,9 @@ namespace Iterate.Domain.Compilation.Tests
         [Test]
         public void AreEquivalent_OneOccupantPatched_False()
         {
-            InstructionInstance unpatched = new(new InstanceID(7), _instructionDefinition, null);
-            InstructionInstance patched = unpatched with
-            {
-                AttachedPatch = new PatchInstance(new InstanceID(2), _patchDefinition)
-            };
+            InstructionInstance unpatched = new(new InstanceID(7), _instructionDefinition, Array.Empty<PatchAttachment>());
+            InstructionInstance patched = unpatched.WithAttachment(
+                new PatchAttachment(1, new PatchInstance(new InstanceID(2), _patchDefinition)));
 
             Assert.IsFalse(ArrangementEquivalence.AreEquivalent(
                 WithInstructionAt3(unpatched),
@@ -114,14 +112,10 @@ namespace Iterate.Domain.Compilation.Tests
         [Test]
         public void AreEquivalent_BothPatchedSamePatchInstanceID_True()
         {
-            InstructionInstance left = new InstructionInstance(new InstanceID(7), _instructionDefinition, null) with
-            {
-                AttachedPatch = new PatchInstance(new InstanceID(2), _patchDefinition)
-            };
-            InstructionInstance right = new InstructionInstance(new InstanceID(7), _instructionDefinition, null) with
-            {
-                AttachedPatch = new PatchInstance(new InstanceID(2), _patchDefinition)
-            };
+            InstructionInstance left = new InstructionInstance(new InstanceID(7), _instructionDefinition, Array.Empty<PatchAttachment>())
+                .WithAttachment(new PatchAttachment(1, new PatchInstance(new InstanceID(2), _patchDefinition)));
+            InstructionInstance right = new InstructionInstance(new InstanceID(7), _instructionDefinition, Array.Empty<PatchAttachment>())
+                .WithAttachment(new PatchAttachment(1, new PatchInstance(new InstanceID(2), _patchDefinition)));
 
             Assert.IsTrue(ArrangementEquivalence.AreEquivalent(
                 WithInstructionAt3(left),
@@ -129,16 +123,55 @@ namespace Iterate.Domain.Compilation.Tests
         }
 
         [Test]
+        public void AreEquivalent_OneAttachmentVersusTwo_False()
+        {
+            InstructionInstance one = new InstructionInstance(new InstanceID(7), _instructionDefinition, Array.Empty<PatchAttachment>())
+                .WithAttachment(new PatchAttachment(1, new PatchInstance(new InstanceID(2), _patchDefinition)));
+            InstructionInstance two = one.WithAttachment(
+                new PatchAttachment(2, new PatchInstance(new InstanceID(3), _patchDefinition)));
+
+            Assert.IsFalse(ArrangementEquivalence.AreEquivalent(
+                WithInstructionAt3(one),
+                WithInstructionAt3(two)));
+        }
+
+        [Test]
+        public void AreEquivalent_IdenticalTwoAttachmentLists_True()
+        {
+            InstructionInstance left = new InstructionInstance(new InstanceID(7), _instructionDefinition, Array.Empty<PatchAttachment>())
+                .WithAttachment(new PatchAttachment(1, new PatchInstance(new InstanceID(2), _patchDefinition)))
+                .WithAttachment(new PatchAttachment(2, new PatchInstance(new InstanceID(3), _patchDefinition)));
+            InstructionInstance right = new InstructionInstance(new InstanceID(7), _instructionDefinition, Array.Empty<PatchAttachment>())
+                .WithAttachment(new PatchAttachment(1, new PatchInstance(new InstanceID(2), _patchDefinition)))
+                .WithAttachment(new PatchAttachment(2, new PatchInstance(new InstanceID(3), _patchDefinition)));
+
+            Assert.IsTrue(ArrangementEquivalence.AreEquivalent(
+                WithInstructionAt3(left),
+                WithInstructionAt3(right)));
+        }
+
+        [Test]
+        public void AreEquivalent_SameSocketsDifferentPatchInstances_False()
+        {
+            InstructionInstance left = new InstructionInstance(new InstanceID(7), _instructionDefinition, Array.Empty<PatchAttachment>())
+                .WithAttachment(new PatchAttachment(1, new PatchInstance(new InstanceID(2), _patchDefinition)))
+                .WithAttachment(new PatchAttachment(2, new PatchInstance(new InstanceID(3), _patchDefinition)));
+            InstructionInstance right = new InstructionInstance(new InstanceID(7), _instructionDefinition, Array.Empty<PatchAttachment>())
+                .WithAttachment(new PatchAttachment(1, new PatchInstance(new InstanceID(2), _patchDefinition)))
+                .WithAttachment(new PatchAttachment(2, new PatchInstance(new InstanceID(4), _patchDefinition)));
+
+            Assert.IsFalse(ArrangementEquivalence.AreEquivalent(
+                WithInstructionAt3(left),
+                WithInstructionAt3(right)));
+        }
+
+        [Test]
         public void AreEquivalent_BothPatchedDifferentPatchInstanceID_False()
         {
-            InstructionInstance left = new InstructionInstance(new InstanceID(7), _instructionDefinition, null) with
-            {
-                AttachedPatch = new PatchInstance(new InstanceID(2), _patchDefinition)
-            };
-            InstructionInstance right = new InstructionInstance(new InstanceID(7), _instructionDefinition, null) with
-            {
-                AttachedPatch = new PatchInstance(new InstanceID(3), _patchDefinition)
-            };
+            InstructionInstance left = new InstructionInstance(new InstanceID(7), _instructionDefinition, Array.Empty<PatchAttachment>())
+                .WithAttachment(new PatchAttachment(1, new PatchInstance(new InstanceID(2), _patchDefinition)));
+            InstructionInstance right = new InstructionInstance(new InstanceID(7), _instructionDefinition, Array.Empty<PatchAttachment>())
+                .WithAttachment(new PatchAttachment(1, new PatchInstance(new InstanceID(3), _patchDefinition)));
 
             Assert.IsFalse(ArrangementEquivalence.AreEquivalent(
                 WithInstructionAt3(left),
@@ -171,7 +204,7 @@ namespace Iterate.Domain.Compilation.Tests
         [Test]
         public void AreEquivalent_DifferentKind_False()
         {
-            InstructionInstance instruction = new(new InstanceID(7), _instructionDefinition, null);
+            InstructionInstance instruction = new(new InstanceID(7), _instructionDefinition, Array.Empty<PatchAttachment>());
 
             Assert.IsFalse(ArrangementEquivalence.AreEquivalent(
                 StandardCore(),

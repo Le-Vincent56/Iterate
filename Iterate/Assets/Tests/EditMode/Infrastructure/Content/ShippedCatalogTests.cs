@@ -11,7 +11,7 @@ namespace Iterate.Infrastructure.Content.Tests
 {
     /// <summary>
     /// Loads the shipped catalog under StreamingAssets/Catalog through the real pipeline and pins its
-    /// conformance: it loads without errors at revision 0.2.0, carries all 79 definitions with the
+    /// conformance: it loads without errors at revision 0.3.0, carries all 79 definitions with the
     /// per-category counts, exposes the locked parameters, and matches the slice's spot-check items.
     /// This is the standing TA-DAT-004 conformance evidence; it is red until the catalog files exist.
     /// </summary>
@@ -30,7 +30,7 @@ namespace Iterate.Infrastructure.Content.Tests
         {
             ContentCatalog catalog = Load();
 
-            Assert.AreEqual("0.2.0", catalog.Revision);
+            Assert.AreEqual("0.3.0", catalog.Revision);
         }
 
         [Test]

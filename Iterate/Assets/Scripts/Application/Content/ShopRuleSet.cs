@@ -1,13 +1,13 @@
+using System;
 using Iterate.Application.Content.Json;
 using Iterate.Domain.Content;
 
 namespace Iterate.Application.Content
 {
-    /// <summary>
-    /// Validates the shops file: a shop with rerolls enabled names the pool a reroll draws from, and
-    /// every fixed offer names resolvable content. Reroll costs are parameters, not shop fields, so
+    /// Validates the shops file: a shop with rerolls enabled names the pool a reroll draws from, every
+    /// fixed offer names resolvable content, and a shop offering no Dependencies offers none — neither
+    /// directly nor through the pool it rerolls from. Reroll costs are parameters, not shop fields, so
     /// nothing here reads a price band.
-    /// </summary>
     public sealed class ShopRuleSet : ICategoryRuleSet
     {
         private static readonly ControlledVocabulary _allowedKeys = new(
@@ -64,8 +64,15 @@ namespace Iterate.Application.Content
         {
             context.TryInteger(definition, "slots", jsonPath, "definition.missing-field", "definition.field-type", out _);
             context.TryBoolean(definition, "pinningEnabled", jsonPath, "definition.missing-field", "definition.field-type", out _);
-            context.TryBoolean(definition, "dependenciesEnabled", jsonPath, "definition.missing-field", "definition.field-type", out _);
             context.TryBoolean(definition, "servicesEnabled", jsonPath, "definition.missing-field", "definition.field-type", out _);
+            bool offersDependencies = context.TryBoolean(
+                definition, 
+                "dependenciesEnabled", 
+                jsonPath, 
+                "definition.missing-field",
+                "definition.field-type",
+                out bool dependenciesEnabled
+            ) && dependenciesEnabled;
 
             bool hasPool = definition.TryGet("rerollPool", out _);
             if (context.TryBoolean(definition, "rerollsEnabled", jsonPath, "definition.missing-field", "definition.field-type", out bool rerollsEnabled) && rerollsEnabled && !hasPool)
@@ -73,6 +80,16 @@ namespace Iterate.Application.Content
 
             PackageFieldRules.ValidateOptionalIDField(context, definition, "rerollPool", jsonPath, "WB-POOL-", "reference.wrong-kind");
 
+            if (!offersDependencies
+                && definition.TryGet("rerollPool", out JsonValue poolValue)
+                && poolValue is JsonString pool
+                && definition.TryGet("id", out JsonValue idValue)
+                && idValue is JsonString shop
+            )
+            {
+                context.RegisterDependencyFreePool(jsonPath + ".rerollPool", pool.Value, shop.Value);
+            }
+            
             if (!context.TryArray(definition, "fixedOffers", jsonPath, "definition.missing-field", "definition.field-type", out JsonArray offers))
                 return;
 
@@ -89,6 +106,17 @@ namespace Iterate.Application.Content
                 context.TryString(offer, "offerID", path, "definition.missing-field", "definition.field-type", out _);
                 context.TryInteger(offer, "price", path, "definition.missing-field", "definition.field-type", out _);
                 PackageFieldRules.ValidateContentField(context, offer, "content", path, "reference.wrong-kind");
+                
+                if (!offersDependencies
+                    && context.TryString(offer, "content", path, "definition.missing-field", "definition.field-type", out string content)
+                    && content.StartsWith("WB-DEP-", StringComparison.Ordinal)
+                )
+                {
+                    context.AddError(
+                        path + ".content",
+                        "shop.dependency-offer-disabled",
+                        "'" + content + "' is a Dependency, which this shop does not offer.");
+                }
             }
         }
     }

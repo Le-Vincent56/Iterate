@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
@@ -70,6 +71,107 @@ namespace Iterate.Infrastructure.Content.Tests
             Assert.AreEqual(2, modified.Count);
             Assert.AreEqual(new InstanceID(60), record.Events[modified[0]].Evidence.EffectOriginInstance, "the persistent Patch adjustment applies first");
             Assert.AreEqual(new InstanceID(100), record.Events[modified[1]].Evidence.EffectOriginInstance, "the selected-host modification applies second");
+        }
+
+        [Test]
+        public void TwoConstantPatches_OneHost_ComposeAdditivelyToPlusFour()
+        {
+            // CAB-TEST-056 / CAB-EVT-544: two legal WB-PAT-001 instances on one WB-INS-002 host
+            // (Value += 2) each contribute +1 to the fixed constant, so the host lands 4.
+            SourceArrangement arrangement = new SourceArrangement(new List<SourceSlot>
+            {
+                SourceSlot.ForInstruction(new SourcePosition(1), TwicePatched("WB-INS-002", 10, "WB-PAT-001", 60, 61))
+            });
+
+            ExecutionRecord record = Execute(Request(arrangement, NoDependencies(), NoPragmas()));
+
+            Assert.AreEqual(new ValueAmount(4), record.FinalState.FinalValue);
+        }
+
+        [Test]
+        public void TwoConstantPatches_OneHost_TraceTwoDistinctOrigins()
+        {
+            // CAB-EVT-544: "each Patch remains separately identified and traced" — two modification
+            // events, one per Patch instance, in socket order.
+            SourceArrangement arrangement = new SourceArrangement(new List<SourceSlot>
+            {
+                SourceSlot.ForInstruction(new SourcePosition(1), TwicePatched("WB-INS-002", 10, "WB-PAT-001", 60, 61))
+            });
+
+            ExecutionRecord record = Execute(Request(arrangement, NoDependencies(), NoPragmas()));
+
+            List<int> modified = IndexesOfSubtype(record, ExecutionEventSubtypes.PrimaryOperationModified);
+            Assert.AreEqual(2, modified.Count);
+            Assert.AreEqual(new InstanceID(60), record.Events[modified[0]].Evidence.EffectOriginInstance);
+            Assert.AreEqual(new InstanceID(61), record.Events[modified[1]].Evidence.EffectOriginInstance);
+        }
+
+        [Test]
+        public void TwoConstantPatches_WithStandardLibrary_ComposeBeforeTheSelectedHost()
+        {
+            // CAB-EVT-545: STANDARD LIBRARY adds to the already-composed parameter rather than
+            // replacing the persistent contributions — authored 2, +1, +1, then +1 lands 5, and the
+            // Dependency's modification is last.
+            SourceArrangement arrangement = new SourceArrangement(new List<SourceSlot>
+            {
+                SourceSlot.ForInstruction(new SourcePosition(1), TwicePatched("WB-INS-002", 10, "WB-PAT-001", 60, 61))
+            });
+
+            ExecutionRecord record = Execute(Request(arrangement, Installed("WB-DEP-001", 100), NoPragmas()));
+
+            Assert.AreEqual(new ValueAmount(5), record.FinalState.FinalValue);
+            List<int> modified = IndexesOfSubtype(record, ExecutionEventSubtypes.PrimaryOperationModified);
+            Assert.AreEqual(3, modified.Count);
+            Assert.AreEqual(new InstanceID(100), record.Events[modified[2]].Evidence.EffectOriginInstance);
+        }
+
+        [Test]
+        public void TwoConstantPatches_OneHost_QualifySimultaneouslyOnIndependentKeys()
+        {
+            // CAB-TEST-056 "simultaneous qualification" and "independent origin locks": neither
+            // attachment suppresses the other, so both fire on the one host activity.
+            SourceArrangement arrangement = new SourceArrangement(new List<SourceSlot>
+            {
+                SourceSlot.ForInstruction(new SourcePosition(1), TwicePatched("WB-INS-002", 10, "WB-PAT-001", 60, 61))
+            });
+
+            ExecutionRecord record = Execute(Request(arrangement, NoDependencies(), NoPragmas()));
+
+            Assert.AreEqual(0, CountSubtype(record, ExecutionEventSubtypes.EffectFailedToQualify));
+            Assert.AreEqual(2, CountSubtype(record, ExecutionEventSubtypes.PrimaryOperationModified));
+        }
+
+        [Test]
+        public void TwoConstantPatches_OneHost_AreBothNamedInTheEvidenceHeader()
+        {
+            // CAB section 17.6's relevant-Patch field, over two sockets on one host.
+            SourceArrangement arrangement = new SourceArrangement(new List<SourceSlot>
+            {
+                SourceSlot.ForInstruction(new SourcePosition(1), TwicePatched("WB-INS-002", 10, "WB-PAT-001", 60, 61))
+            });
+
+            ExecutionRecord record = Execute(Request(arrangement, NoDependencies(), NoPragmas()));
+
+            Assert.AreEqual(2, record.Header.RelevantPatchInstances.Count);
+            Assert.AreEqual(new InstanceID(60), record.Header.RelevantPatchInstances[0]);
+            Assert.AreEqual(new InstanceID(61), record.Header.RelevantPatchInstances[1]);
+        }
+
+        [Test]
+        public void SecondSocketReplaced_KeepsTheFirstAndDropsThePriorInstance()
+        {
+            // CAB-TEST-056 "replacement": replacing socket 2 leaves socket 1 untouched, and the
+            // replaced instance is gone from the host entirely.
+            InstructionInstance host = TwicePatched("WB-INS-002", 10, "WB-PAT-001", 60, 61);
+            Assert.IsTrue(_catalog.TryGetPatch(new PatchID("WB-PAT-001"), out PatchDefinition patch), "WB-PAT-001");
+
+            InstructionInstance replaced = host.WithAttachment(
+                new PatchAttachment(2, new PatchInstance(new InstanceID(62), patch)));
+
+            Assert.AreEqual(2, replaced.AttachedPatches.Count);
+            Assert.AreEqual(new InstanceID(60), replaced.AttachedPatches[0].Patch.InstanceID);
+            Assert.AreEqual(new InstanceID(62), replaced.AttachedPatches[1].Patch.InstanceID);
+            Assert.IsFalse(HasPatchInstance(replaced, new InstanceID(61)));
         }
 
         [Test]
@@ -371,7 +473,7 @@ namespace Iterate.Infrastructure.Content.Tests
         private InstructionInstance Instruction(string id, int instance)
         {
             Assert.IsTrue(_catalog.TryGetInstruction(new InstructionID(id), out InstructionDefinition definition), id);
-            return new InstructionInstance(new InstanceID(instance), definition, null);
+            return new InstructionInstance(new InstanceID(instance), definition, Array.Empty<PatchAttachment>());
         }
 
         /// <summary>
@@ -390,7 +492,53 @@ namespace Iterate.Infrastructure.Content.Tests
         {
             Assert.IsTrue(_catalog.TryGetInstruction(new InstructionID(instructionID), out InstructionDefinition definition), instructionID);
             Assert.IsTrue(_catalog.TryGetPatch(new PatchID(patchID), out PatchDefinition patch), patchID);
-            return new InstructionInstance(new InstanceID(hostInstance), definition, new PatchInstance(new InstanceID(patchInstance), patch));
+            return new InstructionInstance(new InstanceID(hostInstance), definition, new[] { new PatchAttachment(1, new PatchInstance(new InstanceID(patchInstance), patch)) });
+        }
+
+        /// <summary>
+        /// Wraps a real frozen Instruction definition in an instance carrying two Patch instances of one
+        /// Patch definition, in sockets one and two.
+        /// </summary>
+        /// <param name="instructionID">The host Instruction's surrogate-key identity.</param>
+        /// <param name="hostInstance">The host instance identity value.</param>
+        /// <param name="patchID">The Patch's surrogate-key identity.</param>
+        /// <param name="firstPatchInstance">The first socket's Patch instance identity value.</param>
+        /// <param name="secondPatchInstance">The second socket's Patch instance identity value.</param>
+        /// <returns>The twice-patched Instruction instance.</returns>
+        private InstructionInstance TwicePatched(
+            string instructionID,
+            int hostInstance,
+            string patchID,
+            int firstPatchInstance,
+            int secondPatchInstance)
+        {
+            Assert.IsTrue(_catalog.TryGetInstruction(new InstructionID(instructionID), out InstructionDefinition definition), instructionID);
+            Assert.IsTrue(_catalog.TryGetPatch(new PatchID(patchID), out PatchDefinition patch), patchID);
+            return new InstructionInstance(
+                new InstanceID(hostInstance),
+                definition,
+                new[]
+                {
+                    new PatchAttachment(1, new PatchInstance(new InstanceID(firstPatchInstance), patch)),
+                    new PatchAttachment(2, new PatchInstance(new InstanceID(secondPatchInstance), patch))
+                });
+        }
+
+        /// <summary>
+        /// Answers whether a host carries a Patch instance in any socket.
+        /// </summary>
+        /// <param name="host">The host instance.</param>
+        /// <param name="patchInstance">The Patch instance identity to look for.</param>
+        /// <returns>True when some socket holds it; false otherwise.</returns>
+        private static bool HasPatchInstance(InstructionInstance host, InstanceID patchInstance)
+        {
+            for (int i = 0; i < host.AttachedPatches.Count; i++)
+            {
+                if (host.AttachedPatches[i].Patch.InstanceID == patchInstance)
+                    return true;
+            }
+
+            return false;
         }
 
         /// <summary>

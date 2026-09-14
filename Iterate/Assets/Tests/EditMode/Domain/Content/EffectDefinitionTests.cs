@@ -99,9 +99,12 @@ namespace Iterate.Domain.Content.Tests
         }
 
         [Test]
-        public void OperationKind_HasTenMembers()
+        public void OperationKind_HasElevenMembers()
         {
-            Assert.AreEqual(10, Enum.GetValues(typeof(OperationKind)).Length);
+            // Ten through the effect-system slice; RESOURCE_GAIN joined at the economy slice, when
+            // GARBAGE COLLECTOR needed a primitive that gains a resource rather than changing a
+            // register. A member added without a validator, freezer and schema branch fails here first.
+            Assert.AreEqual(11, Enum.GetValues(typeof(OperationKind)).Length);
         }
 
         [Test]

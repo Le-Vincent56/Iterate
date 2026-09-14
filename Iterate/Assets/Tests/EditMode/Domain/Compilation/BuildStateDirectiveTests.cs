@@ -74,7 +74,7 @@ namespace Iterate.Domain.Compilation.Tests
         [Test]
         public void TryActivateDirective_NonDirective_NotADirective()
         {
-            InstructionInstance instruction = new InstructionInstance(new InstanceID(10), _instructionDefinition, null);
+            InstructionInstance instruction = new InstructionInstance(new InstanceID(10), _instructionDefinition, Array.Empty<PatchAttachment>());
             FakeBuildBuffer buffer = new FakeBuildBuffer(10);
             buffer.AddInstruction(instruction);
             BuildState state = new BuildState(StandardCore(), buffer);
@@ -119,7 +119,7 @@ namespace Iterate.Domain.Compilation.Tests
         public void PendingPragmas_PersistAcrossOrdinaryEdit()
         {
             DirectiveInstance directive = NewDirective(50);
-            InstructionInstance instruction = new InstructionInstance(new InstanceID(10), _instructionDefinition, null);
+            InstructionInstance instruction = new InstructionInstance(new InstanceID(10), _instructionDefinition, Array.Empty<PatchAttachment>());
             FakeBuildBuffer buffer = new FakeBuildBuffer(10);
             buffer.AddDirective(directive);
             buffer.AddInstruction(instruction);

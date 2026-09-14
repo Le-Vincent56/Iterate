@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
@@ -386,7 +387,7 @@ namespace Iterate.Infrastructure.Content.Tests
         {
             Assert.IsTrue(_catalog.TryGetInstruction(new InstructionID(id), out InstructionDefinition definition), id);
 
-            return new InstructionInstance(new InstanceID(instance), definition, null);
+            return new InstructionInstance(new InstanceID(instance), definition, Array.Empty<PatchAttachment>());
         }
 
         /// <summary>

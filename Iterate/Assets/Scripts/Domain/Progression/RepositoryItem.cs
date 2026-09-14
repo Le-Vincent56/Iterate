@@ -64,7 +64,7 @@ namespace Iterate.Domain.Progression
                         id,
                         instruction.ID.Value,
                         instruction.Tags,
-                        new InstructionInstance(id, instruction, null),
+                        new InstructionInstance(id, instruction, Array.Empty<PatchAttachment>()),
                         null,
                         null
                     );

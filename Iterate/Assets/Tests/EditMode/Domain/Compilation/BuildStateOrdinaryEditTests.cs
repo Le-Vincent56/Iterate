@@ -609,7 +609,7 @@ namespace Iterate.Domain.Compilation.Tests
 
         private static InstructionInstance NewInstruction(int idValue)
         {
-            return new InstructionInstance(new InstanceID(idValue), _instructionDefinition, null);
+            return new InstructionInstance(new InstanceID(idValue), _instructionDefinition, Array.Empty<PatchAttachment>());
         }
 
         private static StructureInstance NewStructure(int idValue, StructureDefinition definition)

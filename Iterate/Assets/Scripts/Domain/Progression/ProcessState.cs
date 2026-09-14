@@ -27,6 +27,9 @@ namespace Iterate.Domain.Progression
         private readonly ProcessConfigurationDefinition _configuration;
         private readonly Repository _repository;
         private ExposureDraw _draw;
+        private readonly List<ArchiveObserver> _archiveObservers = new();
+        private readonly List<ResourceGainRecord> _resourceGains = new();
+        private readonly List<InstanceID> _firedObservers = new();
 
         /// <summary>
         /// The authored configuration this Process runs.
@@ -52,6 +55,17 @@ namespace Iterate.Domain.Progression
         /// The Process's Byte ledger.
         /// </summary>
         public ByteLedger Bytes { get; }
+        
+        /// <summary>
+        /// The archive observers the installed Dependencies declared, interpreted when the Process
+        /// opened.
+        /// </summary>
+        public IReadOnlyList<ArchiveObserver> ArchiveObservers => _archiveObservers;
+
+        /// <summary>
+        /// Every resource gain this Process credited, in order.
+        /// </summary>
+        public IReadOnlyList<ResourceGainRecord> ResourceGains => _resourceGains;
 
         /// <summary>
         /// The Process's execution counters.
@@ -93,6 +107,7 @@ namespace Iterate.Domain.Progression
             ByteLedger bytes,
             ProcessCounters counters,
             ProcessRuleInstance processRule,
+            IReadOnlyList<ArchiveObserver> archiveObservers,
             IReadOnlyList<ActiveCompilationEffect> compilationEffects,
             SourceArrangement initialArrangement
         )
@@ -104,6 +119,7 @@ namespace Iterate.Domain.Progression
             Bytes = bytes;
             Counters = counters;
             ProcessRule = processRule;
+            _archiveObservers.AddRange(archiveObservers);
             CompilationEffects = compilationEffects;
             InitialArrangement = initialArrangement;
             ProcessIdentity = configuration.ID.Value;
@@ -156,6 +172,17 @@ namespace Iterate.Domain.Progression
                 rule = new ProcessRuleInstance(session.InstanceIDs.Next(), definition);
                 compilationEffects = BuildCompilationEffects(rule);
             }
+            
+            List<ArchiveObserver> observers = new();
+            IReadOnlyList<DependencyInstance> installedDependencies = session.Economy.Dependencies.AllInstalled;
+            for (int i = 0; i < installedDependencies.Count; i++)
+            {
+                IReadOnlyList<ArchiveObserver> declared = BuildInteractionEffects.Interpret(installedDependencies[i]);
+                for (int j = 0; j < declared.Count; j++)
+                {
+                    observers.Add(declared[j]);
+                }
+            }
 
             ProcessState process = new(
                 configuration,
@@ -165,6 +192,7 @@ namespace Iterate.Domain.Progression
                 bytes,
                 counters,
                 rule,
+                observers,
                 compilationEffects,
                 materialized.Arrangement
             );
@@ -295,6 +323,78 @@ namespace Iterate.Domain.Progression
             );
         }
 
+        /// <summary>
+        /// Archives a buffered item and fires whatever the installed Dependencies observe. The
+        /// sanctioned archive entry point: the Buffer's own method commits the archive but knows
+        /// nothing about Dependencies, so archiving through it directly would silently skip them.
+        /// </summary>
+        /// <param name="id">The instance to archive.</param>
+        /// <returns>The archive result.</returns>
+        public ArchiveResult Archive(InstanceID id)
+        {
+            ArchiveResult result = Buffer.Archive(id);
+            if (result.Succeeded)
+                FireArchiveObservers(id);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Archives the item held outside a full Buffer and fires the observers. The incoming-overflow
+        /// archive qualifies exactly as a buffered one does.
+        /// </summary>
+        /// <returns>The archive result.</returns>
+        public ArchiveResult ArchiveIncoming()
+        {
+            ArchiveResult result = Buffer.ArchiveIncoming();
+            if (result.Succeeded)
+                FireArchiveObservers(result.Item.InstanceID);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Credits each observer that has not yet fired this Process. Every observer this slice
+        /// interprets is FIRST_QUALIFYING_EVENT per PROCESS, so firing is recorded per observer and a
+        /// second archive credits nothing.
+        /// </summary>
+        /// <param name="archived">The instance whose archiving qualified.</param>
+        private void FireArchiveObservers(InstanceID archived)
+        {
+            for (int i = 0; i < _archiveObservers.Count; i++)
+            {
+                ArchiveObserver observer = _archiveObservers[i];
+                if (HasFired(observer.Origin))
+                    continue;
+
+                Bytes.Credit(new ByteAmount(observer.Gain.Amount), observer.DisplayName);
+                _resourceGains.Add(new ResourceGainRecord(
+                    observer.Origin,
+                    observer.DefinitionID,
+                    observer.Gain.Resource,
+                    observer.Gain.Amount,
+                    archived
+                ));
+                _firedObservers.Add(observer.Origin);
+            }
+        }
+
+        /// <summary>
+        /// Whether an observer has already fired this Process.
+        /// </summary>
+        /// <param name="origin">The observer's origin instance.</param>
+        /// <returns>True when it has fired.</returns>
+        private bool HasFired(InstanceID origin)
+        {
+            for (int i = 0; i < _firedObservers.Count; i++)
+            {
+                if (_firedObservers[i] == origin)
+                    return true;
+            }
+
+            return false;
+        }
+        
         /// <summary>
         /// Loads the starting Buffer: a scripted plan admits its named content in authored order; a
         /// drawn plan admits its guaranteed content first, then draws the remainder. Guaranteed content

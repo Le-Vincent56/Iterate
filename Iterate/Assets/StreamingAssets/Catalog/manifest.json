@@ -1,5 +1,5 @@
 {
-  "revision": "0.2.0",
+  "revision": "0.3.0",
   "schemaVersion": "1.0.0",
   "files": [
     { "file": "parameters.json", "category": "PARAMETERS" },

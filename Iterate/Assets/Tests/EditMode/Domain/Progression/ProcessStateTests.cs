@@ -394,6 +394,142 @@ namespace Iterate.Domain.Progression.Tests
             return Create(TutorialTwoConfiguration(withProcessRule: withProcessRule));
         }
 
+        [Test]
+        public void Archive_WithGarbageCollectorInstalled_CreditsOneByteOnce()
+        {
+            // Tutorial 2's scripted Buffer load seeds exactly one item, so the second archive needs
+            // an arrival to have anything to archive.
+            ProcessState process = WithGarbageCollector(out SessionState _);
+            InstanceID first = process.Buffer.Slots[0].Item.InstanceID;
+            ByteAmount before = process.Bytes.Balance;
+
+            process.Archive(first);
+            ByteAmount afterFirst = process.Bytes.Balance;
+            process.Arrive(new ArrivalMoment(1));
+            process.Archive(process.Buffer.Slots[0].Item.InstanceID);
+
+            Assert.AreEqual(before.Value + 1, afterFirst.Value);
+            Assert.AreEqual(afterFirst.Value, process.Bytes.Balance.Value);
+            Assert.AreEqual(1, process.ResourceGains.Count);
+            Assert.AreEqual("BYTES", process.ResourceGains[0].Resource);
+            Assert.AreEqual(first, process.ResourceGains[0].ArchivedInstance);
+        }
+
+        [Test]
+        public void Archive_WithoutGarbageCollector_CreditsNothing()
+        {
+            ProcessState process = CreateTutorialTwo().State;
+            ByteAmount before = process.Bytes.Balance;
+
+            process.Archive(process.Buffer.Slots[0].Item.InstanceID);
+
+            Assert.AreEqual(before, process.Bytes.Balance);
+            Assert.AreEqual(0, process.ResourceGains.Count);
+            Assert.AreEqual(0, process.ArchiveObservers.Count);
+        }
+
+        [Test]
+        public void Archive_ARejectedArchive_CreditsNothing()
+        {
+            ProcessState process = WithGarbageCollector(out SessionState _);
+            ByteAmount before = process.Bytes.Balance;
+
+            ArchiveResult result = process.Archive(new InstanceID(9999));
+
+            Assert.IsFalse(result.Succeeded);
+            Assert.AreEqual(before, process.Bytes.Balance);
+            Assert.AreEqual(0, process.ResourceGains.Count);
+        }
+
+        [Test]
+        public void Archive_ANewProcessForTheSameSession_FiresAgain()
+        {
+            ProcessState first = WithGarbageCollector(out SessionState session);
+            first.Archive(first.Buffer.Slots[0].Item.InstanceID);
+            ProcessState second = CreateOver(session).State;
+            ByteAmount before = second.Bytes.Balance;
+
+            second.Archive(second.Buffer.Slots[0].Item.InstanceID);
+
+            Assert.AreEqual(before.Value + 1, second.Bytes.Balance.Value);
+            Assert.AreEqual(1, second.ResourceGains.Count);
+        }
+
+        [Test]
+        public void Take_ConsumingADirective_CreditsNothing()
+        {
+            ProcessState process = WithGarbageCollector(out SessionState _);
+            ByteAmount before = process.Bytes.Balance;
+
+            process.Buffer.Take(process.Buffer.Slots[0].Item.InstanceID);
+
+            Assert.AreEqual(before, process.Bytes.Balance);
+            Assert.AreEqual(0, process.ResourceGains.Count);
+        }
+
+        [Test]
+        public void ArchiveObservers_AreBuiltFromTheInstalledDependencies()
+        {
+            ProcessState process = WithGarbageCollector(out SessionState _);
+
+            Assert.AreEqual(1, process.ArchiveObservers.Count);
+            Assert.AreEqual("WB-DEP-008", process.ArchiveObservers[0].DefinitionID);
+        }
+
+        /// <summary>
+        /// Creates a Tutorial 2 Process over a Session with GARBAGE COLLECTOR installed.
+        /// </summary>
+        /// <param name="session">The Session the Process was created over.</param>
+        /// <returns>The Process state.</returns>
+        private static ProcessState WithGarbageCollector(out SessionState session)
+        {
+            ContentCatalog catalog = ProgressionFixtures.ProcessCatalog();
+            session = SessionState.Create(
+                catalog,
+                ProgressionFixtures.Archetype(
+                    ProgressionFixtures.ValuePlusTwo,
+                    ProgressionFixtures.ValuePlusTwo,
+                    ProgressionFixtures.ValuePlusTwo,
+                    ProgressionFixtures.ScorePlusValue,
+                    ProgressionFixtures.ValuePlusThree,
+                    ProgressionFixtures.ValuePlusThree,
+                    ProgressionFixtures.ValuePlusThree,
+                    ProgressionFixtures.RepeatTwo,
+                    ProgressionFixtures.Overclock
+                ),
+                "WB-SYS-001",
+                "session-1",
+                "seed-1"
+            );
+
+            session.Economy.Dependencies.Install(
+                EconomyFixtures.GarbageCollector(),
+                session.InstanceIDs.Next(),
+                0,
+                DependencyOrigin.Purchase);
+
+            return CreateOver(session).State;
+        }
+
+        /// <summary>
+        /// Creates a Tutorial 2 Process over an existing Session.
+        /// </summary>
+        /// <param name="session">The Session to create over.</param>
+        /// <returns>The creation result.</returns>
+        private static ProcessCreationResult CreateOver(SessionState session)
+        {
+            ContentCatalog catalog = ProgressionFixtures.ProcessCatalog();
+            ProcessConfigurationDefinition configuration = TutorialTwoConfiguration();
+            ProcessSetup setup = ProcessSetupResolver.Resolve(
+                configuration,
+                catalog.Parameters,
+                Array.Empty<ActiveSetupEffect>()
+            );
+
+            return ProcessState.Create(configuration, setup, catalog, session, null);
+        }
+
+
         /// <summary>
         /// Creates a Process from a configuration against the fixture catalog and a seeded Session.
         /// </summary>
@@ -478,7 +614,7 @@ namespace Iterate.Domain.Progression.Tests
             return new InstructionInstance(
                 new InstanceID(id),
                 ProgressionFixtures.Instruction(ProgressionFixtures.ValuePlusTwo),
-                null
+                Array.Empty<PatchAttachment>()
             );
         }
 

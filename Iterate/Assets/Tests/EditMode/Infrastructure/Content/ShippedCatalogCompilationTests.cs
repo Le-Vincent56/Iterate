@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
@@ -139,8 +140,8 @@ namespace Iterate.Infrastructure.Content.Tests
             Assert.IsTrue(catalog.TryGetDependency(new DependencyID("WB-DEP-002"), out DependencyDefinition cleanBuildDefinition));
             Assert.IsTrue(catalog.TryGetDirective(new DirectiveID("WB-DIR-004"), out DirectiveDefinition compileAheadDefinition));
 
-            InstructionInstance firstEdit = new InstructionInstance(new InstanceID(1), catalog.Instructions[0], null);
-            InstructionInstance secondEdit = new InstructionInstance(new InstanceID(2), catalog.Instructions[1], null);
+            InstructionInstance firstEdit = new InstructionInstance(new InstanceID(1), catalog.Instructions[0], Array.Empty<PatchAttachment>());
+            InstructionInstance secondEdit = new InstructionInstance(new InstanceID(2), catalog.Instructions[1], Array.Empty<PatchAttachment>());
             DirectiveInstance compileAhead = new DirectiveInstance(new InstanceID(50), compileAheadDefinition);
 
             CatalogBuffer buffer = new CatalogBuffer();

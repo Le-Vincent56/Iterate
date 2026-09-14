@@ -77,6 +77,26 @@ namespace Iterate.Domain.Progression.Tests
         }
 
         /// <summary>
+        /// Builds a Patch definition carrying the given ID, eligible for ordinary Instruction hosts and
+        /// declaring no effects. Economy fixtures socket it to test attachment, not interpretation.
+        /// </summary>
+        /// <param name="id">The Patch's surrogate-key identity.</param>
+        /// <returns>The Patch definition.</returns>
+        public static PatchDefinition Patch(string id)
+        {
+            return new PatchDefinition(
+                new PatchID(id),
+                id,
+                id,
+                ContentCategory.Patch,
+                Rarity.Common,
+                Array.Empty<string>(),
+                new PatchHostEligibility("ORDINARY_INSTRUCTION_HOSTS"),
+                Array.Empty<EffectDefinition>()
+            );
+        }
+
+        /// <summary>
         /// Builds a Repeat Structure definition carrying the given ID.
         /// </summary>
         /// <param name="id">The Structure's surrogate-key identity.</param>
@@ -229,7 +249,8 @@ namespace Iterate.Domain.Progression.Tests
                 { "WB-PAR-017", 0 }, { "WB-PAR-018", 0 }, { "WB-PAR-019", 1 }, { "WB-PAR-020", 2 },
                 { "WB-PAR-021", 3 }, { "WB-PAR-022", 1.0 }, { "WB-PAR-023", 1.75 }, { "WB-PAR-024", 3.0 },
                 { "WB-PAR-026", 2 }, { "WB-PAR-028", 1 }, { "WB-PAR-029", 2 }, { "WB-PAR-030", 3 },
-                { "WB-PAR-035", 0.5 }, { "WB-PAR-036", 2 }
+                { "WB-PAR-035", 0.5 }, { "WB-PAR-036", 2 },
+                { "WB-PAR-037", 3 }, { "WB-PAR-038", 7 }, { "WB-PAR-039", 3 }
             });
         }
 

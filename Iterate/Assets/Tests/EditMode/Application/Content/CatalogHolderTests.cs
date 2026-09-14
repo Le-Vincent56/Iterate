@@ -23,7 +23,8 @@ namespace Iterate.Application.Content.Tests
                 "WB-PAR-006", "WB-PAR-007", "WB-PAR-008", "WB-PAR-009", "WB-PAR-010",
                 "WB-PAR-011", "WB-PAR-012", "WB-PAR-013", "WB-PAR-014", "WB-PAR-015",
                 "WB-PAR-016", "WB-PAR-017", "WB-PAR-018", "WB-PAR-019", "WB-PAR-020",
-                "WB-PAR-021", "WB-PAR-026", "WB-PAR-028", "WB-PAR-029", "WB-PAR-030", "WB-PAR-036"
+                "WB-PAR-021", "WB-PAR-026", "WB-PAR-028", "WB-PAR-029", "WB-PAR-030", "WB-PAR-036",
+                "WB-PAR-037", "WB-PAR-038", "WB-PAR-039"
             };
             foreach (string id in ids)
             {

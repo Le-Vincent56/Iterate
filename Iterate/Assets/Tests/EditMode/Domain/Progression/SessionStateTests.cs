@@ -189,6 +189,53 @@ namespace Iterate.Domain.Progression.Tests
         }
 
         [Test]
+        public void Create_OpensTheEconomyAtZeroTokens()
+        {
+            SessionState session = ProgressionFixtures.Session();
+
+            Assert.IsNotNull(session.Economy);
+            Assert.AreEqual(new TokenAmount(0), session.Economy.Tokens.Balance);
+        }
+
+        [Test]
+        public void Create_SizesTheDependencyRackFromTheCatalogRegister()
+        {
+            SessionState session = ProgressionFixtures.Session();
+
+            Assert.AreEqual(4, session.Economy.Dependencies.Capacity);
+            Assert.AreEqual(0, session.Economy.Dependencies.Usage);
+        }
+
+        [Test]
+        public void Create_InstallsTheStarterDependencyInTheRack()
+        {
+            SessionState session = ProgressionFixtures.Session();
+
+            Assert.AreEqual(ProgressionFixtures.StandardLibrary, session.Economy.Dependencies.Starter.Definition.ID.Value);
+            Assert.AreEqual(1, session.Economy.Dependencies.AllInstalled.Count);
+        }
+
+        [Test]
+        public void StarterDependency_ForwardsToTheRacksStarter()
+        {
+            SessionState session = ProgressionFixtures.Session();
+
+            Assert.AreSame(session.Economy.Dependencies.Starter, session.StarterDependency);
+        }
+
+        [Test]
+        public void Create_GivesEachSessionItsOwnEconomy()
+        {
+            SessionState first = ProgressionFixtures.Session();
+            SessionState second = ProgressionFixtures.Session();
+
+            first.Economy.Tokens.Credit(new TokenAmount(4), TokenBasis.RewardTokens, "reward");
+
+            Assert.AreEqual(new TokenAmount(4), first.Economy.Tokens.Balance);
+            Assert.AreEqual(new TokenAmount(0), second.Economy.Tokens.Balance);
+        }
+
+        [Test]
         public void Create_RecordsTheStarterSeedingAsAcquisitions()
         {
             SessionState session = ProgressionFixtures.Session();

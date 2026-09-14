@@ -98,6 +98,8 @@ namespace Iterate.Application.Content
         {
             if (!context.TryArray(definition, "members", jsonPath, "definition.missing-field", "definition.field-type", out JsonArray members))
                 return 0;
+            
+            context.TryString(definition, "id", jsonPath, "definition.missing-field", "definition.field-type", out string poolID);
 
             for (int index = 0; index < members.Items.Count; index++)
             {
@@ -110,6 +112,9 @@ namespace Iterate.Application.Content
 
                 context.RejectUnknownKeys(member, _allowedMemberKeys, path, "definition.unknown-field");
                 PackageFieldRules.ValidateContentField(context, member, "content", path, "reference.wrong-kind");
+                
+                if (context.TryString(member, "content", path, "definition.missing-field", "definition.field-type", out string content))
+                    context.RegisterPoolMember(poolID, content);
 
                 if (member.TryGet("price", out _))
                     context.TryInteger(member, "price", path, "definition.missing-field", "definition.field-type", out _);

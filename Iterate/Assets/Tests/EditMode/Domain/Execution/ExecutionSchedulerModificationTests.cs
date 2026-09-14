@@ -231,9 +231,9 @@ namespace Iterate.Domain.Execution.Tests
             SourceArrangement arrangement = new SourceArrangement(new List<SourceSlot>
             {
                 SourceSlot.ForCore(new SourcePosition(1), CoreAssignValueOne()),
-                SourceSlot.ForInstruction(new SourcePosition(2), new InstructionInstance(ids.Next(), AddValueInstruction(2), null)),
-                SourceSlot.ForInstruction(new SourcePosition(3), new InstructionInstance(ids.Next(), AddValueInstruction(2), null)),
-                SourceSlot.ForInstruction(new SourcePosition(4), new InstructionInstance(ids.Next(), ScoreAddValueInstruction(), null)),
+                SourceSlot.ForInstruction(new SourcePosition(2), new InstructionInstance(ids.Next(), AddValueInstruction(2), Array.Empty<PatchAttachment>())),
+                SourceSlot.ForInstruction(new SourcePosition(3), new InstructionInstance(ids.Next(), AddValueInstruction(2), Array.Empty<PatchAttachment>())),
+                SourceSlot.ForInstruction(new SourcePosition(4), new InstructionInstance(ids.Next(), ScoreAddValueInstruction(), Array.Empty<PatchAttachment>())),
                 SourceSlot.ForEmpty(new SourcePosition(5)),
                 SourceSlot.ForEmpty(new SourcePosition(6)),
                 SourceSlot.ForCore(new SourcePosition(7), CoreScoreAddValue())
@@ -253,9 +253,9 @@ namespace Iterate.Domain.Execution.Tests
             SourceArrangement arrangement = new SourceArrangement(new List<SourceSlot>
             {
                 SourceSlot.ForCore(new SourcePosition(1), CoreAssignValueOne()),
-                SourceSlot.ForInstruction(new SourcePosition(2), new InstructionInstance(ids.Next(), ScoreAddValueInstruction(), null)),
-                SourceSlot.ForInstruction(new SourcePosition(3), new InstructionInstance(ids.Next(), AddValueInstruction(2), null)),
-                SourceSlot.ForInstruction(new SourcePosition(4), new InstructionInstance(ids.Next(), AddValueInstruction(2), null)),
+                SourceSlot.ForInstruction(new SourcePosition(2), new InstructionInstance(ids.Next(), ScoreAddValueInstruction(), Array.Empty<PatchAttachment>())),
+                SourceSlot.ForInstruction(new SourcePosition(3), new InstructionInstance(ids.Next(), AddValueInstruction(2), Array.Empty<PatchAttachment>())),
+                SourceSlot.ForInstruction(new SourcePosition(4), new InstructionInstance(ids.Next(), AddValueInstruction(2), Array.Empty<PatchAttachment>())),
                 SourceSlot.ForEmpty(new SourcePosition(5)),
                 SourceSlot.ForEmpty(new SourcePosition(6)),
                 SourceSlot.ForCore(new SourcePosition(7), CoreScoreAddValue())

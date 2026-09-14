@@ -29,12 +29,12 @@ namespace Iterate.Application.Content
         );
 
         /// <summary>
-        /// The controlled operation-kind tokens (the ten primitives).
+        /// The controlled operation-kind tokens (the eleven primitives).
         /// </summary>
         public static readonly ControlledVocabulary OperationKindTokens = new(
             "QUANTITY_CHANGE", "DISPOSITION_CHANGE", "ADDED_EXECUTION_REQUEST", "COUNTER_REQUEST",
             "COST_MODIFICATION", "RESCUE", "PREDICTION_VISIBILITY", "CONFIGURATION_MODIFICATION",
-            "OPERATION_MODIFICATION", "TARGET_LOCK_UPDATE"
+            "OPERATION_MODIFICATION", "TARGET_LOCK_UPDATE", "RESOURCE_GAIN"
         );
 
         /// <summary>
@@ -99,14 +99,12 @@ namespace Iterate.Application.Content
         );
 
         private readonly List<CatalogError> _errors = new();
-
         private readonly HashSet<string> _definedIDs = new(StringComparer.Ordinal);
-
         private readonly HashSet<string> _displayNames = new(StringComparer.Ordinal);
-
         private readonly List<PendingReference> _references = new();
-        
         private readonly List<PendingIDReference> _idReferences = new();
+        private readonly List<PendingDependencyFreePool> _dependencyFreePools = new();
+        private readonly List<PendingPoolMember> _poolMembers = new();
 
         /// <summary>
         /// The file name stamped on errors added while it is current.
@@ -175,6 +173,28 @@ namespace Iterate.Application.Content
         }
 
         /// <summary>
+        /// Records that a shop rerolls from a pool while offering no Dependencies, so the pool's
+        /// membership is checked once every file has been read.
+        /// </summary>
+        /// <param name="jsonPath">The shop's JSON path.</param>
+        /// <param name="poolID">The bound pool's identity.</param>
+        /// <param name="shopID">The shop's identity.</param>
+        public void RegisterDependencyFreePool(string jsonPath, string poolID, string shopID)
+        {
+            _dependencyFreePools.Add(new PendingDependencyFreePool(CurrentFile, jsonPath, poolID, shopID));
+        }
+
+        /// <summary>
+        /// Records one pool membership for the cross-file rules that read it.
+        /// </summary>
+        /// <param name="poolID">The pool's identity.</param>
+        /// <param name="contentID">The member's content identity.</param>
+        public void RegisterPoolMember(string poolID, string contentID)
+        {
+            _poolMembers.Add(new PendingPoolMember(poolID, contentID));
+        }
+        
+        /// <summary>
         /// Resolves every recorded reference against the collected display names, reporting the
         /// unresolved ones.
         /// </summary>
@@ -215,6 +235,27 @@ namespace Iterate.Application.Content
                         reference.JsonPath,
                         reference.RuleName,
                         "'" + reference.ReferencedID + "' is defined but is not a '" + reference.ExpectedPrefix + "' id."
+                    ));
+                }
+            }
+            
+            for (int index = 0; index < _dependencyFreePools.Count; index++)
+            {
+                PendingDependencyFreePool binding = _dependencyFreePools[index];
+                for (int member = 0; member < _poolMembers.Count; member++)
+                {
+                    if (!string.Equals(_poolMembers[member].PoolID, binding.PoolID, StringComparison.Ordinal))
+                        continue;
+
+                    if (!_poolMembers[member].ContentID.StartsWith("WB-DEP-", StringComparison.Ordinal))
+                        continue;
+
+                    _errors.Add(new CatalogError(
+                        binding.File,
+                        binding.JsonPath,
+                        "shop.dependency-offer-disabled",
+                        "'" + _poolMembers[member].ContentID + "' is a Dependency in the pool '"
+                        + binding.PoolID + "', which shop '" + binding.ShopID + "' rerolls from without offering Dependencies."
                     ));
                 }
             }
@@ -578,8 +619,8 @@ namespace Iterate.Application.Content
                     ValidateTrigger(triggerObject, jsonPath + ".trigger");
                     break;
                 
-                case false when string.Equals(phaseDomain, "EXECUTION", StringComparison.Ordinal):
-                    AddError(jsonPath, "effect.trigger-required", "EXECUTION effects require a trigger.");
+                case false when string.Equals(phaseDomain, "EXECUTION", StringComparison.Ordinal) || string.Equals(phaseDomain, "BUILD_INTERACTION", StringComparison.Ordinal):
+                    AddError(jsonPath, "effect.trigger-required", "EXECUTION and BUILD_INTERACTION effects require a trigger.");
                     break;
             }
 
@@ -661,6 +702,10 @@ namespace Iterate.Application.Content
                 
                 case "TARGET_LOCK_UPDATE":
                     ValidateTargetingField(operation, "selection", jsonPath);
+                    break;
+                
+                case "RESOURCE_GAIN":
+                    ValidateResourceGain(operation, jsonPath);
                     break;
             }
         }
@@ -842,6 +887,27 @@ namespace Iterate.Application.Content
             if (allowanceOk && scopeOk && !IsCanonicalFrequencyPair(allowance, scope))
             {
                 AddError(jsonPath, "effect.frequency-pair", "the frequency '" + allowance + "' with reset scope '" + scope + "' is not a canonical form.");
+            }
+        }
+        
+        /// <summary>
+        /// Validates a resource-gain operation: a controlled resource token and an amount of at least
+        /// one. A gain of zero is an effect that does nothing, which is an authoring mistake rather
+        /// than a no-op worth shipping.
+        /// </summary>
+        /// <param name="operation">The operation object.</param>
+        /// <param name="jsonPath">The operation's JSON path.</param>
+        private void ValidateResourceGain(JsonObject operation, string jsonPath)
+        {
+            if (TryString(operation, "resource", jsonPath, "effect.operation-payload", "effect.operation-payload", out string resource)
+                && !string.Equals(resource, "BYTES", StringComparison.Ordinal))
+            {
+                AddError(jsonPath + ".resource", "effect.operation-payload", "'" + resource + "' is not a gainable resource.");
+            }
+
+            if (TryInteger(operation, "amount", jsonPath, "effect.operation-payload", "effect.operation-payload", out long amount) && amount < 1)
+            {
+                AddError(jsonPath + ".amount", "effect.operation-payload", "a resource gain must gain at least one.");
             }
         }
 

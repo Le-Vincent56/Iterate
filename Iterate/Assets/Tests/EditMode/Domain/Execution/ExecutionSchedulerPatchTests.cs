@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using NUnit.Framework;
 using Iterate.Domain.Compilation;
@@ -595,7 +596,7 @@ namespace Iterate.Domain.Execution.Tests
         /// <returns>The Instruction instance.</returns>
         private static InstructionInstance UnpatchedHost(int hostID, QuantityChangeOperation primary)
         {
-            return new InstructionInstance(new InstanceID(hostID), InstructionWith(primary), null);
+            return new InstructionInstance(new InstanceID(hostID), InstructionWith(primary), Array.Empty<PatchAttachment>());
         }
 
         /// <summary>
@@ -614,7 +615,108 @@ namespace Iterate.Domain.Execution.Tests
             EffectDefinition effect,
             QuantityChangeOperation primary)
         {
-            PatchDefinition definition = new PatchDefinition(
+            PatchDefinition definition = PatchDefinitionFor(patchDefinitionID, effect);
+
+            return new InstructionInstance(
+                new InstanceID(hostID),
+                InstructionWith(primary),
+                new[] { new PatchAttachment(1, new PatchInstance(new InstanceID(patchID), definition)) });
+        }
+
+        [Test]
+        public void EvidenceHeader_OnePatchedHost_NamesThatPatchInstance()
+        {
+            InstanceIDSource ids = new InstanceIDSource();
+            SourceArrangement arrangement = new SourceArrangement(new List<SourceSlot>
+            {
+                SourceSlot.ForInstruction(new SourcePosition(1), PatchedHost(10, 60, "WB-PAT-001", ConstantPatchEffect(), ValueAddOperation(2)))
+            });
+
+            ExecutionRecord record = Execute(SchedulerFixtures.RequestOver(arrangement, SchedulerFixtures.ZeroState(), ids));
+
+            Assert.AreEqual(1, record.Header.RelevantPatchInstances.Count);
+            Assert.AreEqual(new InstanceID(60), record.Header.RelevantPatchInstances[0]);
+        }
+
+        [Test]
+        public void EvidenceHeader_TwoAttachmentsOnOneHost_NamesBothInSocketOrder()
+        {
+            InstanceIDSource ids = new InstanceIDSource();
+            InstructionInstance host = PatchedHost(10, 60, "WB-PAT-001", ConstantPatchEffect(), ValueAddOperation(2))
+                .WithAttachment(new PatchAttachment(
+                    2,
+                    new PatchInstance(new InstanceID(61), PatchDefinitionFor("WB-PAT-001", ConstantPatchEffect()))));
+            SourceArrangement arrangement = new SourceArrangement(new List<SourceSlot>
+            {
+                SourceSlot.ForInstruction(new SourcePosition(1), host)
+            });
+
+            ExecutionRecord record = Execute(SchedulerFixtures.RequestOver(arrangement, SchedulerFixtures.ZeroState(), ids));
+
+            Assert.AreEqual(2, record.Header.RelevantPatchInstances.Count);
+            Assert.AreEqual(new InstanceID(60), record.Header.RelevantPatchInstances[0]);
+            Assert.AreEqual(new InstanceID(61), record.Header.RelevantPatchInstances[1]);
+        }
+
+        [Test]
+        public void EvidenceHeader_PatchedHostsAcrossSlots_NamesThemInSlotOrder()
+        {
+            InstanceIDSource ids = new InstanceIDSource();
+            SourceArrangement arrangement = new SourceArrangement(new List<SourceSlot>
+            {
+                SourceSlot.ForInstruction(new SourcePosition(1), PatchedHost(10, 60, "WB-PAT-001", ConstantPatchEffect(), ValueAddOperation(2))),
+                SourceSlot.ForInstruction(new SourcePosition(2), UnpatchedHost(11, ValueAddOperation(1))),
+                SourceSlot.ForInstruction(new SourcePosition(3), PatchedHost(12, 61, "WB-PAT-001", ConstantPatchEffect(), ValueAddOperation(2)))
+            });
+
+            ExecutionRecord record = Execute(SchedulerFixtures.RequestOver(arrangement, SchedulerFixtures.ZeroState(), ids));
+
+            Assert.AreEqual(2, record.Header.RelevantPatchInstances.Count);
+            Assert.AreEqual(new InstanceID(60), record.Header.RelevantPatchInstances[0]);
+            Assert.AreEqual(new InstanceID(61), record.Header.RelevantPatchInstances[1]);
+        }
+
+        [Test]
+        public void EvidenceHeader_PatchInsideAStructure_IsNamedFromTheContainedSlot()
+        {
+            InstanceIDSource ids = new InstanceIDSource();
+            StructureInstance condition = SchedulerFixtures.RepeatStructure(110, 1, 2);
+            SourceArrangement arrangement = new SourceArrangement(new List<SourceSlot>
+            {
+                SourceSlot.ForStructureHeader(new SourcePosition(1), condition),
+                SourceSlot.ForContainedInstruction(new SourcePosition(2), condition, PatchedHost(10, 60, "WB-PAT-001", ConstantPatchEffect(), ValueAddOperation(2)))
+            });
+
+            ExecutionRecord record = Execute(SchedulerFixtures.RequestOver(arrangement, SchedulerFixtures.ZeroState(), ids));
+
+            Assert.AreEqual(1, record.Header.RelevantPatchInstances.Count);
+            Assert.AreEqual(new InstanceID(60), record.Header.RelevantPatchInstances[0]);
+        }
+
+        [Test]
+        public void EvidenceHeader_UnpatchedArrangement_StaysEmpty()
+        {
+            InstanceIDSource ids = new InstanceIDSource();
+            SourceArrangement arrangement = new SourceArrangement(new List<SourceSlot>
+            {
+                SourceSlot.ForInstruction(new SourcePosition(1), UnpatchedHost(10, ValueAddOperation(2)))
+            });
+
+            ExecutionRecord record = Execute(SchedulerFixtures.RequestOver(arrangement, SchedulerFixtures.ZeroState(), ids));
+
+            Assert.AreEqual(0, record.Header.RelevantPatchInstances.Count);
+        }
+
+        /// <summary>
+        /// Builds the fixture Patch definition a host sockets, so a second attachment can be added to a
+        /// host built by <see cref="PatchedHost"/>.
+        /// </summary>
+        /// <param name="patchDefinitionID">The Patch definition's surrogate-key identity.</param>
+        /// <param name="effect">The Patch's declared effect.</param>
+        /// <returns>The frozen Patch definition.</returns>
+        private static PatchDefinition PatchDefinitionFor(string patchDefinitionID, EffectDefinition effect)
+        {
+            return new PatchDefinition(
                 new PatchID(patchDefinitionID),
                 "Test rules.",
                 "TEST PATCH",
@@ -623,11 +725,6 @@ namespace Iterate.Domain.Execution.Tests
                 new List<string>(),
                 new PatchHostEligibility("ORDINARY_INSTRUCTION_HOSTS"),
                 new List<EffectDefinition> { effect });
-
-            return new InstructionInstance(
-                new InstanceID(hostID),
-                InstructionWith(primary),
-                new PatchInstance(new InstanceID(patchID), definition));
         }
 
         /// <summary>

@@ -89,7 +89,7 @@ namespace Iterate.Domain.Content.Tests
         [Test]
         public void InstructionInstance_NullDefinition_Throws()
         {
-            Assert.Throws<ArgumentException>(() => _ = new InstructionInstance(new InstanceID(1), null, null));
+            Assert.Throws<ArgumentException>(() => _ = new InstructionInstance(new InstanceID(1), null, Array.Empty<PatchAttachment>()));
         }
 
         [Test]
@@ -113,8 +113,8 @@ namespace Iterate.Domain.Content.Tests
         [Test]
         public void InstructionInstance_EqualIDAndDefinition_AreEqual()
         {
-            InstructionInstance left = new(new InstanceID(5), _instruction, null);
-            InstructionInstance right = new(new InstanceID(5), _instruction, null);
+            InstructionInstance left = new(new InstanceID(5), _instruction, Array.Empty<PatchAttachment>());
+            InstructionInstance right = new(new InstanceID(5), _instruction, Array.Empty<PatchAttachment>());
 
             Assert.AreEqual(left, right);
         }
@@ -122,8 +122,8 @@ namespace Iterate.Domain.Content.Tests
         [Test]
         public void InstructionInstance_SameDefinitionDifferentID_AreNotEqual()
         {
-            InstructionInstance first = new(new InstanceID(5), _instruction, null);
-            InstructionInstance second = new(new InstanceID(6), _instruction, null);
+            InstructionInstance first = new(new InstanceID(5), _instruction, Array.Empty<PatchAttachment>());
+            InstructionInstance second = new(new InstanceID(6), _instruction, Array.Empty<PatchAttachment>());
 
             Assert.AreNotEqual(first, second);
         }
@@ -165,35 +165,169 @@ namespace Iterate.Domain.Content.Tests
         }
 
         [Test]
-        public void InstructionInstance_UnpatchedByDefault_AttachedPatchNull()
+        public void InstructionInstance_EmptyAttachmentList_CarriesNoAttachments()
         {
-            InstructionInstance instance = new(new InstanceID(1), _instruction, null);
+            InstructionInstance instance = new(new InstanceID(1), _instruction, Array.Empty<PatchAttachment>());
 
-            Assert.IsNull(instance.AttachedPatch);
+            Assert.AreEqual(0, instance.AttachedPatches.Count);
         }
 
         [Test]
-        public void InstructionInstance_WithPatchAttachment_PreservesInstanceID()
+        public void InstructionInstance_NullAttachmentList_Throws()
         {
-            InstructionInstance unpatched = new(new InstanceID(4), _instruction, null);
-            PatchInstance attached = new(new InstanceID(2), _patch);
-
-            InstructionInstance patched = unpatched with { AttachedPatch = attached };
-
-            Assert.AreEqual(new InstanceID(4), patched.InstanceID);
-            Assert.AreEqual(attached, patched.AttachedPatch);
+            Assert.Throws<ArgumentException>(() => _ = new InstructionInstance(new InstanceID(1), _instruction, null));
         }
 
         [Test]
-        public void InstructionInstance_DifferentAttachedPatch_AreNotEqual()
+        public void InstructionInstance_DuplicateSockets_Throws()
         {
-            InstructionInstance unpatched = new(new InstanceID(4), _instruction, null);
-            InstructionInstance patched = unpatched with
+            PatchAttachment[] attachments =
             {
-                AttachedPatch = new PatchInstance(new InstanceID(2), _patch)
+                new PatchAttachment(1, new PatchInstance(new InstanceID(2), _patch)),
+                new PatchAttachment(1, new PatchInstance(new InstanceID(3), _patch))
             };
 
+            Assert.Throws<ArgumentException>(() => _ = new InstructionInstance(new InstanceID(1), _instruction, attachments));
+        }
+
+        [Test]
+        public void InstructionInstance_DescendingSockets_Throws()
+        {
+            PatchAttachment[] attachments =
+            {
+                new PatchAttachment(2, new PatchInstance(new InstanceID(2), _patch)),
+                new PatchAttachment(1, new PatchInstance(new InstanceID(3), _patch))
+            };
+
+            Assert.Throws<ArgumentException>(() => _ = new InstructionInstance(new InstanceID(1), _instruction, attachments));
+        }
+
+        [Test]
+        public void InstructionInstance_TwoAscendingSockets_KeepsSocketOrder()
+        {
+            PatchAttachment[] attachments =
+            {
+                new PatchAttachment(1, new PatchInstance(new InstanceID(2), _patch)),
+                new PatchAttachment(2, new PatchInstance(new InstanceID(3), _patch))
+            };
+
+            InstructionInstance instance = new(new InstanceID(1), _instruction, attachments);
+
+            Assert.AreEqual(2, instance.AttachedPatches.Count);
+            Assert.AreEqual(1, instance.AttachedPatches[0].Socket);
+            Assert.AreEqual(new InstanceID(2), instance.AttachedPatches[0].Patch.InstanceID);
+            Assert.AreEqual(2, instance.AttachedPatches[1].Socket);
+            Assert.AreEqual(new InstanceID(3), instance.AttachedPatches[1].Patch.InstanceID);
+        }
+
+        [Test]
+        public void WithAttachment_EmptyHost_PreservesInstanceID()
+        {
+            InstructionInstance unpatched = new(new InstanceID(4), _instruction, Array.Empty<PatchAttachment>());
+            PatchAttachment attachment = new(1, new PatchInstance(new InstanceID(2), _patch));
+
+            InstructionInstance patched = unpatched.WithAttachment(attachment);
+
+            Assert.AreEqual(new InstanceID(4), patched.InstanceID);
+            Assert.AreEqual(1, patched.AttachedPatches.Count);
+            Assert.AreEqual(attachment, patched.AttachedPatches[0]);
+        }
+
+        [Test]
+        public void WithAttachment_OccupiedSocket_ReplacesThatSocketAndKeepsTheOther()
+        {
+            PatchAttachment[] attachments =
+            {
+                new PatchAttachment(1, new PatchInstance(new InstanceID(2), _patch)),
+                new PatchAttachment(2, new PatchInstance(new InstanceID(3), _patch))
+            };
+            InstructionInstance patched = new(new InstanceID(4), _instruction, attachments);
+
+            InstructionInstance replaced = patched.WithAttachment(
+                new PatchAttachment(1, new PatchInstance(new InstanceID(9), _patch)));
+
+            Assert.AreEqual(2, replaced.AttachedPatches.Count);
+            Assert.AreEqual(new InstanceID(9), replaced.AttachedPatches[0].Patch.InstanceID);
+            Assert.AreEqual(new InstanceID(3), replaced.AttachedPatches[1].Patch.InstanceID);
+        }
+
+        [Test]
+        public void WithAttachment_LowerSocketAfterHigher_KeepsSocketsAscending()
+        {
+            InstructionInstance first = new InstructionInstance(new InstanceID(4), _instruction, Array.Empty<PatchAttachment>())
+                .WithAttachment(new PatchAttachment(2, new PatchInstance(new InstanceID(3), _patch)));
+
+            InstructionInstance both = first.WithAttachment(
+                new PatchAttachment(1, new PatchInstance(new InstanceID(2), _patch)));
+
+            Assert.AreEqual(1, both.AttachedPatches[0].Socket);
+            Assert.AreEqual(2, both.AttachedPatches[1].Socket);
+        }
+
+        [Test]
+        public void WithoutAttachment_OccupiedSocket_RemovesOnlyThatSocket()
+        {
+            PatchAttachment[] attachments =
+            {
+                new PatchAttachment(1, new PatchInstance(new InstanceID(2), _patch)),
+                new PatchAttachment(2, new PatchInstance(new InstanceID(3), _patch))
+            };
+            InstructionInstance patched = new(new InstanceID(4), _instruction, attachments);
+
+            InstructionInstance stripped = patched.WithoutAttachment(1);
+
+            Assert.AreEqual(1, stripped.AttachedPatches.Count);
+            Assert.AreEqual(2, stripped.AttachedPatches[0].Socket);
+        }
+
+        [Test]
+        public void WithoutAttachment_EmptySocket_ReturnsAnEqualRecord()
+        {
+            PatchAttachment[] attachments =
+            {
+                new PatchAttachment(1, new PatchInstance(new InstanceID(2), _patch))
+            };
+            InstructionInstance patched = new(new InstanceID(4), _instruction, attachments);
+
+            InstructionInstance unchanged = patched.WithoutAttachment(2);
+
+            Assert.AreEqual(patched, unchanged);
+        }
+
+        [Test]
+        public void TryGetAttachment_OccupiedSocket_AnswersBySocket()
+        {
+            PatchAttachment[] attachments =
+            {
+                new PatchAttachment(2, new PatchInstance(new InstanceID(3), _patch))
+            };
+            InstructionInstance patched = new(new InstanceID(4), _instruction, attachments);
+
+            Assert.IsTrue(patched.TryGetAttachment(2, out PatchAttachment found));
+            Assert.AreEqual(new InstanceID(3), found.Patch.InstanceID);
+            Assert.IsFalse(patched.TryGetAttachment(1, out PatchAttachment missing));
+            Assert.IsNull(missing);
+        }
+
+        [Test]
+        public void InstructionInstance_DifferentAttachments_AreNotEqual()
+        {
+            InstructionInstance unpatched = new(new InstanceID(4), _instruction, Array.Empty<PatchAttachment>());
+            InstructionInstance patched = unpatched.WithAttachment(
+                new PatchAttachment(1, new PatchInstance(new InstanceID(2), _patch)));
+
             Assert.AreNotEqual(unpatched, patched);
+        }
+
+        [Test]
+        public void InstructionInstance_SameAttachments_AreEqual()
+        {
+            InstructionInstance left = new InstructionInstance(new InstanceID(4), _instruction, Array.Empty<PatchAttachment>())
+                .WithAttachment(new PatchAttachment(1, new PatchInstance(new InstanceID(2), _patch)));
+            InstructionInstance right = new InstructionInstance(new InstanceID(4), _instruction, Array.Empty<PatchAttachment>())
+                .WithAttachment(new PatchAttachment(1, new PatchInstance(new InstanceID(2), _patch)));
+
+            Assert.AreEqual(left, right);
         }
     }
 }

@@ -54,7 +54,7 @@ namespace Iterate.Domain.Compilation.Tests
         [Test]
         public void Classify_AfterOrdinaryEdit_Initial()
         {
-            InstructionInstance instruction = new InstructionInstance(new InstanceID(10), _ordinaryDefinition, null);
+            InstructionInstance instruction = new InstructionInstance(new InstanceID(10), _ordinaryDefinition, Array.Empty<PatchAttachment>());
             FakeBuildBuffer buffer = new FakeBuildBuffer(10);
             buffer.AddInstruction(instruction);
             BuildState state = new BuildState(StandardCore(), buffer);
@@ -67,8 +67,8 @@ namespace Iterate.Domain.Compilation.Tests
         [Test]
         public void Classify_AfterOverwrite_Initial()
         {
-            InstructionInstance seated = new InstructionInstance(new InstanceID(11), _ordinaryDefinition, null);
-            InstructionInstance overwrite = new InstructionInstance(new InstanceID(30), _overwriteDefinition, null);
+            InstructionInstance seated = new InstructionInstance(new InstanceID(11), _ordinaryDefinition, Array.Empty<PatchAttachment>());
+            InstructionInstance overwrite = new InstructionInstance(new InstanceID(30), _overwriteDefinition, Array.Empty<PatchAttachment>());
             FakeBuildBuffer buffer = new FakeBuildBuffer(10);
             buffer.AddInstruction(overwrite);
             BuildState state = new BuildState(
@@ -83,7 +83,7 @@ namespace Iterate.Domain.Compilation.Tests
         [Test]
         public void Classify_AfterEditThenManualReversal_Initial()
         {
-            InstructionInstance instruction = new InstructionInstance(new InstanceID(10), _ordinaryDefinition, null);
+            InstructionInstance instruction = new InstructionInstance(new InstanceID(10), _ordinaryDefinition, Array.Empty<PatchAttachment>());
             FakeBuildBuffer buffer = new FakeBuildBuffer(10);
             BuildState state = new BuildState(
                 Player(Instr(3, instruction), Empty(4), Empty(5), Empty(6), Empty(7), Empty(8)),

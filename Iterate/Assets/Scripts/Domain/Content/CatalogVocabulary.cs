@@ -153,5 +153,16 @@ namespace Iterate.Domain.Content
         /// The controlled prediction projections.
         /// </summary>
         public static readonly ControlledVocabulary PredictionProjections = new("CANONICAL_PREDICTION");
+        
+        /// <summary>
+        /// The controlled host-eligibility rules a Patch definition may declare. The set is closed by
+        /// canon: a new rule is a Design revision, not an authoring choice, so an unknown string is a
+        /// catalog error rather than a Patch that silently attaches to nothing.
+        /// </summary>
+        public static readonly ControlledVocabulary PatchHostEligibilityRules = new(
+            "FIXED_NUMBER_ADDITION_HOSTS",
+            "ORDINARY_INSTRUCTION_HOSTS",
+            "SCORE_INSTRUCTION_HOSTS"
+        );
     }
 }

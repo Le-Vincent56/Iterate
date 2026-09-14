@@ -124,11 +124,12 @@ namespace Iterate.Domain.Execution
         }
 
         /// <summary>
-        /// Interprets every EXECUTION-domain effect the host's attached Patch declares, socketing each
+        /// Interprets every EXECUTION-domain effect the host's attached Patches declare, socketing each
         /// produced effect to the host. The effect origin is the Patch instance and the definition
         /// identity the Patch definition, so two attachments of one definition stay distinct origins.
+        /// Attachments resolve in socket order, which is the order the host stores them in.
         /// </summary>
-        /// <param name="host">The Instruction instance whose socket is read.</param>
+        /// <param name="host">The Instruction instance whose sockets are read.</param>
         /// <returns>The interpreted effects; empty when the host carries no Patch.</returns>
         /// <exception cref="ArgumentException">Thrown when the host is null or an EXECUTION effect is uninterpretable.</exception>
         public static IReadOnlyList<ActiveEffect> Interpret(InstructionInstance host)
@@ -136,15 +137,26 @@ namespace Iterate.Domain.Execution
             if (host == null)
                 throw new ArgumentException("Interpretation requires an Instruction instance.", nameof(host));
 
-            PatchInstance attached = host.AttachedPatch;
-            if (attached == null)
+            if (host.AttachedPatches.Count == 0)
                 return new List<ActiveEffect>();
 
-            return InterpretDeclared(
-                attached.InstanceID,
-                attached.Definition.ID.Value,
-                attached.Definition.Effects,
-                host.InstanceID);
+            List<ActiveEffect> effects = new List<ActiveEffect>();
+            for (int i = 0; i < host.AttachedPatches.Count; i++)
+            {
+                PatchInstance attached = host.AttachedPatches[i].Patch;
+                IReadOnlyList<ActiveEffect> interpreted = InterpretDeclared(
+                    attached.InstanceID,
+                    attached.Definition.ID.Value,
+                    attached.Definition.Effects,
+                    host.InstanceID);
+
+                for (int j = 0; j < interpreted.Count; j++)
+                {
+                    effects.Add(interpreted[j]);
+                }
+            }
+
+            return effects;
         }
 
         /// <summary>

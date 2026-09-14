@@ -110,7 +110,7 @@
     "operation": {
       "type": "object",
       "required": ["kind"],
-      "properties": { "kind": { "enum": ["QUANTITY_CHANGE", "DISPOSITION_CHANGE", "ADDED_EXECUTION_REQUEST", "COUNTER_REQUEST", "COST_MODIFICATION", "RESCUE", "PREDICTION_VISIBILITY", "CONFIGURATION_MODIFICATION", "OPERATION_MODIFICATION", "TARGET_LOCK_UPDATE"] } },
+      "properties": { "kind": { "enum": ["QUANTITY_CHANGE", "DISPOSITION_CHANGE", "ADDED_EXECUTION_REQUEST", "COUNTER_REQUEST", "COST_MODIFICATION", "RESCUE", "PREDICTION_VISIBILITY", "CONFIGURATION_MODIFICATION", "OPERATION_MODIFICATION", "TARGET_LOCK_UPDATE", "RESOURCE_GAIN"] } },
       "allOf": [
         { "if": { "properties": { "kind": { "const": "QUANTITY_CHANGE" } } }, "then": { "$ref": "#/$defs/quantityChange" } },
         { "if": { "properties": { "kind": { "const": "DISPOSITION_CHANGE" } } }, "then": { "additionalProperties": false, "required": ["kind", "newDisposition"], "properties": { "kind": {}, "newDisposition": { "enum": ["RESOLVED", "SKIPPED", "PREVENTED", "CANCELLED", "RESCUED", "REPLACED"] } } } },
@@ -121,7 +121,8 @@
         { "if": { "properties": { "kind": { "const": "PREDICTION_VISIBILITY" } } }, "then": { "additionalProperties": false, "required": ["kind", "projection"], "properties": { "kind": {}, "projection": { "enum": ["CANONICAL_PREDICTION"] } } } },
         { "if": { "properties": { "kind": { "const": "CONFIGURATION_MODIFICATION" } } }, "then": { "additionalProperties": false, "required": ["kind", "setting", "amount", "setsAbsolute"], "properties": { "kind": {}, "setting": { "enum": ["STARTING_BYTES", "INSTRUCTION_BUFFER_CAPACITY", "ACTIVE_BRANCH_CAPACITY"] }, "amount": { "type": "integer" }, "setsAbsolute": { "type": "boolean" } } } },
         { "if": { "properties": { "kind": { "const": "OPERATION_MODIFICATION" } } }, "then": { "additionalProperties": false, "required": ["kind", "operandDelta"], "properties": { "kind": {}, "operandDelta": { "type": "integer" } } } },
-        { "if": { "properties": { "kind": { "const": "TARGET_LOCK_UPDATE" } } }, "then": { "additionalProperties": false, "required": ["kind", "selection"], "properties": { "kind": {}, "selection": { "$ref": "#/$defs/targeting" } } } }
+        { "if": { "properties": { "kind": { "const": "TARGET_LOCK_UPDATE" } } }, "then": { "additionalProperties": false, "required": ["kind", "selection"], "properties": { "kind": {}, "selection": { "$ref": "#/$defs/targeting" } } } },
+        { "if": { "properties": { "kind": { "const": "RESOURCE_GAIN" } } }, "then": { "additionalProperties": false, "required": ["kind", "resource", "amount"], "properties": { "kind": {}, "resource": { "enum": ["BYTES"] }, "amount": { "type": "integer", "minimum": 1 } } } }
       ]
     },
     "frequency": {

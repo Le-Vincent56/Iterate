@@ -159,6 +159,78 @@ namespace Iterate.Domain.Progression.Tests
         /// Tutorial configuration scripts.
         /// </summary>
         /// <returns>The driver.</returns>
+        [Test]
+        public void ACommittedUtility_ChangesOnlyItsTargetProcessSetup()
+        {
+            SessionSequenceDriver driver = Driver();
+            ProcessConfigurationDefinition configuration = TutorialConfiguration();
+            driver.Session.Economy.CommitUtility(
+                EconomyFixtures.Utility(EconomyFixtures.StartingBytesUtility, "STARTING_BYTES", 1),
+                configuration.ID,
+                "OFF-101");
+
+            driver.CreateProcess(configuration);
+            int withUtility = driver.Process.Bytes.Balance.Value;
+
+            SessionSequenceDriver without = Driver();
+            without.CreateProcess(TutorialConfiguration());
+
+            Assert.AreEqual(without.Process.Bytes.Balance.Value + 1, withUtility);
+        }
+
+        [Test]
+        public void AnExpiredUtility_NoLongerReachesTheNextProcess()
+        {
+            SessionSequenceDriver driver = Driver();
+            ProcessConfigurationDefinition configuration = TutorialConfiguration();
+            driver.Session.Economy.CommitUtility(
+                EconomyFixtures.Utility(EconomyFixtures.StartingBytesUtility, "STARTING_BYTES", 1),
+                configuration.ID,
+                "OFF-101");
+            driver.CreateProcess(configuration);
+            int withUtility = driver.Process.Bytes.Balance.Value;
+
+            Assert.AreEqual(1, driver.CompleteProcess());
+
+            driver.CreateProcess(configuration);
+
+            Assert.AreEqual(withUtility - 1, driver.Process.Bytes.Balance.Value);
+        }
+
+        [Test]
+        public void InstalledDependencies_ReachTheExecutionRequest()
+        {
+            SessionSequenceDriver driver = Driver();
+            driver.Session.Economy.Dependencies.Install(
+                ProgressionFixtures.Dependency(ProgressionFixtures.CleanBuild, 1),
+                driver.Session.InstanceIDs.Next(),
+                4,
+                DependencyOrigin.Purchase);
+            driver.CreateProcess(TutorialConfiguration());
+            CompilationAttempt compiled = driver.Compile();
+
+            ExecutionRequest request = driver.BuildRequest(compiled.Source);
+
+            Assert.AreEqual(2, request.InstalledDependencies.Count);
+            Assert.AreEqual(
+                driver.Session.StarterDependency.InstanceID,
+                request.InstalledDependencies[0].InstanceID,
+                "the starter leads the rack");
+            Assert.AreEqual(ProgressionFixtures.CleanBuild, request.InstalledDependencies[1].Definition.ID.Value);
+        }
+
+        [Test]
+        public void WithNothingInstalled_OnlyTheStarterReachesTheRequest()
+        {
+            SessionSequenceDriver driver = Driver();
+            driver.CreateProcess(TutorialConfiguration());
+            CompilationAttempt compiled = driver.Compile();
+
+            ExecutionRequest request = driver.BuildRequest(compiled.Source);
+
+            Assert.AreEqual(1, request.InstalledDependencies.Count);
+        }
+
         private static SessionSequenceDriver Driver()
         {
             return new SessionSequenceDriver(

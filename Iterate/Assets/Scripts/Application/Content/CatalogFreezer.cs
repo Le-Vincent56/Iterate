@@ -823,13 +823,16 @@ namespace Iterate.Application.Content
             {
                 case "QUANTITY_CHANGE":
                     return FreezeQuantityChange(operation);
+                
                 case "DISPOSITION_CHANGE":
                     return new DispositionChangeOperation(ReadString(operation, "newDisposition"));
+                
                 case "ADDED_EXECUTION_REQUEST":
                     return new AddedExecutionRequestOperation(
                         FreezeTargeting(ReadObject(operation, "target")),
                         ReadBoolean(operation, "cancelOnInvalid")
                     );
+                
                 case "COUNTER_REQUEST":
                     return new CounterRequestOperation(
                         ReadString(operation, "counter"),
@@ -839,6 +842,7 @@ namespace Iterate.Application.Content
                         ReadBoolean(operation, "hasFloor"),
                         ReadBoolean(operation, "hasCeiling")
                     );
+                
                 case "COST_MODIFICATION":
                     return new CostModificationOperation(
                         ReadString(operation, "costKind"),
@@ -847,20 +851,32 @@ namespace Iterate.Application.Content
                         ReadInteger(operation, "floor"),
                         ReadBoolean(operation, "progressionAdvances")
                     );
+                
                 case "RESCUE":
                     return new RescueOperation(ReadString(operation, "resultingDisposition"));
+                
                 case "PREDICTION_VISIBILITY":
                     return new PredictionVisibilityOperation(ReadString(operation, "projection"));
+                
                 case "CONFIGURATION_MODIFICATION":
                     return new ConfigurationModificationOperation(
                         ReadString(operation, "setting"),
                         ReadInteger(operation, "amount"),
                         ReadBoolean(operation, "setsAbsolute")
                     );
+                
                 case "OPERATION_MODIFICATION":
                     return new OperationModificationOperation(ReadInteger(operation, "operandDelta"));
+                
                 case "TARGET_LOCK_UPDATE":
                     return new TargetLockUpdateOperation(FreezeTargeting(ReadObject(operation, "selection")));
+                
+                case "RESOURCE_GAIN":
+                    return new ResourceGainOperation(
+                        ReadString(operation, "resource"),
+                        ReadInteger(operation, "amount")
+                    );
+                
                 default:
                     throw new InvalidOperationException("unknown operation kind '" + kind + "'.");
             }

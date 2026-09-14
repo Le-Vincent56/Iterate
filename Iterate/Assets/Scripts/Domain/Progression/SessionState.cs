@@ -5,10 +5,10 @@ using Iterate.Domain.Determinism;
 namespace Iterate.Domain.Progression
 {
     /// <summary>
-    /// The Session-scoped state a run carries from start to finish: the Repository, the installed
-    /// starter Dependency, the deterministic identity source and ordinal tracker every Session-scoped
-    /// caller shares, and the identities that stamp the Session's decisions. Built in one step from a
-    /// Starter Archetype, so a Session always begins in a legal state or not at all.
+    /// The Session-scoped state a run carries from start to finish: the Repository, the Session's economy of Tokens 
+    /// and RAM, the deterministic identity source and ordinal tracker every Session-scoped caller shares, and the
+    /// identities that stamp the Session's decisions. Built in one step from a Starter Archetype, so a Session
+    /// always begins in a legal state or not at all.
     /// </summary>
     public sealed class SessionState
     {
@@ -24,9 +24,15 @@ namespace Iterate.Domain.Progression
         public ActiveBranch ActiveBranch { get; }
 
         /// <summary>
-        /// The Dependency installed at Session start.
+        /// The Session's economy: Tokens, RAM and the installed Dependencies.
         /// </summary>
-        public DependencyInstance StarterDependency { get; }
+        public EconomyState Economy { get; }
+
+        /// <summary>
+        /// The Dependency installed at Session start. Forwards to the rack, which is where a
+        /// Dependency's installed state actually lives.
+        /// </summary>
+        public DependencyInstance StarterDependency => Economy.Dependencies.Starter;
 
         /// <summary>
         /// The identity source every Session-scoped allocation draws from.
@@ -63,7 +69,7 @@ namespace Iterate.Domain.Progression
         private SessionState(
             Repository repository,
             ActiveBranch activeBranch,
-            DependencyInstance starterDependency,
+            EconomyState economy,
             InstanceIDSource instanceIDs,
             OccurrenceOrdinalTracker ordinals,
             string systemIdentity,
@@ -74,7 +80,7 @@ namespace Iterate.Domain.Progression
         {
             Repository = repository;
             ActiveBranch = activeBranch;
-            StarterDependency = starterDependency;
+            Economy = economy;
             InstanceIDs = instanceIDs;
             Ordinals = ordinals;
             SystemIdentity = systemIdentity;
@@ -141,7 +147,7 @@ namespace Iterate.Domain.Progression
             return new SessionState(
                 repository,
                 new ActiveBranch(),
-                starterDependency,
+                new EconomyState(instanceIDs, starterDependency, catalog.Parameters),
                 instanceIDs,
                 new OccurrenceOrdinalTracker(),
                 systemIdentity,

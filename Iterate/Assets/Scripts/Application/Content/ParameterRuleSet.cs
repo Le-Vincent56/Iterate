@@ -6,8 +6,8 @@ using Iterate.Domain.Content;
 namespace Iterate.Application.Content
 {
     /// <summary>
-    /// Validates the parameters file: exactly the 30 WB-PAR register IDs (no missing, unknown, or
-    /// duplicate), the integer discipline for non-ratio parameters, and each row's shape. The 30
+    /// Validates the parameters file: exactly the 33 WB-PAR register IDs (no missing, unknown, or
+    /// duplicate), the integer discipline for non-ratio parameters, and each row's shape. The 33
     /// required IDs and the four ratio IDs mirror <c>ParameterSet</c> (open finding 4).
     /// </summary>
     public sealed class ParameterRuleSet : ICategoryRuleSet
@@ -23,7 +23,8 @@ namespace Iterate.Application.Content
             "WB-PAR-011", "WB-PAR-012", "WB-PAR-013", "WB-PAR-014", "WB-PAR-015",
             "WB-PAR-016", "WB-PAR-017", "WB-PAR-018", "WB-PAR-019", "WB-PAR-020",
             "WB-PAR-021", "WB-PAR-022", "WB-PAR-023", "WB-PAR-024", "WB-PAR-026",
-            "WB-PAR-028", "WB-PAR-029", "WB-PAR-030", "WB-PAR-035", "WB-PAR-036"
+            "WB-PAR-028", "WB-PAR-029", "WB-PAR-030", "WB-PAR-035", "WB-PAR-036",
+            "WB-PAR-037", "WB-PAR-038", "WB-PAR-039"
         };
 
         private static readonly HashSet<string> _ratioIDs = new(StringComparer.Ordinal)

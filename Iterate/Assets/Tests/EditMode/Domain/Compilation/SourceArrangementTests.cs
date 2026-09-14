@@ -166,7 +166,7 @@ namespace Iterate.Domain.Compilation.Tests
         [Test]
         public void TryFindInstance_InstructionOccupant_Found()
         {
-            InstructionInstance instruction = new(new InstanceID(7), _instructionDefinition, null);
+            InstructionInstance instruction = new(new InstanceID(7), _instructionDefinition, Array.Empty<PatchAttachment>());
             SourceArrangement arrangement = WithInstructionAt3(instruction);
 
             bool found = arrangement.TryFindInstance(new InstanceID(7), out SourceSlot slot);
@@ -202,7 +202,7 @@ namespace Iterate.Domain.Compilation.Tests
         public void WithSlots_ReplacesByPosition_ReturnsNewInstanceLeavingOriginalUntouched()
         {
             SourceArrangement original = StandardCore();
-            InstructionInstance instruction = new(new InstanceID(7), _instructionDefinition, null);
+            InstructionInstance instruction = new(new InstanceID(7), _instructionDefinition, Array.Empty<PatchAttachment>());
 
             SourceArrangement updated = original.WithSlots(new List<SourceSlot>
             {

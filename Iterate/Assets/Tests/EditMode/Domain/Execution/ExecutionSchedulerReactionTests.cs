@@ -228,8 +228,8 @@ namespace Iterate.Domain.Execution.Tests
             {
                 SourceSlot.ForCore(new SourcePosition(1), new CoreLine("core-01", new CoreLineOperation(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(1)))),
                 SourceSlot.ForCore(new SourcePosition(2), new CoreLine("core-02", new CoreLineOperation(CoreLineOperator.Add, CoreRegister.Score, OperandSpec.FromRegister(CoreRegister.Value)))),
-                SourceSlot.ForInstruction(new SourcePosition(3), new InstructionInstance(ids.Next(), ScoreAddValueInstruction(), null)),
-                SourceSlot.ForInstruction(new SourcePosition(4), new InstructionInstance(ids.Next(), ScoreAddValueInstruction(), null))
+                SourceSlot.ForInstruction(new SourcePosition(3), new InstructionInstance(ids.Next(), ScoreAddValueInstruction(), Array.Empty<PatchAttachment>())),
+                SourceSlot.ForInstruction(new SourcePosition(4), new InstructionInstance(ids.Next(), ScoreAddValueInstruction(), Array.Empty<PatchAttachment>()))
             });
 
             return Request(arrangement, new List<DependencyInstance> { OutputCacheInstance(300) });
@@ -245,9 +245,9 @@ namespace Iterate.Domain.Execution.Tests
             InstanceIDSource ids = new InstanceIDSource();
             SourceArrangement arrangement = new SourceArrangement(new List<SourceSlot>
             {
-                SourceSlot.ForInstruction(new SourcePosition(1), new InstructionInstance(ids.Next(), SignalAddInstruction(1), null)),
-                SourceSlot.ForInstruction(new SourcePosition(2), new InstructionInstance(ids.Next(), SignalAddInstruction(1), null)),
-                SourceSlot.ForInstruction(new SourcePosition(3), new InstructionInstance(ids.Next(), SignalAddInstruction(0), null))
+                SourceSlot.ForInstruction(new SourcePosition(1), new InstructionInstance(ids.Next(), SignalAddInstruction(1), Array.Empty<PatchAttachment>())),
+                SourceSlot.ForInstruction(new SourcePosition(2), new InstructionInstance(ids.Next(), SignalAddInstruction(1), Array.Empty<PatchAttachment>())),
+                SourceSlot.ForInstruction(new SourcePosition(3), new InstructionInstance(ids.Next(), SignalAddInstruction(0), Array.Empty<PatchAttachment>()))
             });
 
             return Request(arrangement, new List<DependencyInstance> { ParallelChannelInstance(400) });
@@ -264,7 +264,7 @@ namespace Iterate.Domain.Execution.Tests
             SourceArrangement arrangement = new SourceArrangement(new List<SourceSlot>
             {
                 SourceSlot.ForCore(new SourcePosition(1), new CoreLine("core-01", new CoreLineOperation(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(1)))),
-                SourceSlot.ForInstruction(new SourcePosition(2), new InstructionInstance(ids.Next(), ScoreAddValueInstruction(), null))
+                SourceSlot.ForInstruction(new SourcePosition(2), new InstructionInstance(ids.Next(), ScoreAddValueInstruction(), Array.Empty<PatchAttachment>()))
             });
 
             return Request(arrangement, new List<DependencyInstance>
@@ -285,7 +285,7 @@ namespace Iterate.Domain.Execution.Tests
             SourceArrangement arrangement = new SourceArrangement(new List<SourceSlot>
             {
                 SourceSlot.ForCore(new SourcePosition(1), new CoreLine("core-01", new CoreLineOperation(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(19)))),
-                SourceSlot.ForInstruction(new SourcePosition(2), new InstructionInstance(ids.Next(), ScoreAddValueInstruction(), null))
+                SourceSlot.ForInstruction(new SourcePosition(2), new InstructionInstance(ids.Next(), ScoreAddValueInstruction(), Array.Empty<PatchAttachment>()))
             });
 
             return Request(arrangement, new List<DependencyInstance> { OutputCacheInstance(500) });

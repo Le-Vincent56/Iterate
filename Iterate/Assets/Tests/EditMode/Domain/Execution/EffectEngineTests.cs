@@ -1389,7 +1389,7 @@ namespace Iterate.Domain.Execution.Tests
 
             return SourceSlot.ForInstruction(
                 new SourcePosition(2),
-                new InstructionInstance(new InstanceID(instanceID), definition, null));
+                new InstructionInstance(new InstanceID(instanceID), definition, Array.Empty<PatchAttachment>()));
         }
 
         /// <summary>

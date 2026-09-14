@@ -5,8 +5,8 @@ namespace Iterate.Application.Content
 {
     /// <summary>
     /// Validates the Patches file: the common definition fields, the host-eligibility rule, and the
-    /// required effects. Host-eligibility membership is deferred and checked here as a
-    /// required non-empty string.
+    /// required effects. Host-eligibility is checked for membership of the controlled rule set, so a
+    /// mistyped rule is a catalog error rather than a throw at attachment time.
     /// </summary>
     public sealed class PatchRuleSet : ICategoryRuleSet
     {
@@ -47,7 +47,17 @@ namespace Iterate.Application.Content
                 }
 
                 context.ValidateCommonFields(definition, path, CategoryToken, "PAT", _allowedKeys);
-                context.TryString(definition, "hostEligibility", path, "definition.missing-field", "definition.field-type", out _);
+                
+                if (context.TryString(definition, "hostEligibility", path, "definition.missing-field", "definition.field-type", out string hostEligibility))
+                {
+                    context.RequireMembership(
+                        hostEligibility,
+                        CatalogVocabulary.PatchHostEligibilityRules,
+                        path + ".hostEligibility",
+                        "patch.unknown-host-eligibility"
+                    );
+                }
+                
                 context.ValidateEffects(definition, path);
             }
         }

@@ -31,11 +31,13 @@ namespace Iterate.Composition.Root.Tests
             // The revision and definition count are the shipped catalog's, and both move whenever
             // content is added: the count went 45 to 46 when the PROCESS_RULE category and WB-PRC-001
             // landed, then 46 to 79 when the catalog extension's eight package and configuration kinds
-            // and WB-PRC-002 landed at revision 0.2.0. Both are owned and asserted by
+            // and WB-PRC-002 landed at revision 0.2.0, and the revision went 0.2.0 to 0.3.0 when
+            // GARBAGE COLLECTOR gained its BUILD_INTERACTION effect without adding a definition.
+            // Both are owned and asserted by
             // ShippedCatalogTests; this line pins them only as a by-product of matching the whole log
             // message, which is why a content change surfaces here as a missing-log failure rather than
             // as a count mismatch.
-            LogAssert.Expect(LogType.Log, "[Catalog] Catalog loaded | revision=0.2.0 | definitions=79");
+            LogAssert.Expect(LogType.Log, "[Catalog] Catalog loaded | revision=0.3.0 | definitions=79");
 
             _projectScope = new GameObject("ProjectScope");
             _projectScope.SetActive(false);

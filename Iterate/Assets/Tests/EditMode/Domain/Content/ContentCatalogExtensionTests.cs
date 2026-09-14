@@ -156,7 +156,8 @@ namespace Iterate.Domain.Content.Tests
                 { "WB-PAR-017", 0 }, { "WB-PAR-018", 0 }, { "WB-PAR-019", 1 }, { "WB-PAR-020", 2 },
                 { "WB-PAR-021", 3 }, { "WB-PAR-022", 1.0 }, { "WB-PAR-023", 1.75 }, { "WB-PAR-024", 3.0 },
                 { "WB-PAR-026", 2 }, { "WB-PAR-028", 1 }, { "WB-PAR-029", 2 }, { "WB-PAR-030", 3 },
-                { "WB-PAR-035", 0.5 }, { "WB-PAR-036", 2 }
+                { "WB-PAR-035", 0.5 }, { "WB-PAR-036", 2 },
+                { "WB-PAR-037", 3 }, { "WB-PAR-038", 7 }, { "WB-PAR-039", 3 }
             });
         }
 

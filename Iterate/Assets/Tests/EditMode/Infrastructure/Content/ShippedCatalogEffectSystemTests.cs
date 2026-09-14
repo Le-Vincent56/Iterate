@@ -292,7 +292,7 @@ namespace Iterate.Infrastructure.Content.Tests
                 else
                 {
                     Assert.IsTrue(_catalog.TryGetInstruction(new InstructionID(players[i]), out InstructionDefinition definition), players[i]);
-                    slots.Add(SourceSlot.ForInstruction(new SourcePosition(position), new InstructionInstance(ids.Next(), definition, null)));
+                    slots.Add(SourceSlot.ForInstruction(new SourcePosition(position), new InstructionInstance(ids.Next(), definition, Array.Empty<PatchAttachment>())));
                 }
             }
 

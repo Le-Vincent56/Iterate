@@ -213,7 +213,7 @@ namespace Iterate.Domain.Execution.Tests
         /// <returns>The pending request.</returns>
         private static AddedExecutionRequest Pending(int hostInstance)
         {
-            InstructionInstance instruction = new(new InstanceID(hostInstance), _instructionDefinition, null);
+            InstructionInstance instruction = new(new InstanceID(hostInstance), _instructionDefinition, Array.Empty<PatchAttachment>());
             SourceSlot slot = SourceSlot.ForInstruction(new SourcePosition(2), instruction);
 
             return new AddedExecutionRequest(

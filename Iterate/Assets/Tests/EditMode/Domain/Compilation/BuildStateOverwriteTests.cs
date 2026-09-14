@@ -138,7 +138,7 @@ namespace Iterate.Domain.Compilation.Tests
             SourceSlot unwrappedFirst = state.CurrentArrangement.SlotAt(new SourcePosition(4));
             Assert.AreEqual(SourceSlotKind.Instruction, unwrappedFirst.Kind);
             Assert.AreEqual(firstChild, unwrappedFirst.Instruction);
-            Assert.AreEqual(new InstanceID(40), unwrappedFirst.Instruction.AttachedPatch.InstanceID);
+            Assert.AreEqual(new InstanceID(40), unwrappedFirst.Instruction.AttachedPatches[0].Patch.InstanceID);
             SourceSlot unwrappedSecond = state.CurrentArrangement.SlotAt(new SourcePosition(5));
             Assert.AreEqual(SourceSlotKind.Instruction, unwrappedSecond.Kind);
             Assert.AreEqual(secondChild, unwrappedSecond.Instruction);
@@ -285,18 +285,21 @@ namespace Iterate.Domain.Compilation.Tests
 
         private static InstructionInstance NewOverwrite(int idValue)
         {
-            return new InstructionInstance(new InstanceID(idValue), _overwriteDefinition, null);
+            return new InstructionInstance(new InstanceID(idValue), _overwriteDefinition, Array.Empty<PatchAttachment>());
         }
 
         private static InstructionInstance NewOrdinary(int idValue)
         {
-            return new InstructionInstance(new InstanceID(idValue), _ordinaryDefinition, null);
+            return new InstructionInstance(new InstanceID(idValue), _ordinaryDefinition, Array.Empty<PatchAttachment>());
         }
 
         private static InstructionInstance NewPatched(int idValue, int patchIDValue)
         {
             PatchInstance patch = new PatchInstance(new InstanceID(patchIDValue), _patchDefinition);
-            return new InstructionInstance(new InstanceID(idValue), _ordinaryDefinition, patch);
+            return new InstructionInstance(
+                new InstanceID(idValue),
+                _ordinaryDefinition,
+                new PatchAttachment[] { new PatchAttachment(1, patch) });
         }
 
         private static StructureInstance NewStructure(int idValue, StructureDefinition definition)

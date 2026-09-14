@@ -171,6 +171,38 @@ namespace Iterate.Domain.Progression.Tests
         }
 
         [Test]
+        public void AcceptRemoved_PatchedInstruction_KeepsTheAttachment()
+        {
+            InstructionBuffer buffer = new(3);
+            RepositoryItem first = Item(1);
+            buffer.Admit(first);
+            buffer.Take(first.InstanceID);
+            InstructionInstance patched = first.Instruction.WithAttachment(
+                new PatchAttachment(1, new PatchInstance(new InstanceID(90), ProgressionFixtures.Patch("WB-PAT-001"))));
+
+            buffer.AcceptRemoved(patched);
+
+            Assert.AreEqual(1, buffer.Slots[0].Item.Instruction.AttachedPatches.Count);
+            Assert.AreEqual(new InstanceID(90), buffer.Slots[0].Item.Instruction.AttachedPatches[0].Patch.InstanceID);
+        }
+
+        [Test]
+        public void AcceptRemoved_PatchedInstruction_KeepsIdentityAndDefinition()
+        {
+            InstructionBuffer buffer = new(3);
+            RepositoryItem first = Item(1);
+            buffer.Admit(first);
+            buffer.Take(first.InstanceID);
+            InstructionInstance patched = first.Instruction.WithAttachment(
+                new PatchAttachment(1, new PatchInstance(new InstanceID(90), ProgressionFixtures.Patch("WB-PAT-001"))));
+
+            buffer.AcceptRemoved(patched);
+
+            Assert.AreEqual(first.InstanceID, buffer.Slots[0].Item.InstanceID);
+            Assert.AreEqual(first.DefinitionID, buffer.Slots[0].Item.DefinitionID);
+        }
+
+        [Test]
         public void AcceptRemoved_WithNoRemovalCapacity_Throws()
         {
             InstructionBuffer buffer = new(1);

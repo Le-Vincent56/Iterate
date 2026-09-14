@@ -247,7 +247,7 @@ namespace Iterate.Domain.Execution.Tests
         /// <returns>The slot.</returns>
         private static SourceSlot InstructionSlot()
         {
-            InstructionInstance instruction = new(new InstanceID(1), _instructionDefinition, null);
+            InstructionInstance instruction = new(new InstanceID(1), _instructionDefinition, Array.Empty<PatchAttachment>());
             return SourceSlot.ForInstruction(new SourcePosition(2), instruction);
         }
 

@@ -101,7 +101,7 @@ namespace Iterate.Domain.Execution.Tests
         /// <returns>The request.</returns>
         private static AddedExecutionRequest Request(string identity)
         {
-            InstructionInstance instruction = new(new InstanceID(1), _instructionDefinition, null);
+            InstructionInstance instruction = new(new InstanceID(1), _instructionDefinition, Array.Empty<PatchAttachment>());
             SourceSlot slot = SourceSlot.ForInstruction(new SourcePosition(2), instruction);
 
             return new AddedExecutionRequest(
