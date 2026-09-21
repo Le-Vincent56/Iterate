@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using NUnit.Framework;
 using Iterate.Domain.Determinism;
 
@@ -9,6 +10,8 @@ namespace Iterate.Domain.Determinism.Tests
     /// ordinals per (purpose, scope) pair, pair independence, empty-argument rejection, and the lifetime
     /// contract — fresh trackers per scope reproduce identical ordinal sequences, while a tracker reused
     /// across scopes diverges from that baseline.
+    /// The snapshot and restore seam is covered too: a snapshot is ordered independently of call order,
+    /// and a restored tracker continues every key it was given and starts an unseen key at one.
     /// </summary>
     public sealed class OccurrenceOrdinalTrackerTests
     {
@@ -96,6 +99,169 @@ namespace Iterate.Domain.Determinism.Tests
 
             Assert.That(secondProcess, Is.EqualTo(new[] { 3, 4 }));
             Assert.That(secondProcess, Is.Not.EqualTo(new[] { 1, 2 }));
+        }
+
+        [Test]
+        public void Snapshot_OfAFreshTracker_IsEmpty()
+        {
+            OccurrenceOrdinalTracker tracker = new();
+
+            Assert.That(tracker.Snapshot().Count, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void Snapshot_ReportsTheHighestOrdinalIssuedPerPair()
+        {
+            OccurrenceOrdinalTracker tracker = new();
+            tracker.Next("a", "x");
+            tracker.Next("a", "x");
+            tracker.Next("b", "y");
+
+            IReadOnlyList<OrdinalCounter> counters = tracker.Snapshot();
+
+            Assert.That(counters.Count, Is.EqualTo(2));
+            Assert.That(counters[0], Is.EqualTo(new OrdinalCounter("a", "x", 2)));
+            Assert.That(counters[1], Is.EqualTo(new OrdinalCounter("b", "y", 1)));
+        }
+
+        [Test]
+        public void Snapshot_OrdersByPurposeThenContextRegardlessOfCallOrder()
+        {
+            // The same three pairs advanced in reverse order must snapshot in the same order, or two
+            // equivalent Sessions would write different bytes for the same state.
+            OccurrenceOrdinalTracker tracker = new();
+            tracker.Next("b", "y");
+            tracker.Next("a", "z");
+            tracker.Next("a", "x");
+
+            IReadOnlyList<OrdinalCounter> counters = tracker.Snapshot();
+
+            Assert.That(counters.Count, Is.EqualTo(3));
+            Assert.That(counters[0], Is.EqualTo(new OrdinalCounter("a", "x", 1)));
+            Assert.That(counters[1], Is.EqualTo(new OrdinalCounter("a", "z", 1)));
+            Assert.That(counters[2], Is.EqualTo(new OrdinalCounter("b", "y", 1)));
+        }
+
+        [Test]
+        public void Snapshot_OrdersOrdinallyNotCaseInsensitively()
+        {
+            // Ordinal string semantics: upper case sorts before lower case, matching the pair key's own
+            // comparison rather than a culture-aware one.
+            OccurrenceOrdinalTracker tracker = new();
+            tracker.Next("a", "scope");
+            tracker.Next("A", "scope");
+
+            IReadOnlyList<OrdinalCounter> counters = tracker.Snapshot();
+
+            Assert.That(counters[0].SelectionPurpose, Is.EqualTo("A"));
+            Assert.That(counters[1].SelectionPurpose, Is.EqualTo("a"));
+        }
+
+        [Test]
+        public void Restore_ContinuesEachKeyFromItsCount()
+        {
+            OccurrenceOrdinalTracker tracker = OccurrenceOrdinalTracker.Restore(new[]
+            {
+                new OrdinalCounter("a", "x", 2),
+                new OrdinalCounter("b", "y", 1)
+            });
+
+            Assert.That(tracker.Next("a", "x"), Is.EqualTo(3));
+            Assert.That(tracker.Next("b", "y"), Is.EqualTo(2));
+        }
+
+        [Test]
+        public void Restore_StartsAnUnseenKeyAtOne()
+        {
+            OccurrenceOrdinalTracker tracker = OccurrenceOrdinalTracker.Restore(new[]
+            {
+                new OrdinalCounter("a", "x", 2)
+            });
+
+            Assert.That(tracker.Next("c", "z"), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void Restore_OfAnEmptyListIsAFreshTracker()
+        {
+            OccurrenceOrdinalTracker tracker = OccurrenceOrdinalTracker.Restore(Array.Empty<OrdinalCounter>());
+
+            Assert.That(tracker.Next("a", "x"), Is.EqualTo(1));
+            Assert.That(tracker.Snapshot().Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void Restore_RoundTripsASnapshot()
+        {
+            OccurrenceOrdinalTracker original = new();
+            original.Next("a", "x");
+            original.Next("a", "x");
+            original.Next("b", "y");
+
+            IReadOnlyList<OrdinalCounter> restored = OccurrenceOrdinalTracker.Restore(original.Snapshot()).Snapshot();
+
+            Assert.That(restored, Is.EqualTo(original.Snapshot()));
+        }
+
+        [Test]
+        public void Restore_NullList_Throws()
+        {
+            Assert.Throws<ArgumentException>(() => OccurrenceOrdinalTracker.Restore(null));
+        }
+
+        [Test]
+        public void Restore_DuplicateKey_Throws()
+        {
+            Assert.Throws<ArgumentException>(() => OccurrenceOrdinalTracker.Restore(new[]
+            {
+                new OrdinalCounter("a", "x", 1),
+                new OrdinalCounter("a", "x", 2)
+            }));
+        }
+
+        [Test]
+        public void Restore_SamePurposeDifferentContext_IsNotADuplicate()
+        {
+            OccurrenceOrdinalTracker tracker = OccurrenceOrdinalTracker.Restore(new[]
+            {
+                new OrdinalCounter("a", "x", 1),
+                new OrdinalCounter("a", "y", 1)
+            });
+
+            Assert.That(tracker.Snapshot().Count, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void Restore_CountBelowOne_Throws([Values(0, -1)] int count)
+        {
+            Assert.Throws<ArgumentException>(() => OccurrenceOrdinalTracker.Restore(new[]
+            {
+                new OrdinalCounter("a", "x", count)
+            }));
+        }
+
+        [Test]
+        public void Restore_EmptyOrNullPurpose_Throws([Values("", null)] string purpose)
+        {
+            Assert.Throws<ArgumentException>(() => OccurrenceOrdinalTracker.Restore(new[]
+            {
+                new OrdinalCounter(purpose, "x", 1)
+            }));
+        }
+
+        [Test]
+        public void Restore_EmptyOrNullContext_Throws([Values("", null)] string context)
+        {
+            Assert.Throws<ArgumentException>(() => OccurrenceOrdinalTracker.Restore(new[]
+            {
+                new OrdinalCounter("a", context, 1)
+            }));
+        }
+
+        [Test]
+        public void Restore_NullCounter_Throws()
+        {
+            Assert.Throws<ArgumentException>(() => OccurrenceOrdinalTracker.Restore(new OrdinalCounter[] { null }));
         }
     }
 }

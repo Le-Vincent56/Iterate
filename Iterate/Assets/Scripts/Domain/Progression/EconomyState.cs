@@ -47,6 +47,25 @@ namespace Iterate.Domain.Progression
         /// Every committed transaction, in order.
         /// </summary>
         public IReadOnlyList<TransactionRecord> Records => _records;
+        
+        /// <summary>
+        /// The identities issued per transaction kind, ordered by kind and naming only the kinds that
+        /// have issued one. Computed on read, so it always agrees with the counters themselves.
+        /// </summary>
+        public IReadOnlyList<TransactionCounter> TransactionCounters
+        {
+            get
+            {
+                List<TransactionCounter> counters = new(_transactionCounts.Count);
+                foreach (KeyValuePair<TransactionKind, int> counted in _transactionCounts)
+                {
+                    counters.Add(new TransactionCounter(counted.Key, counted.Value));
+                }
+
+                counters.Sort(CompareCounters);
+                return counters;
+            }
+        }
 
         public EconomyState(InstanceIDSource instanceIDs, DependencyInstance starter, ParameterSet parameters)
         {
@@ -54,6 +73,19 @@ namespace Iterate.Domain.Progression
             Parameters = parameters ?? throw new ArgumentException("An economy requires a parameter register.", nameof(parameters));
             Tokens = new TokenLedger(new TokenAmount(0));
             Dependencies = new DependencyRack(starter, parameters.StartingRAM);
+        }
+        
+        private EconomyState(
+            InstanceIDSource instanceIDs,
+            ParameterSet parameters,
+            TokenLedger tokens,
+            DependencyRack dependencies
+        )
+        {
+            _instanceIDs = instanceIDs;
+            Parameters = parameters;
+            Tokens = tokens;
+            Dependencies = dependencies;
         }
 
         /// <summary>
@@ -66,6 +98,83 @@ namespace Iterate.Domain.Progression
             int next = _transactionCounts.TryGetValue(kind, out int used) ? used + 1 : 1;
             _transactionCounts[kind] = next;
             return KindToken(kind) + ":" + next;
+        }
+        
+        /// <summary>
+        /// Rebuilds an economy over a ledger and rack already restored, continuing each transaction
+        /// kind's identities above the counts it is given. Transaction records are not restored: they
+        /// describe what happened, not what the Session holds. The input is assumed validated, so its
+        /// contract violations throw rather than reject.
+        /// </summary>
+        /// <param name="instanceIDs">The identity source the economy allocates from.</param>
+        /// <param name="parameters">The locked parameter register.</param>
+        /// <param name="tokens">The restored Token ledger.</param>
+        /// <param name="dependencies">The restored Dependency rack.</param>
+        /// <param name="utilities">The Utility commitments, in commitment order.</param>
+        /// <param name="grants">The Patch grants, in grant order.</param>
+        /// <param name="counters">The per-kind transaction counts.</param>
+        /// <returns>The restored economy.</returns>
+        /// <exception cref="ArgumentException">Thrown when any argument is null.</exception>
+        public static EconomyState Restore(
+            InstanceIDSource instanceIDs,
+            ParameterSet parameters,
+            TokenLedger tokens,
+            DependencyRack dependencies,
+            IReadOnlyList<UtilityCommitment> utilities,
+            IReadOnlyList<PatchGrant> grants,
+            IReadOnlyList<TransactionCounter> counters
+        )
+        {
+            if (instanceIDs == null)
+                throw new ArgumentException("An economy requires an identity source.", nameof(instanceIDs));
+
+            if (parameters == null)
+                throw new ArgumentException("An economy requires a parameter register.", nameof(parameters));
+
+            if (tokens == null)
+                throw new ArgumentException("A restored economy requires a Token ledger.", nameof(tokens));
+
+            if (dependencies == null)
+                throw new ArgumentException("A restored economy requires a Dependency rack.", nameof(dependencies));
+
+            if (utilities == null)
+                throw new ArgumentException("A restored economy requires a commitment list.", nameof(utilities));
+
+            if (grants == null)
+                throw new ArgumentException("A restored economy requires a grant list.", nameof(grants));
+
+            if (counters == null)
+                throw new ArgumentException("A restored economy requires a counter list.", nameof(counters));
+
+            EconomyState economy = new(instanceIDs, parameters, tokens, dependencies);
+            for (int index = 0; index < utilities.Count; index++)
+            {
+                economy._utilities.Add(utilities[index]);
+            }
+
+            for (int index = 0; index < grants.Count; index++)
+            {
+                economy._grants.Add(grants[index]);
+            }
+
+            for (int index = 0; index < counters.Count; index++)
+            {
+                TransactionCounter counter = counters[index];
+                economy._transactionCounts[counter.Kind] = counter.Count;
+            }
+
+            return economy;
+        }
+
+        /// <summary>
+        /// Orders two counters by transaction kind.
+        /// </summary>
+        /// <param name="left">The first counter.</param>
+        /// <param name="right">The second counter.</param>
+        /// <returns>A negative value, zero or a positive value as the first sorts before, with or after the second.</returns>
+        private static int CompareCounters(TransactionCounter left, TransactionCounter right)
+        {
+            return ((int)left.Kind).CompareTo((int)right.Kind);
         }
 
         /// <summary>

@@ -15,5 +15,10 @@ namespace Iterate.Application.Logging
         /// Catalog loading and boot-time content activity.
         /// </summary>
         public static readonly LogCategory Catalog = new("Catalog");
+        
+        /// <summary>
+        /// Save file loading, writing and clearing.
+        /// </summary>
+        public static readonly LogCategory Persistence = new("Persistence");
     }
 }

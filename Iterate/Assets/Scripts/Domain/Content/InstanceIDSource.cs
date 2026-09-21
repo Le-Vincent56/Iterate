@@ -1,3 +1,4 @@
+using System;
 using Iterate.Domain.Values;
 
 namespace Iterate.Domain.Content
@@ -14,6 +15,28 @@ namespace Iterate.Domain.Content
         /// </summary>
         private int _lastAllocated;
 
+        /// <summary>
+        /// The ordinal of the most recently allocated identity; zero before the first allocation.
+        /// </summary>
+        public int LastAllocated => _lastAllocated;
+
+        /// <summary>
+        /// Rebuilds a source that has already allocated the given number of identities, so the next
+        /// allocation continues the sequence rather than restarting it.
+        /// </summary>
+        /// <param name="lastAllocated">The ordinal of the most recent allocation; zero for a source that has allocated none.</param>
+        /// <returns>The restored source, independent of every other.</returns>
+        /// <exception cref="ArgumentException">Thrown when the allocation count is negative.</exception>
+        public static InstanceIDSource Restore(int lastAllocated)
+        {
+            if (lastAllocated < 0)
+                throw new ArgumentException("A restored allocation count cannot be negative.", nameof(lastAllocated));
+
+            InstanceIDSource source = new();
+            source._lastAllocated = lastAllocated;
+            return source;
+        }
+        
         /// <summary>
         /// Allocates the next identity in sequence.
         /// </summary>

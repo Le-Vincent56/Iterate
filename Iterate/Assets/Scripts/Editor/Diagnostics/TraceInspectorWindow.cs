@@ -9,6 +9,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using Iterate.Application.Content;
 using Iterate.Application.Content.Json;
+using Iterate.Application.Diagnostics;
 using Iterate.Domain.Content;
 using Iterate.Domain.Diagnostics;
 using Iterate.Domain.Execution;
@@ -88,6 +89,9 @@ namespace Iterate.Editor.Diagnostics
             ToolbarButton generate = new(GenerateSelectedFixture) { text = "Generate & Debug" };
             toolbar.Add(generate);
             root.Add(toolbar);
+            
+            ToolbarButton open = new(OpenRecordFromDisk) { text = "Open Record…" };
+            toolbar.Add(open);
 
             _status = new Label("No record loaded.");
             _status.style.paddingLeft = 6;
@@ -137,6 +141,32 @@ namespace Iterate.Editor.Diagnostics
             {
                 Debug.LogError("[Trace] Fixture defect in '" + _fixture + "': " + exception.Message);
             }
+        }
+        
+        /// <summary>
+        /// Opens a record document from disk — in practice a committed baseline — into the same view a
+        /// freshly generated fixture opens into. This is the disk loading the debugger was promised when
+        /// records could not yet persist.
+        /// </summary>
+        private void OpenRecordFromDisk()
+        {
+            string path = EditorUtility.OpenFilePanel(
+                "Open execution record",
+                DeterminismHarnessMenu.BaselineDirectory(),
+                "json"
+            );
+
+            if (string.IsNullOrEmpty(path))
+                return;
+
+            ExecutionRecordReadResult read = ExecutionRecordDocument.Read(File.ReadAllText(path));
+            if (read.Outcome != ExecutionRecordReadOutcome.Loaded)
+            {
+                Debug.LogError("[Trace] " + read.Outcome + " — " + read.Defect);
+                return;
+            }
+
+            Load(read.Record, Path.GetFileName(path));
         }
 
         /// <summary>

@@ -65,6 +65,48 @@ namespace Iterate.Domain.Progression
             _records.Add(record);
             return AcquisitionResult.Success(entry, record);
         }
+        
+        /// <summary>
+        /// Rebuilds a Repository from entries already allocated, in the order given. Suffix allocation
+        /// resumes above the highest suffix each definition was given, so a restored item keeps the
+        /// number the player learned and a later acquisition never reissues one. Records are not
+        /// restored: they describe what happened, not what the Session holds. The input is assumed
+        /// validated, so its contract violations throw rather than reject.
+        /// </summary>
+        /// <param name="instanceIDs">The identity source the restored Repository allocates from.</param>
+        /// <param name="entries">The entries in acquisition order.</param>
+        /// <returns>The restored Repository.</returns>
+        /// <exception cref="ArgumentException">Thrown on a null entry list or entry, a suffix below one, or a repeated instance identity.</exception>
+        public static Repository Restore(InstanceIDSource instanceIDs, IReadOnlyList<RepositoryEntry> entries)
+        {
+            if (entries == null)
+                throw new ArgumentException("A restored Repository requires an entry list.", nameof(entries));
+
+            Repository repository = new(instanceIDs);
+            for (int index = 0; index < entries.Count; index++)
+            {
+                RepositoryEntry entry = entries[index];
+                if (entry == null)
+                    throw new ArgumentException("A restored Repository entry is required.", nameof(entries));
+
+                if (entry.Suffix < 1)
+                    throw new ArgumentException("A restored acquisition suffix is at least one.", nameof(entries));
+
+                InstanceID id = entry.Item.InstanceID;
+                if (repository._byInstance.ContainsKey(id))
+                    throw new ArgumentException("A restored Repository cannot repeat an instance identity.", nameof(entries));
+
+                repository._entries.Add(entry);
+                repository._byInstance.Add(id, entry);
+
+                string definitionID = entry.Item.DefinitionID;
+                repository._lastSuffix.TryGetValue(definitionID, out int highest);
+                if (entry.Suffix > highest)
+                    repository._lastSuffix[definitionID] = entry.Suffix;
+            }
+
+            return repository;
+        }
 
         /// <summary>
         /// Deletes one entry permanently for the Session. Starter entries and unknown identities are

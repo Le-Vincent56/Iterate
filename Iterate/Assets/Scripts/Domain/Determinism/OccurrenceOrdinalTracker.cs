@@ -46,5 +46,76 @@ namespace Iterate.Domain.Determinism
             _counters[key] = next;
             return next;
         }
+        
+        /// <summary>
+        /// Takes the pairs advanced so far and their highest issued ordinals, ordered by selection
+        /// purpose then governing context, both ordinally. The order is fixed rather than the
+        /// dictionary's, so two Sessions in the same state always write the same bytes.
+        /// </summary>
+        /// <returns>The counters in a stable order; empty when nothing has been advanced.</returns>
+        public IReadOnlyList<OrdinalCounter> Snapshot()
+        {
+            List<OrdinalCounter> counters = new(_counters.Count);
+            foreach (KeyValuePair<(string, string), int> counter in _counters)
+            {
+                counters.Add(new OrdinalCounter(counter.Key.Item1, counter.Key.Item2, counter.Value));
+            }
+
+            counters.Sort(CompareCounters);
+            return counters;
+        }
+
+        /// <summary>
+        /// Rebuilds a tracker that has already issued the given ordinals. Each listed pair continues
+        /// from its count; a pair the list does not name still starts at one.
+        /// </summary>
+        /// <param name="counters">The counters to continue from.</param>
+        /// <returns>The restored tracker.</returns>
+        /// <exception cref="ArgumentException">Thrown on a null list or counter, an empty purpose or context, a count below one, or a repeated pair.</exception>
+        public static OccurrenceOrdinalTracker Restore(IReadOnlyList<OrdinalCounter> counters)
+        {
+            if (counters == null)
+                throw new ArgumentException("A restored tracker requires a counter list.", nameof(counters));
+
+            OccurrenceOrdinalTracker tracker = new();
+            for (int index = 0; index < counters.Count; index++)
+            {
+                OrdinalCounter counter = counters[index];
+                if (counter == null)
+                    throw new ArgumentException("A restored counter is required.", nameof(counters));
+
+                if (string.IsNullOrEmpty(counter.SelectionPurpose))
+                    throw new ArgumentException("A selection purpose is required.", nameof(counters));
+
+                if (string.IsNullOrEmpty(counter.GoverningContextIdentity))
+                    throw new ArgumentException("A governing context identity is required.", nameof(counters));
+
+                if (counter.Count < 1)
+                    throw new ArgumentException("A restored occurrence ordinal is at least one.", nameof(counters));
+
+                (string, string) key = (counter.SelectionPurpose, counter.GoverningContextIdentity);
+                if (tracker._counters.ContainsKey(key))
+                    throw new ArgumentException("A restored tracker cannot repeat a pair.", nameof(counters));
+
+                tracker._counters[key] = counter.Count;
+            }
+
+            return tracker;
+        }
+
+        /// <summary>
+        /// Orders two counters by selection purpose then governing context, both ordinally.
+        /// </summary>
+        /// <param name="left">The first counter.</param>
+        /// <param name="right">The second counter.</param>
+        /// <returns>A negative value, zero or a positive value as the first sorts before, with or after the second.</returns>
+        private static int CompareCounters(OrdinalCounter left, OrdinalCounter right)
+        {
+            int byPurpose = string.CompareOrdinal(left.SelectionPurpose, right.SelectionPurpose);
+            if (byPurpose != 0)
+                return byPurpose;
+
+            return string.CompareOrdinal(left.GoverningContextIdentity, right.GoverningContextIdentity);
+        }
     }
 }

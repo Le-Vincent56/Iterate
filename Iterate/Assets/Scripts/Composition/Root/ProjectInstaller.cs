@@ -3,15 +3,18 @@ using Didionysymus.Lattice.Runtime;
 using Iterate.Application.Content;
 using Iterate.Application.Content.Json;
 using Iterate.Application.Logging;
+using Iterate.Application.Persistence;
 using Iterate.Infrastructure.Content;
 using Iterate.Infrastructure.Logging;
+using Iterate.Infrastructure.Persistence;
 
 namespace Iterate.Composition.Root
 {
     /// <summary>
-    /// Registers the Session-independent services owned by the project scope: the logging seam and the
+    /// Registers the Session-independent services owned by the project scope: the logging seam, the
     /// catalog pipeline (reader, validator, freezer, holder, loader, the StreamingAssets directory
-    /// source, and the boot-time async-startable adapter).
+    /// source, and the boot-time async-startable adapter), and the persistence seam (the save-file
+    /// adapter over the platform's persistent-data path, and the service above it).
     /// </summary>
     public sealed class ProjectInstaller : IInstaller
     {
@@ -35,6 +38,12 @@ namespace Iterate.Composition.Root
                 Lifetime.Singleton
             );
             builder.Register<IAsyncStartable, CatalogAsyncStartable>(Lifetime.Singleton);
+            
+            builder.RegisterFactory<ISaveFileStore>(
+                static resolver => new FileSaveStore(UnityEngine.Application.persistentDataPath),
+                Lifetime.Singleton
+            );
+            builder.Register<PersistenceService>(Lifetime.Singleton);
         }
     }
 }

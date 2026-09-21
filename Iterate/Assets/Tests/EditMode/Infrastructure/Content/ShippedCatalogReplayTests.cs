@@ -29,16 +29,6 @@ namespace Iterate.Infrastructure.Content.Tests
     /// </summary>
     public sealed class ShippedCatalogReplayTests
     {
-        /// <summary>
-        /// The one-based position of the designated final Core output in the Design §28.9 Core.
-        /// </summary>
-        private const int DesignatedFinalOutput = 12;
-
-        /// <summary>
-        /// The instance identity the shipped Process rule is configured under.
-        /// </summary>
-        private const int RuleInstance = 900;
-
         private ContentCatalog _catalog;
 
         [OneTimeSetUp]
@@ -234,150 +224,29 @@ namespace Iterate.Infrastructure.Content.Tests
 
         private ExecutionRequest MinimalCoreRequest()
         {
-            SourceArrangement arrangement = new(new List<SourceSlot>
-            {
-                SourceSlot.ForCore(new SourcePosition(1), AssignConstant("core-01", CoreRegister.Value, 1)),
-                SourceSlot.ForCore(new SourcePosition(2), AddRegister("core-02", CoreRegister.Score, CoreRegister.Value))
-            });
-
-            return Request(arrangement, NoDependencies(), NoPragmas(), StandardConfiguration());
+            return ShippedCatalogFixtureRequests.MinimalCore(_catalog);
         }
 
         private ExecutionRequest ThrottledCoreRequest()
         {
-            List<SourceSlot> slots = new()
-            {
-                SourceSlot.ForCore(new SourcePosition(1), AssignConstant("core-01", CoreRegister.Value, 1)),
-                SourceSlot.ForCore(new SourcePosition(2), AssignConstant("core-02", CoreRegister.Signal, 0))
-            };
-
-            for (int i = 0; i < 6; i++)
-            {
-                slots.Add(SourceSlot.ForInstruction(new SourcePosition(3 + i), Instruction("WB-INS-005", 10 + i)));
-            }
-
-            slots.Add(SourceSlot.ForCore(new SourcePosition(9), MultiplyConstant("core-09", CoreRegister.Value, 2)));
-            slots.Add(SourceSlot.ForCore(new SourcePosition(10), AddRegister("core-10", CoreRegister.Score, CoreRegister.Value)));
-            slots.Add(SourceSlot.ForCore(new SourcePosition(11), MultiplyConstant("core-11", CoreRegister.Value, 2)));
-            slots.Add(SourceSlot.ForCore(new SourcePosition(DesignatedFinalOutput), AddRegister("core-12", CoreRegister.Score, CoreRegister.Value)));
-
-            return Request(new SourceArrangement(slots), NoDependencies(), NoPragmas(), ThrottleConfiguration());
+            return ShippedCatalogFixtureRequests.ThrottledCore(_catalog);
         }
 
         private ExecutionRequest BurstOrderSignatureRequest()
         {
-            SourceArrangement arrangement = new(new List<SourceSlot>
-            {
-                SourceSlot.ForCore(new SourcePosition(1), AssignConstant("core-01", CoreRegister.Value, 3)),
-                SourceSlot.ForInstruction(new SourcePosition(2), Instruction("WB-INS-012", 20)),
-                SourceSlot.ForCore(new SourcePosition(3), AddRegister("core-03", CoreRegister.Score, CoreRegister.Value))
-            });
-
-            return Request(arrangement, NoDependencies(), Pragmas("WB-DIR-003", 900, "WB-DIR-002", 950), StandardConfiguration());
+            return ShippedCatalogFixtureRequests.BurstOrderSignature(_catalog);
         }
 
         private ExecutionRequest PatchDenseRequest()
         {
-            StructureInstance condition = Structure("WB-STR-002", 110);
-            SourceArrangement arrangement = new(new List<SourceSlot>
-            {
-                SourceSlot.ForInstruction(new SourcePosition(1), Patched("WB-INS-002", 10, "WB-PAT-001", 60)),
-                SourceSlot.ForInstruction(new SourcePosition(2), Patched("WB-INS-012", 20, "WB-PAT-002", 61)),
-                SourceSlot.ForInstruction(new SourcePosition(3), Patched("WB-INS-002", 11, "WB-PAT-006", 62)),
-                SourceSlot.ForInstruction(new SourcePosition(4), Patched("WB-INS-002", 12, "WB-PAT-003", 63)),
-                SourceSlot.ForInstruction(new SourcePosition(5), Patched("WB-INS-012", 21, "WB-PAT-005", 64)),
-                SourceSlot.ForStructureHeader(new SourcePosition(6), condition),
-                SourceSlot.ForContainedInstruction(new SourcePosition(7), condition, Patched("WB-INS-002", 13, "WB-PAT-004", 65))
-            });
-
-            return Request(arrangement, NoDependencies(), NoPragmas(), StandardConfiguration());
+            return ShippedCatalogFixtureRequests.PatchDense(_catalog);
         }
 
         private ExecutionRequest ParityFlipRequest(int seed)
         {
-            SourceArrangement arrangement = new(new List<SourceSlot>
-            {
-                SourceSlot.ForCore(new SourcePosition(1), AssignConstant("core-01", CoreRegister.Value, seed)),
-                SourceSlot.ForInstruction(new SourcePosition(2), Patched("WB-INS-012", 10, "WB-PAT-005", 60))
-            });
-
-            return Request(arrangement, NoDependencies(), Pragmas("WB-DIR-003", 900, "WB-DIR-002", 950), StandardConfiguration());
+            return ShippedCatalogFixtureRequests.ParityFlip(_catalog, seed);
         }
 
-        private ProcessExecutionConfiguration ThrottleConfiguration()
-        {
-            Assert.IsTrue(
-                _catalog.TryGetProcessRule(new ProcessRuleID("WB-PRC-001"), out ProcessRuleDefinition definition),
-                "WB-PRC-001");
-
-            return new ProcessExecutionConfiguration(
-                "exec",
-                "compilation",
-                "source-rev",
-                "process",
-                "core",
-                "rule-config",
-                "session-seed",
-                new ProcessThresholds(new ScoreValue(64), new ScoreValue(112), new ScoreValue(192)),
-                new ProcessRuleInstance(new InstanceID(RuleInstance), definition),
-                new SourcePosition(DesignatedFinalOutput));
-        }
-
-        private InstructionInstance Instruction(string id, int instance)
-        {
-            Assert.IsTrue(_catalog.TryGetInstruction(new InstructionID(id), out InstructionDefinition definition), id);
-
-            return new InstructionInstance(new InstanceID(instance), definition, Array.Empty<PatchAttachment>());
-        }
-
-        private InstructionInstance Patched(
-            string instructionID,
-            int hostInstance,
-            string patchID,
-            int patchInstance)
-        {
-            Assert.IsTrue(_catalog.TryGetInstruction(new InstructionID(instructionID), out InstructionDefinition definition), instructionID);
-            Assert.IsTrue(_catalog.TryGetPatch(new PatchID(patchID), out PatchDefinition patch), patchID);
-
-            return new InstructionInstance(new InstanceID(hostInstance), definition, new[] { new PatchAttachment(1, new PatchInstance(new InstanceID(patchInstance), patch)) });
-        }
-
-        private StructureInstance Structure(string id, int instance)
-        {
-            Assert.IsTrue(_catalog.TryGetStructure(new StructureID(id), out StructureDefinition definition), id);
-
-            return new StructureInstance(new InstanceID(instance), definition);
-        }
-
-        private DirectiveInstance Directive(string id, int instance)
-        {
-            Assert.IsTrue(_catalog.TryGetDirective(new DirectiveID(id), out DirectiveDefinition definition), id);
-
-            return new DirectiveInstance(new InstanceID(instance), definition);
-        }
-
-        private List<DirectiveInstance> Pragmas(
-            string firstID,
-            int firstInstance,
-            string secondID,
-            int secondInstance)
-        {
-            return new List<DirectiveInstance> { Directive(firstID, firstInstance), Directive(secondID, secondInstance) };
-        }
-
-        private static ExecutionRequest Request(
-            SourceArrangement arrangement,
-            List<DependencyInstance> installed,
-            List<DirectiveInstance> pragmas,
-            ProcessExecutionConfiguration configuration)
-        {
-            CompiledSource source = new(
-                arrangement,
-                pragmas,
-                new CompilationCostBreakdown(CompilationClassification.Initial, 0, true, 0, new List<CostModifierEntry>(), 0, false));
-
-            return new ExecutionRequest(source, configuration, StandardStamps(), ZeroState(), installed);
-        }
 
         private static ExecutionRequest WithStamps(ExecutionRequest request, IReadOnlyList<RevisionStamp> stamps)
         {
@@ -415,58 +284,6 @@ namespace Iterate.Infrastructure.Content.Tests
         private static ExecutionRecord Execute(ExecutionRequest request)
         {
             return new ExecutionScheduler(new ExecutionTraceBuilder()).Execute(request);
-        }
-
-        private static ProcessExecutionConfiguration StandardConfiguration()
-        {
-            return new ProcessExecutionConfiguration(
-                "exec",
-                "compilation",
-                "source-rev",
-                "process",
-                "core",
-                "rule-config",
-                "session-seed",
-                new ProcessThresholds(new ScoreValue(20), new ScoreValue(30), new ScoreValue(36)));
-        }
-
-        private static List<RevisionStamp> StandardStamps()
-        {
-            return new List<RevisionStamp>
-            {
-                new RevisionStamp("Content Catalog", "0.1.0"),
-                new RevisionStamp("Random Service", "iterate-rng-1")
-            };
-        }
-
-        private static InitialExecutionState ZeroState()
-        {
-            return new InitialExecutionState(new ValueAmount(0), new SignalValue(0), new ScoreValue(0));
-        }
-
-        private static List<DependencyInstance> NoDependencies()
-        {
-            return new List<DependencyInstance>();
-        }
-
-        private static List<DirectiveInstance> NoPragmas()
-        {
-            return new List<DirectiveInstance>();
-        }
-
-        private static CoreLine AssignConstant(string identity, CoreRegister target, int constant)
-        {
-            return new CoreLine(identity, new CoreLineOperation(CoreLineOperator.Assign, target, OperandSpec.FromConstant(constant)));
-        }
-
-        private static CoreLine MultiplyConstant(string identity, CoreRegister target, int constant)
-        {
-            return new CoreLine(identity, new CoreLineOperation(CoreLineOperator.Multiply, target, OperandSpec.FromConstant(constant)));
-        }
-
-        private static CoreLine AddRegister(string identity, CoreRegister target, CoreRegister source)
-        {
-            return new CoreLine(identity, new CoreLineOperation(CoreLineOperator.Add, target, OperandSpec.FromRegister(source)));
         }
 
         /// <summary>

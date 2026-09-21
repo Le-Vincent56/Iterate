@@ -15,15 +15,10 @@ namespace Iterate.Domain.Progression
     public sealed class ActiveBranch
     {
         private readonly List<BranchConfirmationRecord> _records = new();
-
         private readonly HashSet<InstanceID> _draft = new();
-
         private readonly List<InstanceID> _dropped = new();
-
         private BranchConstraints _constraints;
-
         private RepositorySnapshot _snapshot;
-
         private Dictionary<InstanceID, RepositoryEntry> _available;
 
         /// <summary>
@@ -45,6 +40,23 @@ namespace Iterate.Domain.Progression
         /// The confirmation records in the order they occurred.
         /// </summary>
         public IReadOnlyList<BranchConfirmationRecord> Records => _records;
+        
+        /// <summary>
+        /// Rebuilds a Branch holding the given confirmed set and nothing else. No configuration is in
+        /// progress, because a draft exists only between beginning a configuration and ending it and is
+        /// never captured mid-edit; the next <see cref="BeginConfiguration"/> therefore behaves exactly
+        /// as one between Processes does — seeding from the confirmed set, or from the Repository when
+        /// there is none. Confirmation records are not restored: they describe what happened, not what
+        /// the Session holds.
+        /// </summary>
+        /// <param name="confirmed">The confirmed eligible set, or null when nothing has been confirmed.</param>
+        /// <returns>The restored Branch.</returns>
+        public static ActiveBranch Restore(ActiveBranchConfiguration confirmed)
+        {
+            ActiveBranch branch = new();
+            branch.Confirmed = confirmed;
+            return branch;
+        }
 
         /// <summary>
         /// Opens a draft configuration. The first one seeds every eligible entry the Repository holds,

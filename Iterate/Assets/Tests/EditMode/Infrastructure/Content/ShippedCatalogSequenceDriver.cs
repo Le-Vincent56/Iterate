@@ -87,6 +87,23 @@ namespace Iterate.Infrastructure.Content.Tests
         }
 
         /// <summary>
+        /// Drives a Session that already exists — in practice one restored from a checkpoint — so the
+        /// restored Session can be played from the point it was captured at and compared against the
+        /// Session that was never interrupted. No Process is in flight, which is exactly where a
+        /// checkpoint is taken.
+        ///
+        /// The deliberate twin of the Domain driver's second constructor: the two test assemblies carry
+        /// their own drivers because neither references the other.
+        /// </summary>
+        /// <param name="catalog">The frozen shipped catalog the Session was built against.</param>
+        /// <param name="session">The Session to drive.</param>
+        public ShippedCatalogSequenceDriver(ContentCatalog catalog, SessionState session)
+        {
+            _catalog = catalog;
+            Session = session;
+        }
+
+        /// <summary>
         /// Opens a Branch configuration against a Process's authored constraints and reports how the
         /// seeded draft stands. A Process with no Branch spec is a tutorial Process and configures
         /// nothing.

@@ -80,6 +80,19 @@ namespace Iterate.Domain.Progression.Tests
         }
 
         /// <summary>
+        /// Drives a Session that already exists — in practice one rebuilt from a snapshot — so a restored
+        /// Session can be played from the point it was captured at and compared against the Session that
+        /// was never interrupted. No Process is in flight, which is exactly where a checkpoint is taken.
+        /// </summary>
+        /// <param name="catalog">The frozen catalog the Session was built against.</param>
+        /// <param name="session">The Session to drive.</param>
+        public SessionSequenceDriver(ContentCatalog catalog, SessionState session)
+        {
+            _catalog = catalog;
+            Session = session;
+        }
+
+        /// <summary>
         /// Opens a Branch configuration against a Process's authored constraints and reports how the
         /// seeded draft stands. A Process with no Branch spec is a tutorial Process and configures
         /// nothing.

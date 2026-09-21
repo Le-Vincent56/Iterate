@@ -1,0 +1,3634 @@
+{
+  "formatVersion": 1,
+  "header": {
+    "executionIdentity": "exec",
+    "compilationIdentity": "compilation",
+    "compiledSourceRevision": "source-rev",
+    "processIdentity": "process",
+    "coreIdentity": "core",
+    "processRuleConfigurationIdentity": "rule-config",
+    "sessionSeedIdentity": "session-seed",
+    "revisionStamps": [
+      {
+        "name": "Content Catalog",
+        "revision": "0.1.0"
+      },
+      {
+        "name": "Random Service",
+        "revision": "iterate-rng-1"
+      }
+    ],
+    "activeDirectiveInstances": [],
+    "installedDependencyInstances": [],
+    "relevantPatchInstances": [
+      60,
+      61,
+      62,
+      63,
+      64,
+      65
+    ],
+    "initialState": {
+      "value": 0,
+      "signal": 0,
+      "score": 0
+    }
+  },
+  "units": [
+    {
+      "identity": 1,
+      "opening": {
+        "hostInstance": 10,
+        "coreLineIdentity": null,
+        "ownership": "PlayerOwned",
+        "position": 1,
+        "activation": "CanonicalTraversal",
+        "originatingRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "lineage": [],
+        "structureContext": null,
+        "parentUnit": null
+      },
+      "closure": {
+        "originalDisposition": null,
+        "finalDisposition": "Resolved",
+        "primaryOperationEvent": 12,
+        "createdRequestIdentities": [],
+        "status": "NormalCompletion",
+        "safetyStatus": "Normal"
+      },
+      "childEvents": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "descendantUnits": [],
+      "startOrder": 1,
+      "completionOrder": 1
+    },
+    {
+      "identity": 2,
+      "opening": {
+        "hostInstance": 20,
+        "coreLineIdentity": null,
+        "ownership": "PlayerOwned",
+        "position": 2,
+        "activation": "CanonicalTraversal",
+        "originatingRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "lineage": [],
+        "structureContext": null,
+        "parentUnit": null
+      },
+      "closure": {
+        "originalDisposition": null,
+        "finalDisposition": "Resolved",
+        "primaryOperationEvent": 20,
+        "createdRequestIdentities": [],
+        "status": "NormalCompletion",
+        "safetyStatus": "Normal"
+      },
+      "childEvents": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "descendantUnits": [
+        3
+      ],
+      "startOrder": 2,
+      "completionOrder": 2
+    },
+    {
+      "identity": 3,
+      "opening": {
+        "hostInstance": 20,
+        "coreLineIdentity": null,
+        "ownership": "PlayerOwned",
+        "position": 2,
+        "activation": "AddedExecution",
+        "originatingRequestIdentity": "WB-PAT-002:0#61@e23",
+        "addedExecutionDepth": 1,
+        "lineage": [
+          61
+        ],
+        "structureContext": null,
+        "parentUnit": 2
+      },
+      "closure": {
+        "originalDisposition": null,
+        "finalDisposition": "Resolved",
+        "primaryOperationEvent": 32,
+        "createdRequestIdentities": [],
+        "status": "NormalCompletion",
+        "safetyStatus": "Normal"
+      },
+      "childEvents": [
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35
+      ],
+      "descendantUnits": [],
+      "startOrder": 3,
+      "completionOrder": 3
+    },
+    {
+      "identity": 4,
+      "opening": {
+        "hostInstance": 11,
+        "coreLineIdentity": null,
+        "ownership": "PlayerOwned",
+        "position": 3,
+        "activation": "CanonicalTraversal",
+        "originatingRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "lineage": [],
+        "structureContext": null,
+        "parentUnit": null
+      },
+      "closure": {
+        "originalDisposition": null,
+        "finalDisposition": "Resolved",
+        "primaryOperationEvent": 42,
+        "createdRequestIdentities": [],
+        "status": "NormalCompletion",
+        "safetyStatus": "Normal"
+      },
+      "childEvents": [
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
+      ],
+      "descendantUnits": [
+        5
+      ],
+      "startOrder": 4,
+      "completionOrder": 4
+    },
+    {
+      "identity": 5,
+      "opening": {
+        "hostInstance": 11,
+        "coreLineIdentity": null,
+        "ownership": "PlayerOwned",
+        "position": 3,
+        "activation": "AddedExecution",
+        "originatingRequestIdentity": "WB-PAT-006:0#62@e45",
+        "addedExecutionDepth": 1,
+        "lineage": [
+          62
+        ],
+        "structureContext": null,
+        "parentUnit": 4
+      },
+      "closure": {
+        "originalDisposition": null,
+        "finalDisposition": "Resolved",
+        "primaryOperationEvent": 54,
+        "createdRequestIdentities": [],
+        "status": "NormalCompletion",
+        "safetyStatus": "Normal"
+      },
+      "childEvents": [
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57
+      ],
+      "descendantUnits": [],
+      "startOrder": 5,
+      "completionOrder": 5
+    },
+    {
+      "identity": 6,
+      "opening": {
+        "hostInstance": 12,
+        "coreLineIdentity": null,
+        "ownership": "PlayerOwned",
+        "position": 4,
+        "activation": "CanonicalTraversal",
+        "originatingRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "lineage": [],
+        "structureContext": null,
+        "parentUnit": null
+      },
+      "closure": {
+        "originalDisposition": null,
+        "finalDisposition": "Resolved",
+        "primaryOperationEvent": 64,
+        "createdRequestIdentities": [],
+        "status": "NormalCompletion",
+        "safetyStatus": "Normal"
+      },
+      "childEvents": [
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67
+      ],
+      "descendantUnits": [],
+      "startOrder": 6,
+      "completionOrder": 6
+    },
+    {
+      "identity": 7,
+      "opening": {
+        "hostInstance": 21,
+        "coreLineIdentity": null,
+        "ownership": "PlayerOwned",
+        "position": 5,
+        "activation": "CanonicalTraversal",
+        "originatingRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "lineage": [],
+        "structureContext": null,
+        "parentUnit": null
+      },
+      "closure": {
+        "originalDisposition": null,
+        "finalDisposition": "Resolved",
+        "primaryOperationEvent": 73,
+        "createdRequestIdentities": [],
+        "status": "NormalCompletion",
+        "safetyStatus": "Normal"
+      },
+      "childEvents": [
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80
+      ],
+      "descendantUnits": [],
+      "startOrder": 7,
+      "completionOrder": 7
+    },
+    {
+      "identity": 8,
+      "opening": {
+        "hostInstance": 13,
+        "coreLineIdentity": null,
+        "ownership": "PlayerOwned",
+        "position": 7,
+        "activation": "CanonicalTraversal",
+        "originatingRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "lineage": [],
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": "#110@6#1/eval-1"
+        },
+        "parentUnit": null
+      },
+      "closure": {
+        "originalDisposition": null,
+        "finalDisposition": "Resolved",
+        "primaryOperationEvent": 89,
+        "createdRequestIdentities": [],
+        "status": "NormalCompletion",
+        "safetyStatus": "Normal"
+      },
+      "childEvents": [
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92
+      ],
+      "descendantUnits": [
+        9
+      ],
+      "startOrder": 8,
+      "completionOrder": 8
+    },
+    {
+      "identity": 9,
+      "opening": {
+        "hostInstance": 13,
+        "coreLineIdentity": null,
+        "ownership": "PlayerOwned",
+        "position": 7,
+        "activation": "AddedExecution",
+        "originatingRequestIdentity": "WB-PAT-004:0#65@e92",
+        "addedExecutionDepth": 1,
+        "lineage": [
+          65
+        ],
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": "#110@6#1/eval-1"
+        },
+        "parentUnit": 8
+      },
+      "closure": {
+        "originalDisposition": null,
+        "finalDisposition": "Resolved",
+        "primaryOperationEvent": 101,
+        "createdRequestIdentities": [],
+        "status": "NormalCompletion",
+        "safetyStatus": "Normal"
+      },
+      "childEvents": [
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104
+      ],
+      "descendantUnits": [],
+      "startOrder": 9,
+      "completionOrder": 9
+    }
+  ],
+  "events": [
+    {
+      "identity": 1,
+      "evidence": {
+        "family": "LIFECYCLE",
+        "subtype": "EXECUTION_STARTED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": null,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": null,
+        "position": null,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 2,
+      "evidence": {
+        "family": "QUANTITY",
+        "subtype": "QUANTITY_RESET",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": null,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": null,
+        "position": null,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": {
+          "kind": "QuantityChange",
+          "quantityIdentity": "Value",
+          "category": "RuntimeVariable",
+          "operation": "Assign",
+          "requestedAmount": 0,
+          "priorValue": 0,
+          "replacementLink": null,
+          "appliedModifiers": [],
+          "appliedBounds": null,
+          "finalDelta": 0,
+          "finalValue": 0
+        }
+      }
+    },
+    {
+      "identity": 3,
+      "evidence": {
+        "family": "QUANTITY",
+        "subtype": "QUANTITY_RESET",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": null,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": null,
+        "position": null,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": {
+          "kind": "QuantityChange",
+          "quantityIdentity": "Signal",
+          "category": "RuntimeVariable",
+          "operation": "Assign",
+          "requestedAmount": 0,
+          "priorValue": 0,
+          "replacementLink": null,
+          "appliedModifiers": [],
+          "appliedBounds": null,
+          "finalDelta": 0,
+          "finalValue": 0
+        }
+      }
+    },
+    {
+      "identity": 4,
+      "evidence": {
+        "family": "QUANTITY",
+        "subtype": "QUANTITY_RESET",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": null,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": null,
+        "position": null,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": {
+          "kind": "QuantityChange",
+          "quantityIdentity": "Score",
+          "category": "RuntimeVariable",
+          "operation": "Assign",
+          "requestedAmount": 0,
+          "priorValue": 0,
+          "replacementLink": null,
+          "appliedModifiers": [],
+          "appliedBounds": null,
+          "finalDelta": 0,
+          "finalValue": 0
+        }
+      }
+    },
+    {
+      "identity": 5,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_OBJECT_ACTIVATED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 1,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 10,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 1,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 6,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_STARTED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 1,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 10,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 1,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 7,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_PENDING",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 1,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 10,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 1,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 8,
+      "evidence": {
+        "family": "QUALIFICATION",
+        "subtype": "EFFECT_QUALIFIED",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": 1,
+        "parentEvent": null,
+        "causingEvent": 7,
+        "hostInstance": 10,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 60,
+        "ownership": null,
+        "position": null,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 9,
+      "evidence": {
+        "family": "QUALIFICATION",
+        "subtype": "EFFECT_COMMITTED",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": 1,
+        "parentEvent": null,
+        "causingEvent": 7,
+        "hostInstance": 10,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 60,
+        "ownership": null,
+        "position": null,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 10,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_MODIFIED",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": 1,
+        "parentEvent": null,
+        "causingEvent": 7,
+        "hostInstance": 10,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 60,
+        "ownership": null,
+        "position": null,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 11,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_RESOLVED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 1,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 10,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 1,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 12,
+      "evidence": {
+        "family": "QUANTITY",
+        "subtype": "QUANTITY_CHANGED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 1,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 10,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 1,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": "Resolved",
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": {
+          "kind": "QuantityChange",
+          "quantityIdentity": "Value",
+          "category": "RuntimeVariable",
+          "operation": "Increase",
+          "requestedAmount": 2,
+          "priorValue": 0,
+          "replacementLink": null,
+          "appliedModifiers": [
+            {
+              "modifierIdentity": "#60",
+              "stage": "OPERATION_MODIFICATION_REPLACEMENT_OR_PREVENTION",
+              "amount": 1
+            }
+          ],
+          "appliedBounds": null,
+          "finalDelta": 3,
+          "finalValue": 3
+        }
+      }
+    },
+    {
+      "identity": 13,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_RESULT_FINALIZED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 1,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 10,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 1,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 14,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_DISPOSITION_FINALIZED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 1,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 10,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 1,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": "Resolved",
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 15,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_COMPLETED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 1,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 10,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 1,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 16,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_OBJECT_ACTIVATED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 2,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 20,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 2,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 17,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_STARTED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 2,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 20,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 2,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 18,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_PENDING",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 2,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 20,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 2,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 19,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_RESOLVED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 2,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 20,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 2,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 20,
+      "evidence": {
+        "family": "QUANTITY",
+        "subtype": "QUANTITY_CHANGED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 2,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 20,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 2,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": "Resolved",
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": {
+          "kind": "QuantityChange",
+          "quantityIdentity": "Score",
+          "category": "RuntimeVariable",
+          "operation": "Increase",
+          "requestedAmount": 3,
+          "priorValue": 0,
+          "replacementLink": null,
+          "appliedModifiers": [],
+          "appliedBounds": null,
+          "finalDelta": 3,
+          "finalValue": 3
+        }
+      }
+    },
+    {
+      "identity": 21,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_RESULT_FINALIZED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 2,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 20,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 2,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 22,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_DISPOSITION_FINALIZED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 2,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 20,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 2,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": "Resolved",
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 23,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_COMPLETED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 2,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 20,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 2,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 24,
+      "evidence": {
+        "family": "QUALIFICATION",
+        "subtype": "EFFECT_QUALIFIED",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": 23,
+        "hostInstance": 20,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 61,
+        "ownership": null,
+        "position": null,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 25,
+      "evidence": {
+        "family": "QUALIFICATION",
+        "subtype": "EFFECT_COMMITTED",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": 23,
+        "hostInstance": 20,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 61,
+        "ownership": null,
+        "position": null,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 26,
+      "evidence": {
+        "family": "ADDED_EXECUTION",
+        "subtype": "ADDED_EXECUTION_REQUESTED",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": 23,
+        "hostInstance": 20,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 61,
+        "ownership": "PlayerOwned",
+        "position": 2,
+        "targetIdentity": null,
+        "lineage": [
+          61
+        ],
+        "addedExecutionRequestIdentity": "WB-PAT-002:0#61@e23",
+        "addedExecutionDepth": 1,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 27,
+      "evidence": {
+        "family": "ADDED_EXECUTION",
+        "subtype": "ADDED_EXECUTION_STARTED",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": 26,
+        "hostInstance": 20,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 61,
+        "ownership": "PlayerOwned",
+        "position": 2,
+        "targetIdentity": null,
+        "lineage": [
+          61
+        ],
+        "addedExecutionRequestIdentity": "WB-PAT-002:0#61@e23",
+        "addedExecutionDepth": 1,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 28,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_OBJECT_ACTIVATED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 3,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 20,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 2,
+        "targetIdentity": null,
+        "lineage": [
+          61
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 29,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_STARTED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 3,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 20,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 2,
+        "targetIdentity": null,
+        "lineage": [
+          61
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 30,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_PENDING",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 3,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 20,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 2,
+        "targetIdentity": null,
+        "lineage": [
+          61
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 31,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_RESOLVED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 3,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 20,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 2,
+        "targetIdentity": null,
+        "lineage": [
+          61
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 32,
+      "evidence": {
+        "family": "QUANTITY",
+        "subtype": "QUANTITY_CHANGED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 3,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 20,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 2,
+        "targetIdentity": null,
+        "lineage": [
+          61
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": "Resolved",
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": {
+          "kind": "QuantityChange",
+          "quantityIdentity": "Score",
+          "category": "RuntimeVariable",
+          "operation": "Increase",
+          "requestedAmount": 3,
+          "priorValue": 3,
+          "replacementLink": null,
+          "appliedModifiers": [],
+          "appliedBounds": null,
+          "finalDelta": 3,
+          "finalValue": 6
+        }
+      }
+    },
+    {
+      "identity": 33,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_RESULT_FINALIZED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 3,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 20,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 2,
+        "targetIdentity": null,
+        "lineage": [
+          61
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 34,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_DISPOSITION_FINALIZED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 3,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 20,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 2,
+        "targetIdentity": null,
+        "lineage": [
+          61
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": "Resolved",
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 35,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_COMPLETED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 3,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 20,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 2,
+        "targetIdentity": null,
+        "lineage": [
+          61
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 36,
+      "evidence": {
+        "family": "QUALIFICATION",
+        "subtype": "EFFECT_FAILED_TO_QUALIFY",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": 35,
+        "hostInstance": 20,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 61,
+        "ownership": null,
+        "position": null,
+        "targetIdentity": null,
+        "lineage": [
+          61
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": "FailedToQualify",
+        "dispositionReason": "ORIGIN_LOCK:#61",
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 37,
+      "evidence": {
+        "family": "ADDED_EXECUTION",
+        "subtype": "ADDED_EXECUTION_COMPLETED",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": 26,
+        "hostInstance": 20,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 61,
+        "ownership": "PlayerOwned",
+        "position": 2,
+        "targetIdentity": null,
+        "lineage": [
+          61
+        ],
+        "addedExecutionRequestIdentity": "WB-PAT-002:0#61@e23",
+        "addedExecutionDepth": 1,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 38,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_OBJECT_ACTIVATED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 4,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 11,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 3,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 39,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_STARTED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 4,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 11,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 3,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 40,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_PENDING",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 4,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 11,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 3,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 41,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_RESOLVED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 4,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 11,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 3,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 42,
+      "evidence": {
+        "family": "QUANTITY",
+        "subtype": "QUANTITY_CHANGED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 4,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 11,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 3,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": "Resolved",
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": {
+          "kind": "QuantityChange",
+          "quantityIdentity": "Value",
+          "category": "RuntimeVariable",
+          "operation": "Increase",
+          "requestedAmount": 2,
+          "priorValue": 3,
+          "replacementLink": null,
+          "appliedModifiers": [],
+          "appliedBounds": null,
+          "finalDelta": 2,
+          "finalValue": 5
+        }
+      }
+    },
+    {
+      "identity": 43,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_RESULT_FINALIZED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 4,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 11,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 3,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 44,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_DISPOSITION_FINALIZED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 4,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 11,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 3,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": "Resolved",
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 45,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_COMPLETED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 4,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 11,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 3,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 46,
+      "evidence": {
+        "family": "QUALIFICATION",
+        "subtype": "EFFECT_QUALIFIED",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": 45,
+        "hostInstance": 11,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 62,
+        "ownership": null,
+        "position": null,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 47,
+      "evidence": {
+        "family": "QUALIFICATION",
+        "subtype": "EFFECT_COMMITTED",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": 45,
+        "hostInstance": 11,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 62,
+        "ownership": null,
+        "position": null,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 48,
+      "evidence": {
+        "family": "ADDED_EXECUTION",
+        "subtype": "ADDED_EXECUTION_REQUESTED",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": 45,
+        "hostInstance": 11,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 62,
+        "ownership": "PlayerOwned",
+        "position": 3,
+        "targetIdentity": null,
+        "lineage": [
+          62
+        ],
+        "addedExecutionRequestIdentity": "WB-PAT-006:0#62@e45",
+        "addedExecutionDepth": 1,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 49,
+      "evidence": {
+        "family": "ADDED_EXECUTION",
+        "subtype": "ADDED_EXECUTION_STARTED",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": 48,
+        "hostInstance": 11,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 62,
+        "ownership": "PlayerOwned",
+        "position": 3,
+        "targetIdentity": null,
+        "lineage": [
+          62
+        ],
+        "addedExecutionRequestIdentity": "WB-PAT-006:0#62@e45",
+        "addedExecutionDepth": 1,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 50,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_OBJECT_ACTIVATED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 5,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 11,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 3,
+        "targetIdentity": null,
+        "lineage": [
+          62
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 51,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_STARTED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 5,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 11,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 3,
+        "targetIdentity": null,
+        "lineage": [
+          62
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 52,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_PENDING",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 5,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 11,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 3,
+        "targetIdentity": null,
+        "lineage": [
+          62
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 53,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_RESOLVED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 5,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 11,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 3,
+        "targetIdentity": null,
+        "lineage": [
+          62
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 54,
+      "evidence": {
+        "family": "QUANTITY",
+        "subtype": "QUANTITY_CHANGED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 5,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 11,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 3,
+        "targetIdentity": null,
+        "lineage": [
+          62
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": "Resolved",
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": {
+          "kind": "QuantityChange",
+          "quantityIdentity": "Value",
+          "category": "RuntimeVariable",
+          "operation": "Increase",
+          "requestedAmount": 2,
+          "priorValue": 5,
+          "replacementLink": null,
+          "appliedModifiers": [],
+          "appliedBounds": null,
+          "finalDelta": 2,
+          "finalValue": 7
+        }
+      }
+    },
+    {
+      "identity": 55,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_RESULT_FINALIZED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 5,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 11,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 3,
+        "targetIdentity": null,
+        "lineage": [
+          62
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 56,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_DISPOSITION_FINALIZED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 5,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 11,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 3,
+        "targetIdentity": null,
+        "lineage": [
+          62
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": "Resolved",
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 57,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_COMPLETED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 5,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 11,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 3,
+        "targetIdentity": null,
+        "lineage": [
+          62
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 58,
+      "evidence": {
+        "family": "QUALIFICATION",
+        "subtype": "EFFECT_FAILED_TO_QUALIFY",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": 57,
+        "hostInstance": 11,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 62,
+        "ownership": null,
+        "position": null,
+        "targetIdentity": null,
+        "lineage": [
+          62
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": "FailedToQualify",
+        "dispositionReason": "ORIGIN_LOCK:#62",
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 59,
+      "evidence": {
+        "family": "ADDED_EXECUTION",
+        "subtype": "ADDED_EXECUTION_COMPLETED",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": 48,
+        "hostInstance": 11,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 62,
+        "ownership": "PlayerOwned",
+        "position": 3,
+        "targetIdentity": null,
+        "lineage": [
+          62
+        ],
+        "addedExecutionRequestIdentity": "WB-PAT-006:0#62@e45",
+        "addedExecutionDepth": 1,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 60,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_OBJECT_ACTIVATED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 6,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 12,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 4,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 61,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_STARTED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 6,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 12,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 4,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 62,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_PENDING",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 6,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 12,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 4,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 63,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_RESOLVED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 6,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 12,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 4,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 64,
+      "evidence": {
+        "family": "QUANTITY",
+        "subtype": "QUANTITY_CHANGED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 6,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 12,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 4,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": "Resolved",
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": {
+          "kind": "QuantityChange",
+          "quantityIdentity": "Value",
+          "category": "RuntimeVariable",
+          "operation": "Increase",
+          "requestedAmount": 2,
+          "priorValue": 7,
+          "replacementLink": null,
+          "appliedModifiers": [],
+          "appliedBounds": null,
+          "finalDelta": 2,
+          "finalValue": 9
+        }
+      }
+    },
+    {
+      "identity": 65,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_RESULT_FINALIZED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 6,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 12,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 4,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 66,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_DISPOSITION_FINALIZED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 6,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 12,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 4,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": "Resolved",
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 67,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_COMPLETED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 6,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 12,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 4,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 68,
+      "evidence": {
+        "family": "QUALIFICATION",
+        "subtype": "EFFECT_FAILED_TO_QUALIFY",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": 67,
+        "hostInstance": 12,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 63,
+        "ownership": null,
+        "position": null,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": "FailedToQualify",
+        "dispositionReason": "POSITIONAL:FINAL_OCCUPIED_PLAYER_LINE",
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 69,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_OBJECT_ACTIVATED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 7,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 21,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 5,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 70,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_STARTED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 7,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 21,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 5,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 71,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_PENDING",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 7,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 21,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 5,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 72,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_RESOLVED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 7,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 21,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 5,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 73,
+      "evidence": {
+        "family": "QUANTITY",
+        "subtype": "QUANTITY_CHANGED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 7,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 21,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 5,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": "Resolved",
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": {
+          "kind": "QuantityChange",
+          "quantityIdentity": "Score",
+          "category": "RuntimeVariable",
+          "operation": "Increase",
+          "requestedAmount": 9,
+          "priorValue": 6,
+          "replacementLink": null,
+          "appliedModifiers": [],
+          "appliedBounds": null,
+          "finalDelta": 9,
+          "finalValue": 15
+        }
+      }
+    },
+    {
+      "identity": 74,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_RESULT_FINALIZED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 7,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 21,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 5,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 75,
+      "evidence": {
+        "family": "QUALIFICATION",
+        "subtype": "EFFECT_QUALIFIED",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": 7,
+        "parentEvent": null,
+        "causingEvent": 73,
+        "hostInstance": 21,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 64,
+        "ownership": null,
+        "position": null,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 76,
+      "evidence": {
+        "family": "QUALIFICATION",
+        "subtype": "EFFECT_COMMITTED",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": 7,
+        "parentEvent": null,
+        "causingEvent": 73,
+        "hostInstance": 21,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 64,
+        "ownership": null,
+        "position": null,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 77,
+      "evidence": {
+        "family": "REACTION",
+        "subtype": "IMMEDIATE_REACTION_RESOLVED",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": 7,
+        "parentEvent": null,
+        "causingEvent": 73,
+        "hostInstance": 21,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 64,
+        "ownership": null,
+        "position": null,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 78,
+      "evidence": {
+        "family": "QUANTITY",
+        "subtype": "QUANTITY_CHANGED",
+        "qualifiers": [],
+        "causalDepth": 2,
+        "containingUnit": 7,
+        "parentEvent": null,
+        "causingEvent": 77,
+        "hostInstance": null,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 64,
+        "ownership": null,
+        "position": null,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": "Resolved",
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": {
+          "kind": "QuantityChange",
+          "quantityIdentity": "Value",
+          "category": "RuntimeVariable",
+          "operation": "Increase",
+          "requestedAmount": 1,
+          "priorValue": 9,
+          "replacementLink": null,
+          "appliedModifiers": [],
+          "appliedBounds": null,
+          "finalDelta": 1,
+          "finalValue": 10
+        }
+      }
+    },
+    {
+      "identity": 79,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_DISPOSITION_FINALIZED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 7,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 21,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 5,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": "Resolved",
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 80,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_COMPLETED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 7,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 21,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 5,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 81,
+      "evidence": {
+        "family": "STRUCTURE",
+        "subtype": "STRUCTURE_ACTIVATED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 110,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 6,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": null
+        },
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 82,
+      "evidence": {
+        "family": "STRUCTURE",
+        "subtype": "STRUCTURE_ENTERED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 110,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 6,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": null
+        },
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 83,
+      "evidence": {
+        "family": "STRUCTURE",
+        "subtype": "CONDITION_SNAPSHOT_CAPTURED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 110,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 6,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": "#110@6#1/eval-1"
+        },
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 84,
+      "evidence": {
+        "family": "STRUCTURE",
+        "subtype": "CONDITION_TRUE",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 110,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 6,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": "#110@6#1/eval-1"
+        },
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 85,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_OBJECT_ACTIVATED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 8,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 13,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 7,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": "#110@6#1/eval-1"
+        },
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 86,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_STARTED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 8,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 13,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 7,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": "#110@6#1/eval-1"
+        },
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 87,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_PENDING",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 8,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 13,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 7,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": "#110@6#1/eval-1"
+        },
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 88,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_RESOLVED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 8,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 13,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 7,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": "#110@6#1/eval-1"
+        },
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 89,
+      "evidence": {
+        "family": "QUANTITY",
+        "subtype": "QUANTITY_CHANGED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 8,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 13,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 7,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": "#110@6#1/eval-1"
+        },
+        "disposition": "Resolved",
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": {
+          "kind": "QuantityChange",
+          "quantityIdentity": "Value",
+          "category": "RuntimeVariable",
+          "operation": "Increase",
+          "requestedAmount": 2,
+          "priorValue": 10,
+          "replacementLink": null,
+          "appliedModifiers": [],
+          "appliedBounds": null,
+          "finalDelta": 2,
+          "finalValue": 12
+        }
+      }
+    },
+    {
+      "identity": 90,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_RESULT_FINALIZED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 8,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 13,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 7,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": "#110@6#1/eval-1"
+        },
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 91,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_DISPOSITION_FINALIZED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 8,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 13,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 7,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": "#110@6#1/eval-1"
+        },
+        "disposition": "Resolved",
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 92,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_COMPLETED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 8,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 13,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 7,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": "#110@6#1/eval-1"
+        },
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 93,
+      "evidence": {
+        "family": "QUALIFICATION",
+        "subtype": "EFFECT_QUALIFIED",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": 92,
+        "hostInstance": 13,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 65,
+        "ownership": null,
+        "position": null,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 94,
+      "evidence": {
+        "family": "QUALIFICATION",
+        "subtype": "EFFECT_COMMITTED",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": 92,
+        "hostInstance": 13,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 65,
+        "ownership": null,
+        "position": null,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 95,
+      "evidence": {
+        "family": "ADDED_EXECUTION",
+        "subtype": "ADDED_EXECUTION_REQUESTED",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": 92,
+        "hostInstance": 13,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 65,
+        "ownership": "PlayerOwned",
+        "position": 7,
+        "targetIdentity": null,
+        "lineage": [
+          65
+        ],
+        "addedExecutionRequestIdentity": "WB-PAT-004:0#65@e92",
+        "addedExecutionDepth": 1,
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": "#110@6#1/eval-1"
+        },
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 96,
+      "evidence": {
+        "family": "ADDED_EXECUTION",
+        "subtype": "ADDED_EXECUTION_STARTED",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": 95,
+        "hostInstance": 13,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 65,
+        "ownership": "PlayerOwned",
+        "position": 7,
+        "targetIdentity": null,
+        "lineage": [
+          65
+        ],
+        "addedExecutionRequestIdentity": "WB-PAT-004:0#65@e92",
+        "addedExecutionDepth": 1,
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": "#110@6#1/eval-1"
+        },
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 97,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_OBJECT_ACTIVATED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 9,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 13,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 7,
+        "targetIdentity": null,
+        "lineage": [
+          65
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": "#110@6#1/eval-1"
+        },
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 98,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_STARTED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 9,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 13,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 7,
+        "targetIdentity": null,
+        "lineage": [
+          65
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": "#110@6#1/eval-1"
+        },
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 99,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_PENDING",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 9,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 13,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 7,
+        "targetIdentity": null,
+        "lineage": [
+          65
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": "#110@6#1/eval-1"
+        },
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 100,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_RESOLVED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 9,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 13,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 7,
+        "targetIdentity": null,
+        "lineage": [
+          65
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": "#110@6#1/eval-1"
+        },
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 101,
+      "evidence": {
+        "family": "QUANTITY",
+        "subtype": "QUANTITY_CHANGED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 9,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 13,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 7,
+        "targetIdentity": null,
+        "lineage": [
+          65
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": "#110@6#1/eval-1"
+        },
+        "disposition": "Resolved",
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": {
+          "kind": "QuantityChange",
+          "quantityIdentity": "Value",
+          "category": "RuntimeVariable",
+          "operation": "Increase",
+          "requestedAmount": 2,
+          "priorValue": 12,
+          "replacementLink": null,
+          "appliedModifiers": [],
+          "appliedBounds": null,
+          "finalDelta": 2,
+          "finalValue": 14
+        }
+      }
+    },
+    {
+      "identity": 102,
+      "evidence": {
+        "family": "OPERATION",
+        "subtype": "PRIMARY_OPERATION_RESULT_FINALIZED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 9,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 13,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 7,
+        "targetIdentity": null,
+        "lineage": [
+          65
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": "#110@6#1/eval-1"
+        },
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 103,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_DISPOSITION_FINALIZED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 9,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 13,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 7,
+        "targetIdentity": null,
+        "lineage": [
+          65
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": "#110@6#1/eval-1"
+        },
+        "disposition": "Resolved",
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 104,
+      "evidence": {
+        "family": "SOURCE",
+        "subtype": "SOURCE_EXECUTION_COMPLETED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": 9,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 13,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 7,
+        "targetIdentity": null,
+        "lineage": [
+          65
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": "#110@6#1/eval-1"
+        },
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 105,
+      "evidence": {
+        "family": "QUALIFICATION",
+        "subtype": "EFFECT_FAILED_TO_QUALIFY",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": 104,
+        "hostInstance": 13,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 65,
+        "ownership": null,
+        "position": null,
+        "targetIdentity": null,
+        "lineage": [
+          65
+        ],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": "FailedToQualify",
+        "dispositionReason": "ORIGIN_LOCK:#65",
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 106,
+      "evidence": {
+        "family": "ADDED_EXECUTION",
+        "subtype": "ADDED_EXECUTION_COMPLETED",
+        "qualifiers": [],
+        "causalDepth": 1,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": 95,
+        "hostInstance": 13,
+        "coreLineIdentity": null,
+        "effectOriginInstance": 65,
+        "ownership": "PlayerOwned",
+        "position": 7,
+        "targetIdentity": null,
+        "lineage": [
+          65
+        ],
+        "addedExecutionRequestIdentity": "WB-PAT-004:0#65@e92",
+        "addedExecutionDepth": 1,
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": "#110@6#1/eval-1"
+        },
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 107,
+      "evidence": {
+        "family": "STRUCTURE",
+        "subtype": "STRUCTURE_EXITED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": 110,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": "PlayerOwned",
+        "position": 6,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": {
+          "structureAncestry": [
+            110
+          ],
+          "structureEntryIdentity": "#110@6#1",
+          "repeatIterationIdentity": null,
+          "conditionEvaluationIdentity": null
+        },
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    },
+    {
+      "identity": 108,
+      "evidence": {
+        "family": "LIFECYCLE",
+        "subtype": "EXECUTION_COMPLETED",
+        "qualifiers": [],
+        "causalDepth": 0,
+        "containingUnit": null,
+        "parentEvent": null,
+        "causingEvent": null,
+        "hostInstance": null,
+        "coreLineIdentity": null,
+        "effectOriginInstance": null,
+        "ownership": null,
+        "position": null,
+        "targetIdentity": null,
+        "lineage": [],
+        "addedExecutionRequestIdentity": null,
+        "addedExecutionDepth": 0,
+        "structureContext": null,
+        "disposition": null,
+        "dispositionReason": null,
+        "safetyStatus": "Normal",
+        "payload": null
+      }
+    }
+  ],
+  "traversalOrder": [
+    1,
+    2,
+    4,
+    6,
+    7,
+    8
+  ],
+  "thresholdHistory": [],
+  "counterHistory": [],
+  "safetyCounts": {
+    "lineageDepthHighWater": 1,
+    "addedDescendants": 3,
+    "sourceExecutionUnits": 9,
+    "effectReactions": 1,
+    "operationTransformations": 0
+  },
+  "safetyStatus": "Normal",
+  "finalState": {
+    "value": 14,
+    "signal": 0,
+    "score": 15,
+    "output": 15
+  },
+  "defects": [],
+  "completionStatus": "Completed"
+}
