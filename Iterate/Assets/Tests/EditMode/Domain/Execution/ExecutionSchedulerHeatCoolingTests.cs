@@ -270,7 +270,7 @@ namespace Iterate.Domain.Execution.Tests
                     return payload;
             }
 
-            Assert.Fail("No runtime-variable quantity change at position " + position.LineNumber + ".");
+            Assert.Fail($"No runtime-variable quantity change at position {position.LineNumber}.");
 
             return null;
         }

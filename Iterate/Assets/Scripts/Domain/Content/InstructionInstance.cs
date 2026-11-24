@@ -196,8 +196,7 @@ namespace Iterate.Domain.Content
                 if (attachment.Socket <= previousSocket)
                 {
                     throw new ArgumentException(
-                        "An attachment list carries distinct sockets in ascending order; socket " +
-                        attachment.Socket + " follows " + previousSocket + ".",
+                        $"An attachment list carries distinct sockets in ascending order; socket {attachment.Socket} follows {previousSocket}.",
                         nameof(attachments));
                 }
 

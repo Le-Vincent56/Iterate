@@ -52,7 +52,7 @@ namespace Iterate.Application.Persistence
         public static CodecResult<CheckpointState> FromJson(JsonObject payload)
         {
             if (payload == null)
-                return CodecResult<CheckpointState>.Fail(Path + ": the payload is absent.");
+                return CodecResult<CheckpointState>.Fail($"{Path}: the payload is absent.");
 
             JsonMemberReader reader = new(payload, Path);
             string catalogRevision = reader.String("catalogRevision");

@@ -25,15 +25,11 @@ namespace Iterate.Domain.Progression.Tests
     public sealed class SessionSequenceDriver
     {
         private const string ContentCatalogStamp = "Content Catalog";
-
         private const string RandomServiceStamp = "Random Service";
-
         private const string NoRuleConfiguration = "none";
 
         private readonly ContentCatalog _catalog;
-
         private readonly List<ExecutionRecord> _executions = new();
-
         private BuildState _build;
 
         /// <summary>
@@ -249,8 +245,8 @@ namespace Iterate.Domain.Progression.Tests
             ProcessThresholdSpec thresholds = configuration.Thresholds;
 
             ProcessExecutionConfiguration executionConfiguration = new(
-                configuration.ID.Value + ":execution:" + ordinal,
-                configuration.ID.Value + ":compilation:" + ordinal,
+                $"{configuration.ID.Value}:execution:{ordinal}",
+                $"{configuration.ID.Value}:compilation:{ordinal}",
                 _catalog.Revision,
                 configuration.ID.Value,
                 configuration.Core.Value,
@@ -292,7 +288,7 @@ namespace Iterate.Domain.Progression.Tests
         public ShopOpenResult OpenShop(ShopID shop, ProcessID target)
         {
             if (!_catalog.TryGetShop(shop, out ShopDefinition definition))
-                throw new ArgumentException("The catalog does not define " + shop.Value + ".", nameof(shop));
+                throw new ArgumentException($"The catalog does not define {shop.Value}.", nameof(shop));
 
             ShopOpenResult result = ShopState.Open(definition, _catalog, Session, target);
             if (result.Succeeded)
@@ -324,12 +320,12 @@ namespace Iterate.Domain.Progression.Tests
         {
             RewardPackageID packageID = Process.Configuration.RewardPackage;
             if (!_catalog.TryGetRewardPackage(packageID, out RewardPackageDefinition package))
-                throw new ArgumentException("The catalog does not define " + packageID.Value + ".", nameof(record));
+                throw new ArgumentException($"The catalog does not define {packageID.Value}.", nameof(record));
 
             ThresholdEvaluation evaluation = EvaluateThresholds(record);
             RewardPlanResult planned = RewardResolver.Plan(package, evaluation.Reached, Session, _catalog);
             if (!planned.Succeeded)
-                throw new InvalidOperationException("The reward package " + package.ID.Value + " did not resolve.");
+                throw new InvalidOperationException($"The reward package {package.ID.Value} did not resolve.");
 
             RewardResolution resolution = RewardResolver.Apply(planned.Plan, Session, _catalog);
             AssertArchiveAgreement();
@@ -397,8 +393,7 @@ namespace Iterate.Domain.Progression.Tests
             if (archived != _archivesThroughProcess)
             {
                 throw new InvalidOperationException(
-                    "The Buffer committed " + archived + " archives but " + _archivesThroughProcess
-                        + " went through the Process: something archived through the Buffer directly.");
+                    $"The Buffer committed {archived} archives but {_archivesThroughProcess} went through the Process: something archived through the Buffer directly.");
             }
         }
 

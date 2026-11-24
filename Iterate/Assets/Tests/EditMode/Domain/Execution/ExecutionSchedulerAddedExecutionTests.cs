@@ -66,7 +66,7 @@ namespace Iterate.Domain.Execution.Tests
 
             Assert.AreEqual(ActivationKind.AddedExecution, opening.Activation);
             Assert.AreEqual(
-                "WB-DIR-001:0#900@e" + TriggeringQuantityOrdinal(record, causing),
+                $"WB-DIR-001:0#900@e{TriggeringQuantityOrdinal(record, causing)}",
                 opening.OriginatingRequestIdentity);
             Assert.AreEqual(1, opening.AddedExecutionDepth);
             Assert.AreEqual(causing.Identity, opening.ParentUnit);

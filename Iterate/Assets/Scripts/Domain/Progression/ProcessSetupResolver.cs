@@ -13,9 +13,7 @@ namespace Iterate.Domain.Progression
     public static class ProcessSetupResolver
     {
         private const string StartingBytesSetting = "STARTING_BYTES";
-
         private const string BufferCapacitySetting = "INSTRUCTION_BUFFER_CAPACITY";
-
         private const string BranchCapacitySetting = "ACTIVE_BRANCH_CAPACITY";
 
         /// <summary>

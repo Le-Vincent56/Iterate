@@ -198,7 +198,7 @@ namespace Iterate.Domain.Progression
                 case RepositoryItemKind.Structure: return item.Structure.Definition;
                 case RepositoryItemKind.Directive: return item.Directive.Definition;
                 default:
-                    throw new ArgumentException("Unknown Repository item kind " + item.Kind + ".", nameof(item));
+                    throw new ArgumentException($"Unknown Repository item kind {item.Kind}.", nameof(item));
             }
         }
     }

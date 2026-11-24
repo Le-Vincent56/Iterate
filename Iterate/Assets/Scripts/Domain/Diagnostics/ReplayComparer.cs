@@ -94,7 +94,7 @@ namespace Iterate.Domain.Diagnostics
                 if (stored.RevisionStamps[index] == recomputed.RevisionStamps[index])
                     continue;
 
-                return "REVISION_STAMP:" + stored.RevisionStamps[index].Name;
+                return $"REVISION_STAMP:{stored.RevisionStamps[index].Name}";
             }
 
             if (!ListEquals(stored.ActiveDirectiveInstances, recomputed.ActiveDirectiveInstances))

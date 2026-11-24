@@ -22,17 +22,11 @@ namespace Iterate.Infrastructure.Content.Tests
     public sealed class ShippedCatalogProgressionTests
     {
         private const string TutorialOne = "WB-PROC-001";
-
         private const string TutorialTwo = "WB-PROC-002";
-
         private const string ParityCheck = "WB-PROC-003";
-
         private const string PowerSurge = "WB-PROC-004";
-
         private const string ThermalThrottle = "WB-PROC-005";
-
         private const string ConditionValueEven = "WB-STR-002";
-
         private const string Overclock = "WB-DIR-001";
 
         [Test]
@@ -73,7 +67,7 @@ namespace Iterate.Infrastructure.Content.Tests
             for (int index = 0; index < edited.Count; index++)
             {
                 CompilationAttempt attempt = edited[index];
-                Assert.IsTrue(attempt.Committed, "compilation " + (index + 1).ToString() + ": " + attempt.BlockReason);
+                Assert.IsTrue(attempt.Committed, $"compilation {(index + 1).ToString()}: {attempt.BlockReason}");
                 Assert.AreEqual(CompilationClassification.OrdinaryEdited, attempt.Breakdown.Classification);
                 Assert.AreEqual(0, attempt.Breakdown.FinalCost, "TUTORIAL FREE COMPILATION zeroes every edited compilation.");
             }

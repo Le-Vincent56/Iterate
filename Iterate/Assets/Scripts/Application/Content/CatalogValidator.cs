@@ -67,7 +67,7 @@ namespace Iterate.Application.Content
             foreach (KeyValuePair<string, JsonValue> entry in files.ContentFiles)
             {
                 if (!listed.Contains(entry.Key))
-                    context.AddError(entry.Key, "manifest.unlisted-file", "the file '" + entry.Key + "' is present but not listed in the manifest.");
+                    context.AddError(entry.Key, "manifest.unlisted-file", $"the file '{entry.Key}' is present but not listed in the manifest.");
             }
 
             for (int index = 0; index < plan.Count; index++)
@@ -105,7 +105,7 @@ namespace Iterate.Application.Content
 
             for (int index = 0; index < fileEntries.Items.Count; index++)
             {
-                string path = "$.files[" + index + "]";
+                string path = $"$.files[{index}]";
                 if (!(fileEntries.Items[index] is JsonObject entry))
                 {
                     context.AddError(path, "manifest.entry-invalid", "each manifest entry must be an object.");
@@ -118,19 +118,19 @@ namespace Iterate.Application.Content
 
                 if (!listed.Add(file))
                 {
-                    context.AddError(path, "manifest.duplicate-file", "the file '" + file + "' is listed more than once.");
+                    context.AddError(path, "manifest.duplicate-file", $"the file '{file}' is listed more than once.");
                     continue;
                 }
 
                 if (!_byToken.TryGetValue(category, out ICategoryRuleSet ruleSet))
                 {
-                    context.AddError(path, "manifest.unknown-category", "'" + category + "' is not a known category.");
+                    context.AddError(path, "manifest.unknown-category", $"'{category}' is not a known category.");
                     continue;
                 }
 
                 if (!files.ContentFiles.ContainsKey(file))
                 {
-                    context.AddError(path, "manifest.file-missing", "the listed file '" + file + "' is absent from the file set.");
+                    context.AddError(path, "manifest.file-missing", $"the listed file '{file}' is absent from the file set.");
                     continue;
                 }
 

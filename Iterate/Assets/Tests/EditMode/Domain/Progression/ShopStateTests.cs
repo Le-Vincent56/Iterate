@@ -216,7 +216,7 @@ namespace Iterate.Domain.Progression.Tests
 
                 Assert.IsFalse(
                     Holds(seenBefore, shop.Slots[i].Offer.ContentID),
-                    shop.Slots[i].Offer.ContentID + " was already shown in this shop");
+                    $"{shop.Slots[i].Offer.ContentID} was already shown in this shop");
             }
         }
 

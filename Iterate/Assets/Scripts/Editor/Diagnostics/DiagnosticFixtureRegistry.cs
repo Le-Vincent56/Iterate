@@ -84,7 +84,7 @@ namespace Iterate.Editor.Diagnostics
                     return ParityFlip(catalog, 2);
 
                 default:
-                    throw new ArgumentException("Unknown fixture name: " + name, nameof(name));
+                    throw new ArgumentException($"Unknown fixture name: {name}", nameof(name));
             }
         }
 
@@ -273,7 +273,7 @@ namespace Iterate.Editor.Diagnostics
         private static InstructionInstance Instruction(ContentCatalog catalog, string id, int instance)
         {
             if (!catalog.TryGetInstruction(new InstructionID(id), out InstructionDefinition definition))
-                throw new ArgumentException("The catalog does not define " + id + ".", nameof(id));
+                throw new ArgumentException($"The catalog does not define {id}.", nameof(id));
 
             return new InstructionInstance(new InstanceID(instance), definition, Array.Empty<PatchAttachment>());
         }
@@ -295,10 +295,10 @@ namespace Iterate.Editor.Diagnostics
             int patchInstance)
         {
             if (!catalog.TryGetInstruction(new InstructionID(instructionID), out InstructionDefinition definition))
-                throw new ArgumentException("The catalog does not define " + instructionID + ".", nameof(instructionID));
+                throw new ArgumentException($"The catalog does not define {instructionID}.", nameof(instructionID));
 
             if (!catalog.TryGetPatch(new PatchID(patchID), out PatchDefinition patch))
-                throw new ArgumentException("The catalog does not define " + patchID + ".", nameof(patchID));
+                throw new ArgumentException($"The catalog does not define {patchID}.", nameof(patchID));
 
             return new InstructionInstance(
                 new InstanceID(hostInstance),
@@ -317,7 +317,7 @@ namespace Iterate.Editor.Diagnostics
         private static StructureInstance Structure(ContentCatalog catalog, string id, int instance)
         {
             if (!catalog.TryGetStructure(new StructureID(id), out StructureDefinition definition))
-                throw new ArgumentException("The catalog does not define " + id + ".", nameof(id));
+                throw new ArgumentException($"The catalog does not define {id}.", nameof(id));
 
             return new StructureInstance(new InstanceID(instance), definition);
         }
@@ -332,7 +332,7 @@ namespace Iterate.Editor.Diagnostics
         private static DirectiveInstance Directive(ContentCatalog catalog, string id, int instance)
         {
             if (!catalog.TryGetDirective(new DirectiveID(id), out DirectiveDefinition definition))
-                throw new ArgumentException("The catalog does not define " + id + ".", nameof(id));
+                throw new ArgumentException($"The catalog does not define {id}.", nameof(id));
 
             return new DirectiveInstance(new InstanceID(instance), definition);
         }

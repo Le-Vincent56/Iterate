@@ -15,7 +15,6 @@ namespace Iterate.Application.Logging
         private sealed class GameLogger : IGameLogger
         {
             private readonly LogLevel _minimumLevel;
-
             private readonly ILogSink _sink;
 
             /// <summary>
@@ -53,7 +52,6 @@ namespace Iterate.Application.Logging
         }
 
         private readonly ILogSink _sink;
-
         private readonly LogFilterConfig _filterConfig;
 
         public GameLoggerFactory(ILogSink sink, LogFilterConfig filterConfig)

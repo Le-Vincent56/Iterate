@@ -19,9 +19,7 @@ namespace Iterate.Application.Persistence
     public sealed class PersistenceService
     {
         private readonly ISaveFileStore _store;
-
         private readonly IGameLogger _logger;
-
         private readonly SemaphoreSlim _writes = new(1, 1);
 
         public PersistenceService(ISaveFileStore store, IGameLoggerFactory loggers)

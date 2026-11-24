@@ -20,39 +20,23 @@ namespace Iterate.Domain.Progression
         /// The declared selection purpose, a member of <see cref="SelectionPurposes.All"/>.
         /// </summary>
         public const string Purpose = "Active Branch exposure";
-
         private const string ScopeIdentity = "PROCESS";
-
         private const string SelectionBoundaryIdentity = "Instruction Buffer arrival moment";
-
         private const string CandidateSourceIdentity = "confirmed Active Branch, unseen, non-guaranteed";
-
         private const string EligibilityRuleIdentity = "Branch-eligible and not yet exposed this Process";
-
         private const string SnapshotTimingIdentity = "at the arrival moment";
-
         private const string OrderingRuleIdentity = "canonical definition-then-instance";
-
         private const string TieBreakRuleIdentity = "canonical instance identity";
 
         private readonly DeterminismService _service = new();
-
         private readonly List<RandomDecisionRecord> _records = new();
-
         private readonly ActiveBranchConfiguration _branch;
-
         private readonly Repository _repository;
-
         private readonly List<InstanceID> _exposed;
-
         private readonly string _sessionSeedIdentity;
-
         private readonly string _catalogRevision;
-
         private readonly string _systemIdentity;
-
         private readonly string _processIdentity;
-
         private int _nextPosition = 1;
 
         /// <summary>
@@ -174,7 +158,7 @@ namespace Iterate.Domain.Progression
             );
 
             return new DecisionRequest(
-                _processIdentity + ":exposure:" + position.ToString(CultureInfo.InvariantCulture),
+                $"{_processIdentity}:exposure:{position.ToString(CultureInfo.InvariantCulture)}",
                 Purpose,
                 SelectionBoundaryIdentity,
                 CandidateSourceIdentity,

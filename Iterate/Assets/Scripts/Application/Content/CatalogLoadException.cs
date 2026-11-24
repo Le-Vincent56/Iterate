@@ -30,8 +30,7 @@ namespace Iterate.Application.Content
                 return "The catalog failed to load.";
 
             CatalogError first = errors[0];
-            return "The catalog failed to load with " + errors.Count + " error(s); first: "
-                   + first.File + " / " + first.RuleName + ": " + first.Message;
+            return $"The catalog failed to load with {errors.Count} error(s); first: {first.File} / {first.RuleName}: {first.Message}";
         }
     }
 }

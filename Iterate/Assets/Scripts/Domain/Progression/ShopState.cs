@@ -25,33 +25,20 @@ namespace Iterate.Domain.Progression
         /// fourth exists, so the third reroll is the last.
         /// </summary>
         public const int MaximumRerolls = 3;
-
         private const string SelectionBoundaryIdentity = "Shop reroll commitment";
-
         private const string CandidateSourceIdentity = "reroll pool, unseen";
-
         private const string EligibilityRuleIdentity = "not seen in this shop";
-
         private const string SnapshotTimingIdentity = "at reroll commitment";
-
         private const string OrderingRuleIdentity = "canonical content identity";
-
         private const string TieBreakRuleIdentity = "canonical content identity";
 
         private readonly DeterminismService _service = new();
-
         private readonly List<ShopSlot> _slots = new();
-
         private readonly List<string> _seen = new();
-
         private readonly List<PinRecord> _pins = new();
-
         private readonly List<TransactionRecord> _transactions = new();
-
         private readonly SessionState _session;
-
         private readonly ContentCatalog _catalog;
-
         private readonly PoolDefinition _pool;
 
         /// <summary>
@@ -230,7 +217,7 @@ namespace Iterate.Domain.Progression
             TokenLedgerResult debit = _session.Economy.Tokens.Debit(
                 new TokenAmount(preview.Cost),
                 TokenBasis.RerollCost,
-                "reroll:" + (RerollsUsed + 1).ToString(CultureInfo.InvariantCulture));
+                $"reroll:{(RerollsUsed + 1).ToString(CultureInfo.InvariantCulture)}");
 
             List<TransactionConsequence> consequences = new()
             {
@@ -243,8 +230,8 @@ namespace Iterate.Domain.Progression
                 ShopSlot slot = _slots[index];
                 string contentID = decision.Outcome.SelectedIdentities[i];
                 int price = PriceOf(contentID);
-                if (!TryResolve(Definition.ID.Value + ":reroll:" + ordinal + ":" + slot.Number, contentID, price, out ShopSlotOffer resolved))
-                    throw new ArgumentException("The reroll pool names '" + contentID + "', which the catalog does not supply.", nameof(contentID));
+                if (!TryResolve($"{Definition.ID.Value}:reroll:{ordinal}:{slot.Number}", contentID, price, out ShopSlotOffer resolved))
+                    throw new ArgumentException($"The reroll pool names '{contentID}', which the catalog does not supply.", nameof(contentID));
 
                 consequences.Add(new OfferReplaced(slot.Number, slot.Offer.ContentID, contentID));
                 _slots[index] = slot with { Offer = resolved, State = ShopSlotState.Available };
@@ -539,7 +526,7 @@ namespace Iterate.Domain.Progression
             );
 
             return new DecisionRequest(
-                Definition.ID.Value + ":reroll:" + ordinal.ToString(CultureInfo.InvariantCulture),
+                $"{Definition.ID.Value}:reroll:{ordinal.ToString(CultureInfo.InvariantCulture)}",
                 Purpose,
                 SelectionBoundaryIdentity,
                 CandidateSourceIdentity,

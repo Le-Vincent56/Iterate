@@ -42,7 +42,7 @@ namespace Iterate.Application.Content
 
             for (int index = 0; index < array.Items.Count; index++)
             {
-                string path = "$[" + index + "]";
+                string path = $"$[{index}]";
                 if (array.Items[index] is not JsonObject definition)
                 {
                     context.AddError(path, "definition.not-object", "each definition must be an object.");
@@ -87,7 +87,7 @@ namespace Iterate.Application.Content
                 && idValue is JsonString shop
             )
             {
-                context.RegisterDependencyFreePool(jsonPath + ".rerollPool", pool.Value, shop.Value);
+                context.RegisterDependencyFreePool($"{jsonPath}.rerollPool", pool.Value, shop.Value);
             }
             
             if (!context.TryArray(definition, "fixedOffers", jsonPath, "definition.missing-field", "definition.field-type", out JsonArray offers))
@@ -95,7 +95,7 @@ namespace Iterate.Application.Content
 
             for (int index = 0; index < offers.Items.Count; index++)
             {
-                string path = jsonPath + ".fixedOffers[" + index + "]";
+                string path = $"{jsonPath}.fixedOffers[{index}]";
                 if (offers.Items[index] is not JsonObject offer)
                 {
                     context.AddError(path, "definition.not-object", "each fixed offer must be an object.");
@@ -113,9 +113,9 @@ namespace Iterate.Application.Content
                 )
                 {
                     context.AddError(
-                        path + ".content",
+                        $"{path}.content",
                         "shop.dependency-offer-disabled",
-                        "'" + content + "' is a Dependency, which this shop does not offer.");
+                        $"'{content}' is a Dependency, which this shop does not offer.");
                 }
             }
         }

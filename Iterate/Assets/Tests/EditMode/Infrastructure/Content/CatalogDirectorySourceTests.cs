@@ -17,7 +17,7 @@ namespace Iterate.Infrastructure.Content.Tests
         [SetUp]
         public void SetUp()
         {
-            _root = Path.Combine(Path.GetTempPath(), "IterateCatalog_" + Guid.NewGuid().ToString("N"));
+            _root = Path.Combine(Path.GetTempPath(), $"IterateCatalog_{Guid.NewGuid().ToString("N")}");
             Directory.CreateDirectory(_root);
         }
 

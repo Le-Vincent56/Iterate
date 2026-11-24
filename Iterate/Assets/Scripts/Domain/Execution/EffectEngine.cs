@@ -192,7 +192,7 @@ namespace Iterate.Domain.Execution
                 if (failed != null)
                 {
                     nearMisses ??= new List<EffectNearMiss>();
-                    nearMisses.Add(new EffectNearMiss(effect, failed.Kind + ":" + failed.Value));
+                    nearMisses.Add(new EffectNearMiss(effect, $"{failed.Kind}:{failed.Value}"));
                     continue;
                 }
 
@@ -260,7 +260,7 @@ namespace Iterate.Domain.Execution
                 if (failed != null)
                 {
                     nearMisses ??= new List<EffectNearMiss>();
-                    nearMisses.Add(new EffectNearMiss(effect, failed.Kind + ":" + failed.Value));
+                    nearMisses.Add(new EffectNearMiss(effect, $"{failed.Kind}:{failed.Value}"));
                     continue;
                 }
 
@@ -359,7 +359,7 @@ namespace Iterate.Domain.Execution
                 if (failed != null)
                 {
                     nearMisses ??= new List<EffectNearMiss>();
-                    nearMisses.Add(new EffectNearMiss(effect, failed.Kind + ":" + failed.Value));
+                    nearMisses.Add(new EffectNearMiss(effect, $"{failed.Kind}:{failed.Value}"));
                     continue;
                 }
 
@@ -562,7 +562,7 @@ namespace Iterate.Domain.Execution
                 if (failed != null)
                 {
                     nearMisses ??= new List<EffectNearMiss>();
-                    nearMisses.Add(new EffectNearMiss(effect, failed.Kind + ":" + failed.Value));
+                    nearMisses.Add(new EffectNearMiss(effect, $"{failed.Kind}:{failed.Value}"));
                     continue;
                 }
 

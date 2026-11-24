@@ -34,15 +34,10 @@ namespace Iterate.Infrastructure.Content.Tests
     public sealed class ShippedCatalogCheckpointTests
     {
         private const string TutorialOne = "WB-PROC-001";
-
         private const string PowerSurge = "WB-PROC-004";
-
         private const string ThermalThrottle = "WB-PROC-005";
-
         private const string PreCriticalShop = "WB-SHOP-004";
-
         private const string PowerSurgeRoute = "WB-ROUTE-002";
-
         private const string ConditionValueEven = "WB-STR-002";
 
         private string _root;
@@ -50,7 +45,7 @@ namespace Iterate.Infrastructure.Content.Tests
         [SetUp]
         public void SetUp()
         {
-            _root = Path.Combine(Path.GetTempPath(), "IterateCheckpoint_" + Guid.NewGuid().ToString("N"));
+            _root = Path.Combine(Path.GetTempPath(), $"IterateCheckpoint_{Guid.NewGuid().ToString("N")}");
             Directory.CreateDirectory(_root);
         }
 

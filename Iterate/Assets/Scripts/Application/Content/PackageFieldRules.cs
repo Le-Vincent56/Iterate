@@ -50,7 +50,7 @@ namespace Iterate.Application.Content
             {
                 id = idValue;
                 if (!HasCategoryPrefix(idValue, idPrefix))
-                    context.AddError(jsonPath, "definition.id-format", "the id '" + idValue + "' must match WB-" + idPrefix + "-### for its category.");
+                    context.AddError(jsonPath, "definition.id-format", $"the id '{idValue}' must match WB-{idPrefix}-### for its category.");
             }
 
             string displayName = null;
@@ -79,7 +79,7 @@ namespace Iterate.Application.Content
         {
             if (!IsContentNamespace(referencedID))
             {
-                context.AddError(jsonPath, ruleName, "'" + referencedID + "' is not a content id.");
+                context.AddError(jsonPath, ruleName, $"'{referencedID}' is not a content id.");
                 return;
             }
 
@@ -103,7 +103,7 @@ namespace Iterate.Application.Content
         )
         {
             if (context.TryString(owner, key, jsonPath, "definition.missing-field", "definition.field-type", out string value))
-                RegisterContentReference(context, jsonPath + "." + key, value, ruleName);
+                RegisterContentReference(context, $"{jsonPath}.{key}", value, ruleName);
         }
 
         /// <summary>
@@ -125,7 +125,7 @@ namespace Iterate.Application.Content
         )
         {
             if (context.TryString(owner, key, jsonPath, "definition.missing-field", "definition.field-type", out string value))
-                context.RegisterIDReference(jsonPath + "." + key, value, expectedPrefix, ruleName);
+                context.RegisterIDReference($"{jsonPath}.{key}", value, expectedPrefix, ruleName);
         }
 
         /// <summary>
@@ -177,7 +177,7 @@ namespace Iterate.Application.Content
         /// <returns>True when the ID matches the category's shape.</returns>
         private static bool HasCategoryPrefix(string id, string prefix)
         {
-            string expected = "WB-" + prefix + "-";
+            string expected = $"WB-{prefix}-";
             if (!id.StartsWith(expected, StringComparison.Ordinal))
                 return false;
 

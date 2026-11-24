@@ -188,7 +188,7 @@ namespace Iterate.Domain.Execution.Tests
             Assert.AreEqual(first.FinalState, second.FinalState);
             for (int i = 0; i < first.Events.Count; i++)
             {
-                Assert.AreEqual(first.Events[i].Evidence, second.Events[i].Evidence, "event " + i);
+                Assert.AreEqual(first.Events[i].Evidence, second.Events[i].Evidence, $"event {i}");
             }
         }
 

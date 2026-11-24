@@ -49,9 +49,7 @@ namespace Iterate.Domain.Compilation
             string sourceDisplayName,
             EffectDefinition effect)
         {
-            string sourceKey = definitionID
-                + ":" + effectIndex.ToString(CultureInfo.InvariantCulture)
-                + "#" + sourceInstance.Value.ToString(CultureInfo.InvariantCulture);
+            string sourceKey = $"{definitionID}:{effectIndex.ToString(CultureInfo.InvariantCulture)}#{sourceInstance.Value.ToString(CultureInfo.InvariantCulture)}";
             return new ActiveCompilationEffect(sourceKey, sourceDisplayName, effect);
         }
     }

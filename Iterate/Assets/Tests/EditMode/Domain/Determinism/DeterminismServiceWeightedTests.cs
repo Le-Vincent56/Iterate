@@ -108,7 +108,7 @@ namespace Iterate.Domain.Determinism.Tests
             List<CandidateEntry> entries = new();
             for (int index = 0; index < weights.Length; index++)
             {
-                string identity = "c" + index;
+                string identity = $"c{index}";
                 entries.Add(new CandidateEntry(
                     identity, new CandidateOrderingKey(identity, null, null, null), weights[index]));
             }

@@ -19,9 +19,7 @@ namespace Iterate.Composition.Root
     public sealed class CatalogAsyncStartable : IAsyncStartable
     {
         private readonly CatalogLoader _loader;
-
         private readonly CatalogHolder _holder;
-
         private readonly IGameLoggerFactory _loggers;
 
         public CatalogAsyncStartable(CatalogLoader loader, CatalogHolder holder, IGameLoggerFactory loggers)
@@ -77,7 +75,7 @@ namespace Iterate.Composition.Root
                 return "Catalog load failed.";
 
             CatalogError first = errors[0];
-            return "Catalog load failed | file=" + first.File + " | rule=" + first.RuleName;
+            return $"Catalog load failed | file={first.File} | rule={first.RuleName}";
         }
     }
 }

@@ -172,7 +172,7 @@ namespace Iterate.Domain.Determinism.Tests
             List<CandidateEntry> entries = new();
             for (int index = 0; index < count; index++)
             {
-                string identity = "c" + index;
+                string identity = $"c{index}";
                 entries.Add(new CandidateEntry(identity, new CandidateOrderingKey(identity, null, null, null), null));
             }
 
@@ -184,7 +184,7 @@ namespace Iterate.Domain.Determinism.Tests
             List<CandidateEntry> entries = new();
             for (int index = 0; index < count; index++)
             {
-                string identity = "c" + index;
+                string identity = $"c{index}";
                 entries.Add(new CandidateEntry(identity, new CandidateOrderingKey(identity, null, null, null), index + 1));
             }
 

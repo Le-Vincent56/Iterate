@@ -282,7 +282,7 @@ namespace Iterate.Application.Persistence.Tests
                     return state.Repository[index];
             }
 
-            Assert.Fail("the checkpoint does not hold " + instance + ".");
+            Assert.Fail($"the checkpoint does not hold {instance}.");
             return null;
         }
 

@@ -95,7 +95,7 @@ namespace Iterate.Domain.Progression
 
                 default:
                     throw new ArgumentException(
-                        "'" + definition.Category + "' content is not a Repository item.",
+                        $"'{definition.Category}' content is not a Repository item.",
                         nameof(definition)
                     );
             }
@@ -113,7 +113,7 @@ namespace Iterate.Domain.Progression
         {
             if (definition is not TDefinition typed)
                 throw new ArgumentException(
-                    "the definition declares category '" + definition.Category + "' but is not a " + typeof(TDefinition).Name + ".",
+                    $"the definition declares category '{definition.Category}' but is not a {typeof(TDefinition).Name}.",
                     nameof(definition)
                 );
 

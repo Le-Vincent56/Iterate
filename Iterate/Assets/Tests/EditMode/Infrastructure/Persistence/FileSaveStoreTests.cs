@@ -23,7 +23,7 @@ namespace Iterate.Infrastructure.Persistence.Tests
         [SetUp]
         public void SetUp()
         {
-            _root = Path.Combine(Path.GetTempPath(), "IterateSaves_" + Guid.NewGuid().ToString("N"));
+            _root = Path.Combine(Path.GetTempPath(), $"IterateSaves_{Guid.NewGuid().ToString("N")}");
             Directory.CreateDirectory(_root);
         }
 

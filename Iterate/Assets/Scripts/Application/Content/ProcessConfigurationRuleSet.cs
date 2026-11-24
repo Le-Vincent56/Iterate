@@ -48,7 +48,7 @@ namespace Iterate.Application.Content
 
             for (int index = 0; index < array.Items.Count; index++)
             {
-                string path = "$[" + index + "]";
+                string path = $"$[{index}]";
                 if (array.Items[index] is not JsonObject definition)
                 {
                     context.AddError(path, "definition.not-object", "each definition must be an object.");
@@ -69,7 +69,7 @@ namespace Iterate.Application.Content
         private static void ValidateConfiguration(JsonObject definition, string jsonPath, CatalogValidationContext context)
         {
             if (context.TryString(definition, "role", jsonPath, "definition.missing-field", "definition.field-type", out string role))
-                context.RequireMembership(role, _roles, jsonPath + ".role", "process.unknown-role");
+                context.RequireMembership(role, _roles, $"{jsonPath}.role", "process.unknown-role");
 
             PackageFieldRules.ValidateIDField(context, definition, "core", jsonPath, "WB-CORE-", "reference.wrong-kind");
             PackageFieldRules.ValidateIDField(context, definition, "rewardPackage", jsonPath, "WB-RWD-", "reference.wrong-kind");
@@ -79,7 +79,7 @@ namespace Iterate.Application.Content
             ValidateThresholds(definition, jsonPath, context);
 
             if (context.TryInteger(definition, "executions", jsonPath, "definition.missing-field", "definition.field-type", out long executions) && executions < 1)
-                context.AddError(jsonPath + ".executions", "process.executions-below-one", "a Process must allow at least one execution.");
+                context.AddError($"{jsonPath}.executions", "process.executions-below-one", "a Process must allow at least one execution.");
 
             context.TryBoolean(definition, "mandatoryExecutions", jsonPath, "definition.missing-field", "definition.field-type", out _);
             context.TryInteger(definition, "startingBytes", jsonPath, "definition.missing-field", "definition.field-type", out _);
@@ -104,7 +104,7 @@ namespace Iterate.Application.Content
             if (!context.TryObject(definition, "thresholds", jsonPath, "definition.missing-field", "definition.field-type", out JsonObject thresholds))
                 return;
 
-            string path = jsonPath + ".thresholds";
+            string path = $"{jsonPath}.thresholds";
             bool hasPass = context.TryInteger(thresholds, "pass", path, "definition.missing-field", "definition.field-type", out long pass);
             bool hasOptimize = context.TryInteger(thresholds, "optimize", path, "definition.missing-field", "definition.field-type", out long optimize);
             bool hasBenchmark = context.TryInteger(thresholds, "benchmark", path, "definition.missing-field", "definition.field-type", out long benchmark);
@@ -128,7 +128,7 @@ namespace Iterate.Application.Content
 
             for (int index = 0; index < entries.Items.Count; index++)
             {
-                string path = jsonPath + ".initialSource[" + index + "]";
+                string path = $"{jsonPath}.initialSource[{index}]";
                 if (entries.Items[index] is not JsonObject entry)
                 {
                     context.AddError(path, "definition.not-object", "each initial-source entry must be an object.");
@@ -152,7 +152,7 @@ namespace Iterate.Application.Content
             if (!definition.TryGet("activeBranch", out JsonValue value))
                 return 0;
 
-            string path = jsonPath + ".activeBranch";
+            string path = $"{jsonPath}.activeBranch";
             if (value is not JsonObject branch)
             {
                 context.AddError(path, "definition.field-type", "the Active Branch constraints must be an object.");
@@ -183,13 +183,13 @@ namespace Iterate.Application.Content
             if (!context.TryObject(definition, "bufferLoad", jsonPath, "definition.missing-field", "definition.field-type", out JsonObject load))
                 return null;
 
-            string path = jsonPath + ".bufferLoad";
+            string path = $"{jsonPath}.bufferLoad";
             if (!context.TryString(load, "policy", path, "definition.missing-field", "definition.field-type", out string policy))
                 return null;
 
             if (!_loadPolicies.Contains(policy))
             {
-                context.AddError(path + ".policy", "process.unknown-load-policy", "'" + policy + "' is not a Buffer load policy.");
+                context.AddError($"{path}.policy", "process.unknown-load-policy", $"'{policy}' is not a Buffer load policy.");
                 return null;
             }
 
@@ -225,7 +225,7 @@ namespace Iterate.Application.Content
 
             for (int index = 0; index < arrivals.Items.Count; index++)
             {
-                string path = jsonPath + ".arrivals[" + index + "]";
+                string path = $"{jsonPath}.arrivals[{index}]";
                 if (arrivals.Items[index] is not JsonObject arrival)
                 {
                     context.AddError(path, "definition.not-object", "each arrival moment must be an object.");
@@ -237,7 +237,7 @@ namespace Iterate.Application.Content
                     continue;
 
                 if (items.Items.Count == 0)
-                    context.AddError(path + ".items", "process.scripted-moment-empty", "a declared arrival moment must carry at least one item.");
+                    context.AddError($"{path}.items", "process.scripted-moment-empty", "a declared arrival moment must carry at least one item.");
 
                 ValidateContentList(arrival, "items", path, context);
             }
@@ -260,7 +260,7 @@ namespace Iterate.Application.Content
             if (!definition.TryGet("exposure", out JsonValue value))
                 return;
 
-            string path = jsonPath + ".exposure";
+            string path = $"{jsonPath}.exposure";
             if (policy != "DRAWN")
                 context.AddError(path, "process.exposure-without-drawn", "an exposure plan belongs to a drawn Buffer load.");
 
@@ -289,7 +289,7 @@ namespace Iterate.Application.Content
 
             for (int index = 0; index < items.Items.Count; index++)
             {
-                string path = jsonPath + "." + key + "[" + index + "]";
+                string path = $"{jsonPath}.{key}[{index}]";
                 if (items.Items[index] is JsonString id)
                     PackageFieldRules.RegisterContentReference(context, path, id.Value, "reference.wrong-kind");
                 else

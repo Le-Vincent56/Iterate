@@ -15,11 +15,8 @@ namespace Iterate.Application.Content.Tests
     public sealed class FakeCatalogFileSource : ICatalogFileSource
     {
         private readonly string _manifest;
-
         private readonly bool _manifestUnreadable;
-
         private readonly IReadOnlyDictionary<string, string> _files;
-
         private readonly HashSet<string> _unreadable;
 
         public FakeCatalogFileSource(string manifest, IReadOnlyDictionary<string, string> files)
@@ -74,7 +71,7 @@ namespace Iterate.Application.Content.Tests
             cancellationToken.ThrowIfCancellationRequested();
             if (_unreadable.Contains(fileName))
             {
-                throw new IOException("the file '" + fileName + "' is unreadable.");
+                throw new IOException($"the file '{fileName}' is unreadable.");
             }
 
             if (_files.TryGetValue(fileName, out string text))
@@ -82,7 +79,7 @@ namespace Iterate.Application.Content.Tests
                 return Task.FromResult(text);
             }
 
-            throw new FileNotFoundException("the file '" + fileName + "' is missing.");
+            throw new FileNotFoundException($"the file '{fileName}' is missing.");
         }
     }
 }

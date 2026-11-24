@@ -147,8 +147,8 @@ namespace Iterate.Application.Persistence.Tests
             {
                 CodecResult<CheckpointState> result = CheckpointStateCodec.FromJson(removal.Root);
 
-                Assert.IsFalse(result.Succeeded, "'" + removal.Member + "' decoded while absent.");
-                Assert.IsNull(result.Value, "'" + removal.Member + "' yielded a state despite a defect.");
+                Assert.IsFalse(result.Succeeded, $"'{removal.Member}' decoded while absent.");
+                Assert.IsNull(result.Value, $"'{removal.Member}' yielded a state despite a defect.");
                 StringAssert.Contains(removal.Member, result.Defect);
             }
         }

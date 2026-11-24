@@ -55,7 +55,7 @@ namespace Iterate.Domain.Progression
         /// <returns>The line identity.</returns>
         private static string Identity(CoreDefinition core, int position)
         {
-            return core.ID.Value + ":L" + position.ToString("00", CultureInfo.InvariantCulture);
+            return $"{core.ID.Value}:L{position.ToString("00", CultureInfo.InvariantCulture)}";
         }
     }
 }

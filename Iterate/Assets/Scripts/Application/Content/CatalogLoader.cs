@@ -137,7 +137,7 @@ namespace Iterate.Application.Content
         /// <returns>The formatted line and column.</returns>
         private static string Locate(CatalogJsonParseException exception)
         {
-            return "line " + exception.Line + ", column " + exception.Column;
+            return $"line {exception.Line}, column {exception.Column}";
         }
 
         /// <summary>

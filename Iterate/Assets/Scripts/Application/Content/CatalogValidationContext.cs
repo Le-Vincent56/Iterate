@@ -137,7 +137,7 @@ namespace Iterate.Application.Content
         public void RegisterDefinition(string id, string displayName, string jsonPath)
         {
             if (!_definedIDs.Add(id))
-                AddError(jsonPath, "definition.duplicate-id", "the id '" + id + "' is defined more than once.");
+                AddError(jsonPath, "definition.duplicate-id", $"the id '{id}' is defined more than once.");
 
             _displayNames.Add(displayName);
         }
@@ -209,7 +209,7 @@ namespace Iterate.Application.Content
                         reference.File,
                         reference.JsonPath,
                         reference.RuleName,
-                        "'" + reference.ReferencedName + "' does not resolve to a defined item."
+                        $"'{reference.ReferencedName}' does not resolve to a defined item."
                     ));
                 }
             }
@@ -223,7 +223,7 @@ namespace Iterate.Application.Content
                         reference.File,
                         reference.JsonPath,
                         "reference.unknown-id",
-                        "'" + reference.ReferencedID + "' does not resolve to a defined id."
+                        $"'{reference.ReferencedID}' does not resolve to a defined id."
                     ));
                     continue;
                 }
@@ -234,7 +234,7 @@ namespace Iterate.Application.Content
                         reference.File,
                         reference.JsonPath,
                         reference.RuleName,
-                        "'" + reference.ReferencedID + "' is defined but is not a '" + reference.ExpectedPrefix + "' id."
+                        $"'{reference.ReferencedID}' is defined but is not a '{reference.ExpectedPrefix}' id."
                     ));
                 }
             }
@@ -254,8 +254,7 @@ namespace Iterate.Application.Content
                         binding.File,
                         binding.JsonPath,
                         "shop.dependency-offer-disabled",
-                        "'" + _poolMembers[member].ContentID + "' is a Dependency in the pool '"
-                        + binding.PoolID + "', which shop '" + binding.ShopID + "' rerolls from without offering Dependencies."
+                        $"'{_poolMembers[member].ContentID}' is a Dependency in the pool '{binding.PoolID}', which shop '{binding.ShopID}' rerolls from without offering Dependencies."
                     ));
                 }
             }
@@ -283,13 +282,13 @@ namespace Iterate.Application.Content
             value = null;
             if (!owner.TryGet(key, out JsonValue node))
             {
-                AddError(jsonPath, missingRule, "missing required field '" + key + "'.");
+                AddError(jsonPath, missingRule, $"missing required field '{key}'.");
                 return false;
             }
 
             if (node is not JsonString text)
             {
-                AddError(jsonPath + "." + key, typeRule, "field '" + key + "' must be a string.");
+                AddError($"{jsonPath}.{key}", typeRule, $"field '{key}' must be a string.");
                 return false;
             }
 
@@ -319,13 +318,13 @@ namespace Iterate.Application.Content
             value = 0L;
             if (!owner.TryGet(key, out JsonValue node))
             {
-                AddError(jsonPath, missingRule, "missing required field '" + key + "'.");
+                AddError(jsonPath, missingRule, $"missing required field '{key}'.");
                 return false;
             }
 
             if (node is not JsonNumber { IsInteger: true } number)
             {
-                AddError(jsonPath + "." + key, typeRule, "field '" + key + "' must be an integer.");
+                AddError($"{jsonPath}.{key}", typeRule, $"field '{key}' must be an integer.");
                 return false;
             }
 
@@ -355,13 +354,13 @@ namespace Iterate.Application.Content
             value = false;
             if (!owner.TryGet(key, out JsonValue node))
             {
-                AddError(jsonPath, missingRule, "missing required field '" + key + "'.");
+                AddError(jsonPath, missingRule, $"missing required field '{key}'.");
                 return false;
             }
 
             if (node is not JsonBool flag)
             {
-                AddError(jsonPath + "." + key, typeRule, "field '" + key + "' must be a boolean.");
+                AddError($"{jsonPath}.{key}", typeRule, $"field '{key}' must be a boolean.");
                 return false;
             }
 
@@ -391,13 +390,13 @@ namespace Iterate.Application.Content
             value = null;
             if (!owner.TryGet(key, out JsonValue node))
             {
-                AddError(jsonPath, missingRule, "missing required field '" + key + "'.");
+                AddError(jsonPath, missingRule, $"missing required field '{key}'.");
                 return false;
             }
 
             if (node is not JsonArray array)
             {
-                AddError(jsonPath + "." + key, typeRule, "field '" + key + "' must be an array.");
+                AddError($"{jsonPath}.{key}", typeRule, $"field '{key}' must be an array.");
                 return false;
             }
 
@@ -427,13 +426,13 @@ namespace Iterate.Application.Content
             value = null;
             if (!owner.TryGet(key, out JsonValue node))
             {
-                AddError(jsonPath, missingRule, "missing required field '" + key + "'.");
+                AddError(jsonPath, missingRule, $"missing required field '{key}'.");
                 return false;
             }
 
             if (node is not JsonObject nested)
             {
-                AddError(jsonPath + "." + key, typeRule, "field '" + key + "' must be an object.");
+                AddError($"{jsonPath}.{key}", typeRule, $"field '{key}' must be an object.");
                 return false;
             }
 
@@ -463,13 +462,13 @@ namespace Iterate.Application.Content
             value = null;
             if (!owner.TryGet(key, out JsonValue node))
             {
-                AddError(jsonPath, missingRule, "missing required field '" + key + "'.");
+                AddError(jsonPath, missingRule, $"missing required field '{key}'.");
                 return false;
             }
 
             if (node is not JsonNumber number)
             {
-                AddError(jsonPath + "." + key, typeRule, "field '" + key + "' must be a number.");
+                AddError($"{jsonPath}.{key}", typeRule, $"field '{key}' must be a number.");
                 return false;
             }
 
@@ -496,7 +495,7 @@ namespace Iterate.Application.Content
             {
                 string key = keys[index];
                 if (!allowed.Contains(key))
-                    AddError(jsonPath + "." + key, ruleName, "unexpected field '" + key + "'.");
+                    AddError($"{jsonPath}.{key}", ruleName, $"unexpected field '{key}'.");
             }
         }
 
@@ -515,7 +514,7 @@ namespace Iterate.Application.Content
         )
         {
             if (!set.Contains(value))
-                AddError(jsonPath, ruleName, "'" + value + "' is not a controlled value.");
+                AddError(jsonPath, ruleName, $"'{value}' is not a controlled value.");
         }
 
         /// <summary>
@@ -542,7 +541,7 @@ namespace Iterate.Application.Content
             {
                 id = idValue;
                 if (!IsValidID(idValue, idPrefix))
-                    AddError(jsonPath, "definition.id-format", "the id '" + idValue + "' must match WB-" + idPrefix + "-### for its category.");
+                    AddError(jsonPath, "definition.id-format", $"the id '{idValue}' must match WB-{idPrefix}-### for its category.");
             }
 
             TryString(definition, "rulesText", jsonPath, "definition.missing-field", "definition.field-type", out _);
@@ -552,10 +551,10 @@ namespace Iterate.Application.Content
                 displayName = displayValue;
 
             if (TryString(definition, "category", jsonPath, "definition.missing-field", "definition.field-type", out string categoryValue) && !string.Equals(categoryValue, categoryToken, StringComparison.Ordinal))
-                AddError(jsonPath + ".category", "definition.category-mismatch", "the category '" + categoryValue + "' does not match the file category '" + categoryToken + "'.");
+                AddError($"{jsonPath}.category", "definition.category-mismatch", $"the category '{categoryValue}' does not match the file category '{categoryToken}'.");
 
             if (TryString(definition, "rarity", jsonPath, "definition.missing-field", "definition.field-type", out string rarityValue))
-                RequireMembership(rarityValue, RarityTokens, jsonPath + ".rarity", "definition.unknown-rarity");
+                RequireMembership(rarityValue, RarityTokens, $"{jsonPath}.rarity", "definition.unknown-rarity");
 
             ValidateTags(definition, jsonPath);
 
@@ -575,7 +574,7 @@ namespace Iterate.Application.Content
             for (int index = 0; index < effects.Items.Count; index++)
             {
                 JsonValue item = effects.Items[index];
-                string path = jsonPath + ".effects[" + index + "]";
+                string path = $"{jsonPath}.effects[{index}]";
                 if (item is JsonObject effect) ValidateEffect(effect, path);
                 else AddError(path, "effect.not-object", "each effect must be an object.");
             }
@@ -601,22 +600,22 @@ namespace Iterate.Application.Content
                 else
                 {
                     string found = phaseNode is JsonString text ? text.Value : "<non-string>";
-                    AddError(jsonPath + ".phaseDomain", "effect.unknown-phase-domain", "'" + found + "' is not a phase domain.");
+                    AddError($"{jsonPath}.phaseDomain", "effect.unknown-phase-domain", $"'{found}' is not a phase domain.");
                 }
             }
             else AddError(jsonPath, "effect.missing-field", "an effect requires a phaseDomain.");
 
             if (TryObject(effect, "operation", jsonPath, "effect.missing-field", "effect.missing-field", out JsonObject operation))
-                ValidateOperation(operation, jsonPath + ".operation");
+                ValidateOperation(operation, $"{jsonPath}.operation");
             
             if (TryString(effect, "stacking", jsonPath, "effect.missing-field", "effect.unknown-stacking", out string stacking))
-                RequireMembership(stacking, StackingTokens, jsonPath + ".stacking", "effect.unknown-stacking");
+                RequireMembership(stacking, StackingTokens, $"{jsonPath}.stacking", "effect.unknown-stacking");
 
             bool hasTrigger = effect.TryGet("trigger", out JsonValue triggerNode);
             switch (hasTrigger)
             {
                 case true when triggerNode is JsonObject triggerObject:
-                    ValidateTrigger(triggerObject, jsonPath + ".trigger");
+                    ValidateTrigger(triggerObject, $"{jsonPath}.trigger");
                     break;
                 
                 case false when string.Equals(phaseDomain, "EXECUTION", StringComparison.Ordinal) || string.Equals(phaseDomain, "BUILD_INTERACTION", StringComparison.Ordinal):
@@ -625,13 +624,13 @@ namespace Iterate.Application.Content
             }
 
             if (effect.TryGet("targeting", out JsonValue targetingNode) && targetingNode is JsonObject targetingObject)
-                ValidateTargeting(targetingObject, jsonPath + ".targeting");
+                ValidateTargeting(targetingObject, $"{jsonPath}.targeting");
 
             if (effect.TryGet("timing", out JsonValue timingNode) && timingNode is JsonObject timingObject)
-                ValidateTiming(timingObject, jsonPath + ".timing");
+                ValidateTiming(timingObject, $"{jsonPath}.timing");
 
             if (effect.TryGet("frequency", out JsonValue frequencyNode) && frequencyNode is JsonObject frequencyObject)
-                ValidateFrequency(frequencyObject, jsonPath + ".frequency");
+                ValidateFrequency(frequencyObject, $"{jsonPath}.frequency");
         }
 
         /// <summary>
@@ -646,7 +645,7 @@ namespace Iterate.Application.Content
 
             if (!OperationKindTokens.Contains(kind))
             {
-                AddError(jsonPath + ".kind", "effect.unknown-operation-kind", "'" + kind + "' is not an operation kind.");
+                AddError($"{jsonPath}.kind", "effect.unknown-operation-kind", $"'{kind}' is not an operation kind.");
                 return;
             }
 
@@ -718,14 +717,14 @@ namespace Iterate.Application.Content
         public void ValidateQualifier(JsonObject qualifier, string jsonPath)
         {
             if (TryString(qualifier, "kind", jsonPath, "effect.missing-field", "effect.unknown-qualifier-kind", out string kind))
-                RequireMembership(kind, CatalogVocabulary.QualifierKinds, jsonPath + ".kind", "effect.unknown-qualifier-kind");
+                RequireMembership(kind, CatalogVocabulary.QualifierKinds, $"{jsonPath}.kind", "effect.unknown-qualifier-kind");
 
             TryString(qualifier, "value", jsonPath, "effect.missing-field", "effect.missing-field", out _);
         }
 
         private static bool IsValidID(string id, string prefix)
         {
-            string expected = "WB-" + prefix + "-";
+            string expected = $"WB-{prefix}-";
             if (!id.StartsWith(expected, StringComparison.Ordinal))
                 return false;
 
@@ -773,7 +772,7 @@ namespace Iterate.Application.Content
                 JsonValue tag = tags.Items[index];
                 if (tag is not JsonString text || text.Value.Length == 0)
                 {
-                    AddError(jsonPath + ".tags[" + index + "]", "definition.empty-tag", "tags must be non-empty strings.");
+                    AddError($"{jsonPath}.tags[{index}]", "definition.empty-tag", "tags must be non-empty strings.");
                 }
             }
         }
@@ -781,13 +780,13 @@ namespace Iterate.Application.Content
         private void ValidateQuantityChange(JsonObject operation, string jsonPath)
         {
             if (TryString(operation, "register", jsonPath, "effect.operation-payload", "effect.operation-payload", out string register))
-                RequireMembership(register, RegisterTokens, jsonPath + ".register", "effect.operation-payload");
+                RequireMembership(register, RegisterTokens, $"{jsonPath}.register", "effect.operation-payload");
 
             if (TryString(operation, "operator", jsonPath, "effect.operation-payload", "effect.operation-payload", out string quantityOperator))
-                RequireMembership(quantityOperator, QuantityOperatorTokens, jsonPath + ".operator", "effect.operation-payload");
+                RequireMembership(quantityOperator, QuantityOperatorTokens, $"{jsonPath}.operator", "effect.operation-payload");
 
             if (TryObject(operation, "operand", jsonPath, "effect.operation-payload", "effect.operation-payload", out JsonObject operand))
-                ValidateOperand(operand, jsonPath + ".operand");
+                ValidateOperand(operand, $"{jsonPath}.operand");
         }
 
         private void ValidateOperand(JsonObject operand, string jsonPath)
@@ -797,41 +796,41 @@ namespace Iterate.Application.Content
 
             if (!OperandSourceTokens.Contains(source))
             {
-                AddError(jsonPath + ".source", "effect.operation-payload", "'" + source + "' is not an operand source.");
+                AddError($"{jsonPath}.source", "effect.operation-payload", $"'{source}' is not an operand source.");
                 return;
             }
 
             if (string.Equals(source, "CONSTANT", StringComparison.Ordinal))
                 RequireIntegerField(operand, "constant", jsonPath);
             else if (string.Equals(source, "REGISTER", StringComparison.Ordinal) && TryString(operand, "register", jsonPath, "effect.operation-payload", "effect.operation-payload", out string register))
-                RequireMembership(register, RegisterTokens, jsonPath + ".register", "effect.operation-payload");
+                RequireMembership(register, RegisterTokens, $"{jsonPath}.register", "effect.operation-payload");
         }
 
         private void ValidateTrigger(JsonObject trigger, string jsonPath)
         {
             if (TryString(trigger, "eventFamily", jsonPath, "effect.missing-field", "effect.unknown-event-family", out string family))
-                RequireMembership(family, EventFamilyTokens, jsonPath + ".eventFamily", "effect.unknown-event-family");
+                RequireMembership(family, EventFamilyTokens, $"{jsonPath}.eventFamily", "effect.unknown-event-family");
 
             if (TryString(trigger, "eventSubtype", jsonPath, "effect.missing-field", "effect.unknown-subtype", out string subtype))
-                RequireMembership(subtype, CatalogVocabulary.EventSubtypes, jsonPath + ".eventSubtype", "effect.unknown-subtype");
+                RequireMembership(subtype, CatalogVocabulary.EventSubtypes, $"{jsonPath}.eventSubtype", "effect.unknown-subtype");
 
             if (trigger.TryGet("qualifiers", out JsonValue qualifiersNode) && qualifiersNode is JsonArray qualifiers)
             {
                 for (int index = 0; index < qualifiers.Items.Count; index++)
                 {
                     if (qualifiers.Items[index] is JsonObject qualifier)
-                        ValidateQualifier(qualifier, jsonPath + ".qualifiers[" + index + "]");
+                        ValidateQualifier(qualifier, $"{jsonPath}.qualifiers[{index}]");
                 }
             }
 
             if (trigger.TryGet("timing", out JsonValue timingNode) && timingNode is JsonObject timing)
-                ValidateTiming(timing, jsonPath + ".timing");
+                ValidateTiming(timing, $"{jsonPath}.timing");
         }
 
         private void ValidateTargeting(JsonObject targeting, string jsonPath)
         {
             if (TryString(targeting, "kind", jsonPath, "effect.missing-field", "effect.unknown-targeting-kind", out string kind))
-                RequireMembership(kind, CatalogVocabulary.TargetingKinds, jsonPath + ".kind", "effect.unknown-targeting-kind");
+                RequireMembership(kind, CatalogVocabulary.TargetingKinds, $"{jsonPath}.kind", "effect.unknown-targeting-kind");
         }
 
         private void ValidateTiming(JsonObject timing, string jsonPath)
@@ -841,7 +840,7 @@ namespace Iterate.Application.Content
 
             if (!TimingKindTokens.Contains(kind))
             {
-                AddError(jsonPath + ".kind", "effect.unknown-timing", "'" + kind + "' is not a timing kind.");
+                AddError($"{jsonPath}.kind", "effect.unknown-timing", $"'{kind}' is not a timing kind.");
                 return;
             }
 
@@ -854,7 +853,7 @@ namespace Iterate.Application.Content
                     return;
 
                 string rule = CatalogVocabulary.TimingBoundaries.Contains(name) ? "effect.timing-mismatch" : "effect.unknown-timing";
-                AddError(jsonPath + ".name", rule, "'" + name + "' is not a timing band.");
+                AddError($"{jsonPath}.name", rule, $"'{name}' is not a timing band.");
             }
             else
             {
@@ -864,7 +863,7 @@ namespace Iterate.Application.Content
                 }
 
                 string rule = CatalogVocabulary.TimingBands.Contains(name) ? "effect.timing-mismatch" : "effect.unknown-timing";
-                AddError(jsonPath + ".name", rule, "'" + name + "' is not a named boundary.");
+                AddError($"{jsonPath}.name", rule, $"'{name}' is not a named boundary.");
             }
         }
 
@@ -873,20 +872,20 @@ namespace Iterate.Application.Content
             bool allowanceOk = TryString(frequency, "allowance", jsonPath, "effect.missing-field", "effect.unknown-frequency-allowance", out string allowance);
             if (allowanceOk && !CatalogVocabulary.FrequencyAllowances.Contains(allowance))
             {
-                AddError(jsonPath + ".allowance", "effect.unknown-frequency-allowance", "'" + allowance + "' is not a frequency allowance.");
+                AddError($"{jsonPath}.allowance", "effect.unknown-frequency-allowance", $"'{allowance}' is not a frequency allowance.");
                 allowanceOk = false;
             }
 
             bool scopeOk = TryString(frequency, "scope", jsonPath, "effect.missing-field", "effect.unknown-frequency-scope", out string scope);
             if (scopeOk && !CatalogVocabulary.FrequencyScopes.Contains(scope))
             {
-                AddError(jsonPath + ".scope", "effect.unknown-frequency-scope", "'" + scope + "' is not a frequency scope.");
+                AddError($"{jsonPath}.scope", "effect.unknown-frequency-scope", $"'{scope}' is not a frequency scope.");
                 scopeOk = false;
             }
 
             if (allowanceOk && scopeOk && !IsCanonicalFrequencyPair(allowance, scope))
             {
-                AddError(jsonPath, "effect.frequency-pair", "the frequency '" + allowance + "' with reset scope '" + scope + "' is not a canonical form.");
+                AddError(jsonPath, "effect.frequency-pair", $"the frequency '{allowance}' with reset scope '{scope}' is not a canonical form.");
             }
         }
         
@@ -902,12 +901,12 @@ namespace Iterate.Application.Content
             if (TryString(operation, "resource", jsonPath, "effect.operation-payload", "effect.operation-payload", out string resource)
                 && !string.Equals(resource, "BYTES", StringComparison.Ordinal))
             {
-                AddError(jsonPath + ".resource", "effect.operation-payload", "'" + resource + "' is not a gainable resource.");
+                AddError($"{jsonPath}.resource", "effect.operation-payload", $"'{resource}' is not a gainable resource.");
             }
 
             if (TryInteger(operation, "amount", jsonPath, "effect.operation-payload", "effect.operation-payload", out long amount) && amount < 1)
             {
-                AddError(jsonPath + ".amount", "effect.operation-payload", "a resource gain must gain at least one.");
+                AddError($"{jsonPath}.amount", "effect.operation-payload", "a resource gain must gain at least one.");
             }
         }
 
@@ -919,7 +918,7 @@ namespace Iterate.Application.Content
         )
         {
             if (TryString(owner, key, jsonPath, "effect.operation-payload", "effect.operation-payload", out string value))
-                RequireMembership(value, set, jsonPath + "." + key, "effect.operation-payload");
+                RequireMembership(value, set, $"{jsonPath}.{key}", "effect.operation-payload");
         }
 
         private void RequireIntegerField(JsonObject owner, string key, string jsonPath)
@@ -935,7 +934,7 @@ namespace Iterate.Application.Content
         private void ValidateTargetingField(JsonObject owner, string key, string jsonPath)
         {
             if (TryObject(owner, key, jsonPath, "effect.operation-payload", "effect.operation-payload", out JsonObject targeting))
-                ValidateTargeting(targeting, jsonPath + "." + key);
+                ValidateTargeting(targeting, $"{jsonPath}.{key}");
         }
 
         /// <summary>

@@ -240,7 +240,7 @@ namespace Iterate.Domain.Diagnostics.Tests
                     return timelines[index];
             }
 
-            Assert.Fail("No timeline for origin " + origin);
+            Assert.Fail($"No timeline for origin {origin}");
             return null;
         }
 
@@ -252,7 +252,7 @@ namespace Iterate.Domain.Diagnostics.Tests
                     return offers[index];
             }
 
-            Assert.Fail("No offer for candidate " + candidate);
+            Assert.Fail($"No offer for candidate {candidate}");
             return null;
         }
 
@@ -268,7 +268,7 @@ namespace Iterate.Domain.Diagnostics.Tests
                     return timeline.Entries[index];
             }
 
-            Assert.Fail("No entry for event " + eventValue);
+            Assert.Fail($"No entry for event {eventValue}");
             return null;
         }
 

@@ -227,7 +227,7 @@ namespace Iterate.Domain.Progression
         {
             int slot = FindSlotOf(instanceID);
             if (slot < 0)
-                throw new InvalidOperationException("The Buffer holds no item with identity " + instanceID + " to take.");
+                throw new InvalidOperationException($"The Buffer holds no item with identity {instanceID} to take.");
 
             RepositoryItem item = _slots[slot];
             _slots[slot] = null;

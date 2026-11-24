@@ -592,7 +592,7 @@ namespace Iterate.Domain.Execution
                 headerSlot,
                 evaluationContext
             ));
-            string skipCause = "CONDITION_FALSE:" + evaluationIdentity;
+            string skipCause = $"CONDITION_FALSE:{evaluationIdentity}";
             for (int i = firstContained; i < pastFootprint; i++)
             {
                 SourceSlot contained = arrangement.Slots[i];
@@ -721,7 +721,7 @@ namespace Iterate.Domain.Execution
                 throw new SafetyAbortSignal(
                     EventFamilies.Source,
                     ExecutionEventSubtypes.SourceExecutionStarted,
-                    "P" + slot.Position.LineNumber,
+                    $"P{slot.Position.LineNumber}",
                     InnermostOpenUnit(context) ?? default,
                     breached
                 );

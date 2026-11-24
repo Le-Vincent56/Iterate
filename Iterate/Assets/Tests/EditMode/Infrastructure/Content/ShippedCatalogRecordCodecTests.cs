@@ -45,7 +45,7 @@ namespace Iterate.Infrastructure.Content.Tests
                 ExecutionRecord baseline = Execute(fixture.Request);
                 ExecutionRecordReadResult read = ExecutionRecordDocument.Read(ExecutionRecordDocument.Write(baseline));
 
-                Assert.AreEqual(ExecutionRecordReadOutcome.Loaded, read.Outcome, fixture.Name + ": " + read.Defect);
+                Assert.AreEqual(ExecutionRecordReadOutcome.Loaded, read.Outcome, $"{fixture.Name}: {read.Defect}");
                 Assert.AreEqual(baseline, read.Record, fixture.Name);
             }
         }
@@ -58,7 +58,7 @@ namespace Iterate.Infrastructure.Content.Tests
                 string first = ExecutionRecordDocument.Write(Execute(fixture.Request));
                 ExecutionRecordReadResult read = ExecutionRecordDocument.Read(first);
 
-                Assert.AreEqual(ExecutionRecordReadOutcome.Loaded, read.Outcome, fixture.Name + ": " + read.Defect);
+                Assert.AreEqual(ExecutionRecordReadOutcome.Loaded, read.Outcome, $"{fixture.Name}: {read.Defect}");
                 Assert.AreEqual(first, ExecutionRecordDocument.Write(read.Record), fixture.Name);
             }
         }
@@ -74,7 +74,7 @@ namespace Iterate.Infrastructure.Content.Tests
 
                 ReplayComparisonResult result = new ReplayComparer().Compare(read.Record, fixture.Request);
 
-                Assert.AreEqual(ReplayComparisonStatus.Match, result.Status, fixture.Name + ": " + Describe(result));
+                Assert.AreEqual(ReplayComparisonStatus.Match, result.Status, $"{fixture.Name}: {Describe(result)}");
                 Assert.IsNull(result.Divergence, fixture.Name);
                 Assert.IsNull(result.UnavailableComponent, fixture.Name);
             }
@@ -89,7 +89,7 @@ namespace Iterate.Infrastructure.Content.Tests
             {
                 ExecutionRecord baseline = Execute(fixture.Request);
 
-                Assert.Greater(baseline.Events.Count, 0, fixture.Name + " produces no events.");
+                Assert.Greater(baseline.Events.Count, 0, $"{fixture.Name} produces no events.");
             }
         }
 
@@ -150,7 +150,7 @@ namespace Iterate.Infrastructure.Content.Tests
                 return result.Divergence.Description;
 
             if (result.UnavailableComponent != null)
-                return "exact reproduction unavailable: " + result.UnavailableComponent;
+                return $"exact reproduction unavailable: {result.UnavailableComponent}";
 
             return "matched";
         }

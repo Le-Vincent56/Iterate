@@ -58,7 +58,7 @@ namespace Iterate.Application.Content
             HashSet<string> seen = new(StringComparer.Ordinal);
             for (int index = 0; index < array.Items.Count; index++)
             {
-                string path = "$[" + index + "]";
+                string path = $"$[{index}]";
                 if (array.Items[index] is not JsonObject row)
                 {
                     context.AddError(path, "parameters.row-invalid", "each parameter row must be an object.");
@@ -75,21 +75,21 @@ namespace Iterate.Application.Content
 
                 if (!_requiredIDs.Contains(id))
                 {
-                    context.AddError(path, "parameters.unknown-id", "'" + id + "' is not a WB-PAR register ID.");
+                    context.AddError(path, "parameters.unknown-id", $"'{id}' is not a WB-PAR register ID.");
                     continue;
                 }
 
                 if (!seen.Add(id))
-                    context.AddError(path, "parameters.duplicate-id", "the register ID '" + id + "' appears more than once.");
+                    context.AddError(path, "parameters.duplicate-id", $"the register ID '{id}' appears more than once.");
 
                 if (hasValue && !_ratioIDs.Contains(id) && !value.IsInteger)
-                    context.AddError(path + ".value", "parameters.non-integer", "the integer parameter '" + id + "' carries a fractional value.");
+                    context.AddError($"{path}.value", "parameters.non-integer", $"the integer parameter '{id}' carries a fractional value.");
             }
 
             foreach (string requiredID in _requiredIDs)
             {
                 if (!seen.Contains(requiredID))
-                    context.AddError("$", "parameters.missing-id", "the register is missing required ID " + requiredID + ".");
+                    context.AddError("$", "parameters.missing-id", $"the register is missing required ID {requiredID}.");
             }
         }
     }

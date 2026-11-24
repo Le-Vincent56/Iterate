@@ -332,7 +332,7 @@ namespace Iterate.Infrastructure.Content.Tests
 
             ShopOpenResult result = ShopState.Open(definition, _catalog, session, new ProcessID(target));
 
-            Assert.IsTrue(result.Succeeded, shop + " did not open: " + result.Rejection);
+            Assert.IsTrue(result.Succeeded, $"{shop} did not open: {result.Rejection}");
             return result.Shop;
         }
 
@@ -342,7 +342,7 @@ namespace Iterate.Infrastructure.Content.Tests
 
             RewardPlanResult planned = RewardResolver.Plan(definition, tier, session, _catalog);
 
-            Assert.IsTrue(planned.Succeeded, package + " did not plan: " + planned.Rejection);
+            Assert.IsTrue(planned.Succeeded, $"{package} did not plan: {planned.Rejection}");
             return RewardResolver.Apply(planned.Plan, session, _catalog);
         }
 

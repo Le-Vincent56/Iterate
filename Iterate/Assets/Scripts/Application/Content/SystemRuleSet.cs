@@ -43,7 +43,7 @@ namespace Iterate.Application.Content
 
             for (int index = 0; index < array.Items.Count; index++)
             {
-                string path = "$[" + index + "]";
+                string path = $"$[{index}]";
                 if (array.Items[index] is not JsonObject definition)
                 {
                     context.AddError(path, "definition.not-object", "each definition must be an object.");
@@ -68,13 +68,13 @@ namespace Iterate.Application.Content
 
             if (stages.Items.Count == 0)
             {
-                context.AddError(jsonPath + ".stages", "system.stages-empty", "a System must declare at least one stage.");
+                context.AddError($"{jsonPath}.stages", "system.stages-empty", "a System must declare at least one stage.");
                 return;
             }
 
             for (int index = 0; index < stages.Items.Count; index++)
             {
-                string path = jsonPath + ".stages[" + index + "]";
+                string path = $"{jsonPath}.stages[{index}]";
                 if (stages.Items[index] is not JsonObject stage)
                 {
                     context.AddError(path, "system.stage-shape", "each System stage must be an object.");
@@ -100,7 +100,7 @@ namespace Iterate.Application.Content
 
             if (!_stageKinds.Contains(kind))
             {
-                context.AddError(jsonPath + ".kind", "system.unknown-stage-kind", "'" + kind + "' is not a System stage kind.");
+                context.AddError($"{jsonPath}.kind", "system.unknown-stage-kind", $"'{kind}' is not a System stage kind.");
                 return;
             }
 
@@ -142,7 +142,7 @@ namespace Iterate.Application.Content
 
             for (int index = 0; index < routeCount; index++)
             {
-                string path = jsonPath + ".routes[" + index + "]";
+                string path = $"{jsonPath}.routes[{index}]";
                 if (routes.Items[index] is JsonString id)
                     context.RegisterIDReference(path, id.Value, "WB-ROUTE-", "reference.wrong-kind");
                 else

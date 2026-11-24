@@ -21,9 +21,7 @@ namespace Iterate.Application.Content.Json
         );
 
         private readonly JsonObject _source;
-
         private readonly string _path;
-
         private readonly DefectSink _defects;
 
         /// <summary>
@@ -252,7 +250,7 @@ namespace Iterate.Application.Content.Json
         public JsonMemberReader Child(string key)
         {
             JsonObject nested = Object(key);
-            return new JsonMemberReader(nested ?? _absentObject, _path + "." + key, _defects);
+            return new JsonMemberReader(nested ?? _absentObject, $"{_path}.{key}", _defects);
         }
 
         /// <summary>
@@ -270,7 +268,7 @@ namespace Iterate.Application.Content.Json
 
             if (!System.Enum.IsDefined(typeof(TEnum), name) || !System.Enum.TryParse(name, false, out TEnum value))
             {
-                Record(key, "'" + name + "' is not a member of " + typeof(TEnum).Name + ".");
+                Record(key, $"'{name}' is not a member of {typeof(TEnum).Name}.");
                 return default(TEnum);
             }
 
@@ -331,7 +329,7 @@ namespace Iterate.Application.Content.Json
         /// <param name="reason">The reason, as a sentence.</param>
         private void Record(string key, string reason)
         {
-            _defects.Record(_path + "." + key + ": " + reason);
+            _defects.Record($"{_path}.{key}: {reason}");
         }
 
         /// <summary>

@@ -25,7 +25,6 @@ namespace Iterate.Application.Diagnostics
         /// The format version a generated execution record is written at.
         /// </summary>
         public const int FormatVersion = 1;
-
         private const string Path = "record";
 
         /// <summary>
@@ -96,7 +95,7 @@ namespace Iterate.Application.Diagnostics
         public static CodecResult<ExecutionRecord> FromJson(JsonObject payload)
         {
             if (payload == null)
-                return CodecResult<ExecutionRecord>.Fail(Path + ": the payload is absent.");
+                return CodecResult<ExecutionRecord>.Fail($"{Path}: the payload is absent.");
 
             JsonMemberReader reader = new(payload, Path);
             ExecutionEvidenceHeader header = EvidenceHeaderCodec.FromJson(reader.Child("header"));
@@ -156,7 +155,7 @@ namespace Iterate.Application.Diagnostics
             }
             catch (ArgumentException exception)
             {
-                return CodecResult<ExecutionRecord>.Fail(Path + ": " + exception.Message);
+                return CodecResult<ExecutionRecord>.Fail($"{Path}: {exception.Message}");
             }
         }
 

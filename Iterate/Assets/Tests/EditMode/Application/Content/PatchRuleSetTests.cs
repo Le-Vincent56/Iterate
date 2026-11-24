@@ -84,7 +84,7 @@ namespace Iterate.Application.Content.Tests
 
                 Assert.IsFalse(
                     HasError(errors, ManifestFileName, "patch.unknown-host-eligibility"),
-                    rule + " is in the vocabulary but rejected by the rule set");
+                    $"{rule} is in the vocabulary but rejected by the rule set");
             }
         }
 

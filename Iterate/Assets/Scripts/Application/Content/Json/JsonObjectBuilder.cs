@@ -29,7 +29,7 @@ namespace Iterate.Application.Content.Json
                 throw new ArgumentException("a JSON member value cannot be null; use JsonValues.Null().", nameof(value));
 
             if (_members.ContainsKey(key))
-                throw new ArgumentException("duplicate JSON member key '" + key + "'.", nameof(key));
+                throw new ArgumentException($"duplicate JSON member key '{key}'.", nameof(key));
 
             _keys.Add(key);
             _members[key] = value;

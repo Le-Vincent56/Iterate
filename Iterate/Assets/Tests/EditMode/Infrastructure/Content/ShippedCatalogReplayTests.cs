@@ -217,7 +217,7 @@ namespace Iterate.Infrastructure.Content.Tests
                 return result.Divergence.Description;
 
             if (result.UnavailableComponent != null)
-                return "exact reproduction unavailable: " + result.UnavailableComponent;
+                return $"exact reproduction unavailable: {result.UnavailableComponent}";
 
             return "matched";
         }

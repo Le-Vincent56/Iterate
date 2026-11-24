@@ -109,7 +109,7 @@ namespace Iterate.Domain.Progression
                         0,
                         DependencyOrigin.Reward,
                         destroyFirst ?? Array.Empty<InstanceID>(),
-                        Plan.Package.ID.Value + ":" + componentIndex));
+                        $"{Plan.Package.ID.Value}:{componentIndex}"));
 
                 if (!installed.Succeeded)
                     return new RewardChoiceResult(false, RewardRejection.InstallationRejected, null, installed.Rejection);

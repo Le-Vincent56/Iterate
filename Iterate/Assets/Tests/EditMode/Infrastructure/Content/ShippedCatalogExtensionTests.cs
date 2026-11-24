@@ -78,15 +78,15 @@ namespace Iterate.Infrastructure.Content.Tests
             {
                 for (int index = 0; index < core.Lines.Count; index++)
                 {
-                    Assert.AreEqual(index + 1, core.Lines[index].Position, core.ID.Value + " line positions");
+                    Assert.AreEqual(index + 1, core.Lines[index].Position, $"{core.ID.Value} line positions");
                 }
 
                 int finalOutput = core.FinalOutputPosition.LineNumber;
-                Assert.LessOrEqual(finalOutput, core.Lines.Count, core.ID.Value + " final output");
+                Assert.LessOrEqual(finalOutput, core.Lines.Count, $"{core.ID.Value} final output");
                 Assert.AreEqual(
                     CoreLineKind.FixedInstruction,
                     core.Lines[finalOutput - 1].Kind,
-                    core.ID.Value + " final output kind"
+                    $"{core.ID.Value} final output kind"
                 );
             }
         }
@@ -102,7 +102,7 @@ namespace Iterate.Infrastructure.Content.Tests
                 Assert.AreEqual(
                     core.OpenCount,
                     configuration.SourceCapacity,
-                    configuration.ID.Value + " source capacity versus " + core.ID.Value + " open lines"
+                    $"{configuration.ID.Value} source capacity versus {core.ID.Value} open lines"
                 );
             }
         }
@@ -215,30 +215,30 @@ namespace Iterate.Infrastructure.Content.Tests
             foreach (ProcessConfigurationDefinition configuration in catalog.ProcessConfigurations)
             {
                 string id = configuration.ID.Value;
-                Assert.IsTrue(catalog.TryGetCore(configuration.Core, out _), id + " core");
-                Assert.IsTrue(catalog.TryGetRewardPackage(configuration.RewardPackage, out _), id + " reward package");
+                Assert.IsTrue(catalog.TryGetCore(configuration.Core, out _), $"{id} core");
+                Assert.IsTrue(catalog.TryGetRewardPackage(configuration.RewardPackage, out _), $"{id} reward package");
 
                 if (configuration.ProcessRule.HasValue)
-                    Assert.IsTrue(catalog.TryGetProcessRule(configuration.ProcessRule.Value, out _), id + " process rule");
+                    Assert.IsTrue(catalog.TryGetProcessRule(configuration.ProcessRule.Value, out _), $"{id} process rule");
 
                 if (configuration.PrecedingShop.HasValue)
-                    Assert.IsTrue(catalog.TryGetShop(configuration.PrecedingShop.Value, out _), id + " preceding shop");
+                    Assert.IsTrue(catalog.TryGetShop(configuration.PrecedingShop.Value, out _), $"{id} preceding shop");
 
-                AssertItemsResolve(catalog, InitialSourceContent(configuration), id + " initial source");
-                AssertItemsResolve(catalog, configuration.BufferLoad.Initial, id + " initial Buffer");
+                AssertItemsResolve(catalog, InitialSourceContent(configuration), $"{id} initial source");
+                AssertItemsResolve(catalog, configuration.BufferLoad.Initial, $"{id} initial Buffer");
 
                 foreach (ArrivalLoadSpec arrival in configuration.BufferLoad.Arrivals)
                 {
-                    AssertItemsResolve(catalog, arrival.Items, id + " arrival " + arrival.AfterExecution);
+                    AssertItemsResolve(catalog, arrival.Items, $"{id} arrival {arrival.AfterExecution}");
                 }
 
                 if (configuration.Exposure != null)
-                    AssertItemsResolve(catalog, configuration.Exposure.Guaranteed, id + " guaranteed exposure");
+                    AssertItemsResolve(catalog, configuration.Exposure.Guaranteed, $"{id} guaranteed exposure");
 
                 if (configuration.ActiveBranch != null)
                 {
-                    AssertItemsResolve(catalog, configuration.ActiveBranch.Required, id + " required");
-                    AssertItemsResolve(catalog, configuration.ActiveBranch.Quarantined, id + " quarantined");
+                    AssertItemsResolve(catalog, configuration.ActiveBranch.Required, $"{id} required");
+                    AssertItemsResolve(catalog, configuration.ActiveBranch.Quarantined, $"{id} quarantined");
                 }
             }
         }
@@ -252,20 +252,20 @@ namespace Iterate.Infrastructure.Content.Tests
             {
                 foreach (ShopOffer offer in shop.FixedOffers)
                 {
-                    Assert.IsTrue(ResolvesAsContent(catalog, offer.Content), shop.ID.Value + " offer " + offer.OfferID);
+                    Assert.IsTrue(ResolvesAsContent(catalog, offer.Content), $"{shop.ID.Value} offer {offer.OfferID}");
                 }
 
                 if (shop.RerollPool.HasValue)
-                    Assert.IsTrue(catalog.TryGetPool(shop.RerollPool.Value, out _), shop.ID.Value + " reroll pool");
+                    Assert.IsTrue(catalog.TryGetPool(shop.RerollPool.Value, out _), $"{shop.ID.Value} reroll pool");
                 else
-                    Assert.IsFalse(shop.RerollsEnabled, shop.ID.Value + " rerolls without a pool");
+                    Assert.IsFalse(shop.RerollsEnabled, $"{shop.ID.Value} rerolls without a pool");
             }
 
             foreach (PoolDefinition pool in catalog.Pools)
             {
                 foreach (PoolMember member in pool.Members)
                 {
-                    Assert.IsTrue(ResolvesAsContent(catalog, member.Content), pool.ID.Value + " member " + member.Content);
+                    Assert.IsTrue(ResolvesAsContent(catalog, member.Content), $"{pool.ID.Value} member {member.Content}");
                 }
             }
         }
@@ -290,14 +290,14 @@ namespace Iterate.Infrastructure.Content.Tests
 
             foreach (RouteDefinition route in catalog.Routes)
             {
-                Assert.IsTrue(catalog.TryGetProcessConfiguration(route.Process, out _), route.ID.Value + " process");
-                Assert.IsTrue(catalog.TryGetShop(route.Shop, out _), route.ID.Value + " shop");
+                Assert.IsTrue(catalog.TryGetProcessConfiguration(route.Process, out _), $"{route.ID.Value} process");
+                Assert.IsTrue(catalog.TryGetShop(route.Shop, out _), $"{route.ID.Value} shop");
             }
 
             foreach (StarterArchetypeDefinition archetype in catalog.StarterArchetypes)
             {
                 AssertItemsResolve(catalog, archetype.StartingRepository, archetype.ID.Value);
-                Assert.IsTrue(catalog.TryGetDependency(archetype.StarterDependency, out _), archetype.ID.Value + " starter Dependency");
+                Assert.IsTrue(catalog.TryGetDependency(archetype.StarterDependency, out _), $"{archetype.ID.Value} starter Dependency");
             }
 
             foreach (SystemDefinition system in catalog.Systems)
@@ -312,7 +312,7 @@ namespace Iterate.Infrastructure.Content.Tests
 
                     foreach (RouteID route in stage.Routes)
                     {
-                        Assert.IsTrue(catalog.TryGetRoute(route, out _), system.ID.Value + " route " + route.Value);
+                        Assert.IsTrue(catalog.TryGetRoute(route, out _), $"{system.ID.Value} route {route.Value}");
                     }
                 }
             }
@@ -511,7 +511,7 @@ namespace Iterate.Infrastructure.Content.Tests
         {
             foreach (string id in ids)
             {
-                Assert.IsTrue(ResolvesAsContent(catalog, id), label + ": " + id);
+                Assert.IsTrue(ResolvesAsContent(catalog, id), $"{label}: {id}");
             }
         }
 

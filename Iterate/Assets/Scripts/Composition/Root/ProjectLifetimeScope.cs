@@ -1,5 +1,6 @@
 using Didionysymus.Lattice.Runtime;
 using Didionysymus.Lattice.Runtime.Unity;
+using Iterate.Application.Telemetry;
 
 namespace Iterate.Composition.Root
 {
@@ -30,6 +31,7 @@ namespace Iterate.Composition.Root
         protected override void Awake()
         {
             base.Awake();
+            Resolver.Resolve<TelemetryRecorder>().Initialize();
             _ = CatalogBootRunner.RunAsync(Resolver, destroyCancellationToken);
         }
     }

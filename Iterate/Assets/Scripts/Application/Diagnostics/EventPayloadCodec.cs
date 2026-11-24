@@ -14,9 +14,7 @@ namespace Iterate.Application.Diagnostics
     internal static class EventPayloadCodec
     {
         private const string QuantityChange = "QuantityChange";
-
         private const string RandomDecision = "RandomDecision";
-
         private const string SafetyAbort = "SafetyAbort";
 
         /// <summary>
@@ -105,7 +103,7 @@ namespace Iterate.Application.Diagnostics
             if (kind == SafetyAbort)
                 return AbortFromJson(reader);
 
-            reader.Fail("kind", "'" + kind + "' is not a payload kind this build reads.");
+            reader.Fail("kind", $"'{kind}' is not a payload kind this build reads.");
             return null;
         }
 

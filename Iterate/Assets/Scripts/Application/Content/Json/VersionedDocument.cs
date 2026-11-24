@@ -40,7 +40,7 @@ namespace Iterate.Application.Content.Json
                 if (string.Equals(key, VersionMember, StringComparison.Ordinal))
                 {
                     throw new ArgumentException(
-                        "the payload carries its own '" + VersionMember + "' member.",
+                        $"the payload carries its own '{VersionMember}' member.",
                         nameof(payload)
                     );
                 }
@@ -82,13 +82,13 @@ namespace Iterate.Application.Content.Json
                 return Malformed("the document's root is not an object.");
 
             if (!document.TryGet(VersionMember, out JsonValue version))
-                return Malformed("the document has no '" + VersionMember + "' member.");
+                return Malformed($"the document has no '{VersionMember}' member.");
 
             if (version is not JsonNumber { IsInteger: true } number
                 || number.IntegerValue < int.MinValue
                 || number.IntegerValue > int.MaxValue)
             {
-                return Malformed("the '" + VersionMember + "' member is not an integer.");
+                return Malformed($"the '{VersionMember}' member is not an integer.");
             }
 
             int found = (int)number.IntegerValue;
@@ -98,8 +98,7 @@ namespace Iterate.Application.Content.Json
                     VersionedDocumentOutcome.UnsupportedVersion,
                     null,
                     found,
-                    "the document was written at format version "
-                        + found.ToString(CultureInfo.InvariantCulture) + "."
+                    $"the document was written at format version {found.ToString(CultureInfo.InvariantCulture)}."
                 );
             }
 

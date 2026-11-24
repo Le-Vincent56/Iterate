@@ -42,7 +42,7 @@ namespace Iterate.Application.Content
 
             for (int index = 0; index < array.Items.Count; index++)
             {
-                string path = "$[" + index + "]";
+                string path = $"$[{index}]";
                 if (array.Items[index] is not JsonObject definition)
                 {
                     context.AddError(path, "definition.not-object", "each definition must be an object.");
@@ -69,7 +69,7 @@ namespace Iterate.Application.Content
 
             if (!CatalogVocabulary.PoolSelectionMethods.Contains(method))
             {
-                context.AddError(jsonPath + ".selectionMethod", "pool.unknown-selection-method", "'" + method + "' is not a pool selection method.");
+                context.AddError($"{jsonPath}.selectionMethod", "pool.unknown-selection-method", $"'{method}' is not a pool selection method.");
                 return;
             }
 
@@ -84,7 +84,7 @@ namespace Iterate.Application.Content
                 return;
 
             if (context.TryInteger(definition, "selectionCount", jsonPath, "definition.missing-field", "definition.field-type", out long count) && count > memberCount)
-                context.AddError(jsonPath + ".selectionCount", "pool.count-exceeds-members", "a pool cannot offer more items than it holds.");
+                context.AddError($"{jsonPath}.selectionCount", "pool.count-exceeds-members", "a pool cannot offer more items than it holds.");
         }
 
         /// <summary>
@@ -103,7 +103,7 @@ namespace Iterate.Application.Content
 
             for (int index = 0; index < members.Items.Count; index++)
             {
-                string path = jsonPath + ".members[" + index + "]";
+                string path = $"{jsonPath}.members[{index}]";
                 if (members.Items[index] is not JsonObject member)
                 {
                     context.AddError(path, "definition.not-object", "each pool member must be an object.");

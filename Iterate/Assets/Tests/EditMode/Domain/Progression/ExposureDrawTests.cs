@@ -93,7 +93,7 @@ namespace Iterate.Domain.Progression.Tests
                 Assert.AreEqual(
                     index + 1,
                     records[index].Request.Context.Components.OccurrenceOrdinal,
-                    "position " + (index + 1).ToString()
+                    $"position {(index + 1).ToString()}"
                 );
             }
         }

@@ -40,7 +40,7 @@ namespace Iterate.Application.Content
 
             for (int index = 0; index < array.Items.Count; index++)
             {
-                string path = "$[" + index + "]";
+                string path = $"$[{index}]";
                 if (!(array.Items[index] is JsonObject definition))
                 {
                     context.AddError(path, "definition.not-object", "each definition must be an object.");
@@ -51,10 +51,10 @@ namespace Iterate.Application.Content
                 context.TryInteger(definition, "sourceFootprint", path, "definition.missing-field", "definition.field-type", out _);
 
                 if (context.TryObject(definition, "primaryOperation", path, "definition.missing-field", "definition.field-type", out JsonObject primaryOperation))
-                    context.ValidateOperation(primaryOperation, path + ".primaryOperation");
+                    context.ValidateOperation(primaryOperation, $"{path}.primaryOperation");
 
                 if (definition.TryGet("positionQualifier", out JsonValue qualifierNode) && qualifierNode is JsonObject qualifier)
-                    context.ValidateQualifier(qualifier, path + ".positionQualifier");
+                    context.ValidateQualifier(qualifier, $"{path}.positionQualifier");
 
                 if (!definition.TryGet("ineligibilityTags", out JsonValue tagsNode) ||
                     tagsNode is not JsonArray tags) continue;
@@ -62,7 +62,7 @@ namespace Iterate.Application.Content
                 for (int tagIndex = 0; tagIndex < tags.Items.Count; tagIndex++)
                 {
                     if (tags.Items[tagIndex] is JsonString reference)
-                        context.RegisterReference(path + ".ineligibilityTags[" + tagIndex + "]", reference.Value, "crossref.unresolved");
+                        context.RegisterReference($"{path}.ineligibilityTags[{tagIndex}]", reference.Value, "crossref.unresolved");
                 }
             }
         }

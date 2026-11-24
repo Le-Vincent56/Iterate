@@ -27,6 +27,6 @@ namespace Iterate.Domain.Values
         /// Renders the identity as a hash-prefixed ordinal.
         /// </summary>
         /// <returns>The value prefixed with '#', formatted in the invariant culture.</returns>
-        public override string ToString() => "#" + Value.ToString(CultureInfo.InvariantCulture);
+        public override string ToString() => $"#{Value.ToString(CultureInfo.InvariantCulture)}";
     }
 }

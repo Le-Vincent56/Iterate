@@ -38,7 +38,7 @@ namespace Iterate.Application.Persistence
             {
                 return Rejected(
                     CheckpointRestoreRejection.CatalogRevisionMismatch,
-                    "the checkpoint was written against catalog revision '" + state.CatalogRevision + "'."
+                    $"the checkpoint was written against catalog revision '{state.CatalogRevision}'."
                 );
             }
 
@@ -46,8 +46,7 @@ namespace Iterate.Application.Persistence
             {
                 return Rejected(
                     CheckpointRestoreRejection.RandomServiceRevisionMismatch,
-                    "the checkpoint was written against random service revision '"
-                        + state.RandomServiceRevision + "'."
+                    $"the checkpoint was written against random service revision '{state.RandomServiceRevision}'."
                 );
             }
 
@@ -55,7 +54,7 @@ namespace Iterate.Application.Persistence
             {
                 return Rejected(
                     CheckpointRestoreRejection.UnknownProcess,
-                    "the catalog defines no Process '" + state.Process.Value + "'."
+                    $"the catalog defines no Process '{state.Process.Value}'."
                 );
             }
 
@@ -75,8 +74,7 @@ namespace Iterate.Application.Persistence
                 default:
                     return Rejected(
                         CheckpointRestoreRejection.UnknownProcessRole,
-                        "the Process '" + state.Process.Value + "' declares role '"
-                            + configuration.Role + "', which has no recovery."
+                        $"the Process '{state.Process.Value}' declares role '{configuration.Role}', which has no recovery."
                     );
             }
 
@@ -84,7 +82,7 @@ namespace Iterate.Application.Persistence
             {
                 return Rejected(
                     CheckpointRestoreRejection.UnknownRoute,
-                    "the catalog defines no route '" + state.Route.Value.Value + "'."
+                    $"the catalog defines no route '{state.Route.Value.Value}'."
                 );
             }
 
@@ -100,8 +98,7 @@ namespace Iterate.Application.Persistence
                 {
                     return Rejected(
                         CheckpointRestoreRejection.DefinitionCategoryMismatch,
-                        "the checkpoint attaches a Patch to '" + item.Definition
-                            + "', which is not an Instruction and has no sockets."
+                        $"the checkpoint attaches a Patch to '{item.Definition}', which is not an Instruction and has no sockets."
                     );
                 }
 
@@ -226,14 +223,13 @@ namespace Iterate.Application.Persistence
             {
                 return Rejected(
                     CheckpointRestoreRejection.UnknownDefinition,
-                    "the checkpoint names '" + id + "' as " + position + ", which the catalog does not define."
+                    $"the checkpoint names '{id}' as {position}, which the catalog does not define."
                 );
             }
 
             return Rejected(
                 CheckpointRestoreRejection.DefinitionCategoryMismatch,
-                "the checkpoint names '" + id + "' as " + position
-                    + ", but the catalog defines it as " + actual + "."
+                $"the checkpoint names '{id}' as {position}, but the catalog defines it as {actual}."
             );
         }
 

@@ -150,7 +150,7 @@ namespace Iterate.Domain.Progression.Tests
                 string rule = member;
                 Assert.DoesNotThrow(
                     () => PatchHostRules.IsEligible(PatchWith(rule), host),
-                    rule + " is registered but not evaluated");
+                    $"{rule} is registered but not evaluated");
             }
         }
 

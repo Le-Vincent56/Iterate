@@ -20,5 +20,11 @@ namespace Iterate.Application.Logging
         /// Save file loading, writing and clearing.
         /// </summary>
         public static readonly LogCategory Persistence = new("Persistence");
+
+        /// <summary>
+        /// Playtest telemetry: a run file that could not be written, or a recorder defect contained
+        /// by its fault barrier.
+        /// </summary>
+        public static readonly LogCategory Telemetry = new("Telemetry");
     }
 }

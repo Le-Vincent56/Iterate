@@ -144,7 +144,7 @@ namespace Iterate.Domain.Execution.Tests
                 }
             }
 
-            Assert.Fail("No disposition-finalized event at position " + position.LineNumber + ".");
+            Assert.Fail($"No disposition-finalized event at position {position.LineNumber}.");
 
             return null;
         }
@@ -163,7 +163,7 @@ namespace Iterate.Domain.Execution.Tests
                     return record.Units[i];
             }
 
-            Assert.Fail("No runtime unit at position " + position.LineNumber + ".");
+            Assert.Fail($"No runtime unit at position {position.LineNumber}.");
 
             return null;
         }
@@ -205,7 +205,7 @@ namespace Iterate.Domain.Execution.Tests
                 count++;
             }
 
-            Assert.AreEqual(1, count, "Expected exactly one " + subtype + " event.");
+            Assert.AreEqual(1, count, $"Expected exactly one {subtype} event.");
 
             return found;
         }

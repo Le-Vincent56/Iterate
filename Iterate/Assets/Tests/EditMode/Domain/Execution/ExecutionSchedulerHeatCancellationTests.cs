@@ -180,7 +180,7 @@ namespace Iterate.Domain.Execution.Tests
                 count++;
             }
 
-            Assert.AreEqual(1, count, "Expected exactly one " + subtype + " event.");
+            Assert.AreEqual(1, count, $"Expected exactly one {subtype} event.");
 
             return found;
         }

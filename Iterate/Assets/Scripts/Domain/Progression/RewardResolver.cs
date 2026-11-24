@@ -132,7 +132,7 @@ namespace Iterate.Domain.Progression
 
                     default:
                         throw new ArgumentException(
-                            "The reward component kind " + component.Kind + " is not planned.",
+                            $"The reward component kind {component.Kind} is not planned.",
                             nameof(package)
                         );
                 }
@@ -161,7 +161,7 @@ namespace Iterate.Domain.Progression
             for (int i = 0; i < planned.Count; i++)
             {
                 PlannedReward entry = planned[i];
-                string reference = plan.Package.ID.Value + ":" + entry.ComponentIndex;
+                string reference = $"{plan.Package.ID.Value}:{entry.ComponentIndex}";
                 switch (entry.Kind)
                 {
                     case PlannedRewardKind.TokenCredit:
@@ -175,7 +175,7 @@ namespace Iterate.Domain.Progression
 
                     case PlannedRewardKind.CapacityTarget:
                         session.Economy.Dependencies.SetCapacity(entry.Amount);
-                        consequences.Add(new RewardComponentResolved(entry.ComponentIndex, "RAM " + entry.Amount));
+                        consequences.Add(new RewardComponentResolved(entry.ComponentIndex, $"RAM {entry.Amount}"));
                         break;
 
                     case PlannedRewardKind.GuaranteedContent:

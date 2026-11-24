@@ -235,7 +235,7 @@ namespace Iterate.Application.Diagnostics.Tests
 
                 CodecResult<ExecutionRecord> result = ExecutionRecordCodec.FromJson(Without(payload, key));
 
-                Assert.IsFalse(result.Succeeded, "'" + key + "' decoded while absent.");
+                Assert.IsFalse(result.Succeeded, $"'{key}' decoded while absent.");
                 StringAssert.Contains(key, result.Defect);
             }
         }
@@ -254,7 +254,7 @@ namespace Iterate.Application.Diagnostics.Tests
 
                 CodecResult<ExecutionRecord> result = ExecutionRecordCodec.FromJson(mutated);
 
-                Assert.IsFalse(result.Succeeded, "header.'" + key + "' decoded while absent.");
+                Assert.IsFalse(result.Succeeded, $"header.'{key}' decoded while absent.");
                 StringAssert.Contains(key, result.Defect);
             }
         }

@@ -52,7 +52,7 @@ namespace Iterate.Domain.Progression.Tests
             {
                 Assert.IsTrue(
                     slot.Kind == SourceSlotKind.Core || slot.Kind == SourceSlotKind.Empty,
-                    "Progression never builds an Instruction or Structure slot; " + slot.Kind + " appeared."
+                    $"Progression never builds an Instruction or Structure slot; {slot.Kind} appeared."
                 );
             }
         }

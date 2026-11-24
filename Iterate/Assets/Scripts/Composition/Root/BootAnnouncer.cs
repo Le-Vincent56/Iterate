@@ -12,7 +12,6 @@ namespace Iterate.Composition.Root
     public sealed class BootAnnouncer : MonoBehaviour, IInitializable
     {
         private IGameLoggerFactory _loggers;
-
         private IGameLogger _log;
 
         /// <summary>

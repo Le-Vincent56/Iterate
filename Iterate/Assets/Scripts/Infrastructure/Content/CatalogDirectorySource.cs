@@ -63,7 +63,7 @@ namespace Iterate.Infrastructure.Content
             }
             catch (IOException exception)
             {
-                throw new IOException("could not read the catalog file '" + fileName + "'.", exception);
+                throw new IOException($"could not read the catalog file '{fileName}'.", exception);
             }
         }
     }

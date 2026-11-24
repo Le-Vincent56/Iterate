@@ -122,7 +122,7 @@ namespace Iterate.Application.Content
                 {
                     throw new CatalogLoadException(new[]
                     {
-                        new CatalogError(entry.File, "$", "freeze.unexpected", "unexpected error freezing the file: " + exception.Message)
+                        new CatalogError(entry.File, "$", "freeze.unexpected", $"unexpected error freezing the file: {exception.Message}")
                     });
                 }
             }
@@ -878,7 +878,7 @@ namespace Iterate.Application.Content
                     );
                 
                 default:
-                    throw new InvalidOperationException("unknown operation kind '" + kind + "'.");
+                    throw new InvalidOperationException($"unknown operation kind '{kind}'.");
             }
         }
 
@@ -987,7 +987,7 @@ namespace Iterate.Application.Content
         {
             string candidate = token.Replace("_", string.Empty);
             if (!Enum.TryParse(candidate, true, out TEnum value))
-                throw new InvalidOperationException("unknown token '" + token + "' for " + typeof(TEnum).Name + ".");
+                throw new InvalidOperationException($"unknown token '{token}' for {typeof(TEnum).Name}.");
 
             return value;
         }

@@ -13,9 +13,7 @@ namespace Iterate.Domain.Progression
     public static class BuildInteractionEffects
     {
         private const string ArchiveSubtype = "OBJECT_ARCHIVED";
-
         private const string FirstQualifyingEvent = "FIRST_QUALIFYING_EVENT";
-
         private const string ProcessScope = "PROCESS";
 
         /// <summary>
@@ -56,7 +54,7 @@ namespace Iterate.Domain.Progression
             if (effect.Trigger == null)
             {
                 throw new ArgumentException(
-                    "The Dependency '" + definitionID + "' declares a BUILD_INTERACTION effect with no trigger.",
+                    $"The Dependency '{definitionID}' declares a BUILD_INTERACTION effect with no trigger.",
                     nameof(effect));
             }
 
@@ -64,15 +62,14 @@ namespace Iterate.Domain.Progression
                 || !string.Equals(effect.Trigger.EventSubtype, ArchiveSubtype, StringComparison.Ordinal))
             {
                 throw new ArgumentException(
-                    "The Dependency '" + definitionID + "' observes '" + effect.Trigger.EventSubtype
-                        + "', which no build interaction in this slice interprets.",
+                    $"The Dependency '{definitionID}' observes '{effect.Trigger.EventSubtype}', which no build interaction in this slice interprets.",
                     nameof(effect));
             }
 
             if (effect.Operation is not ResourceGainOperation gain)
             {
                 throw new ArgumentException(
-                    "The Dependency '" + definitionID + "' declares a BUILD_INTERACTION effect whose operation is not a resource gain.",
+                    $"The Dependency '{definitionID}' declares a BUILD_INTERACTION effect whose operation is not a resource gain.",
                     nameof(effect));
             }
 
@@ -82,7 +79,7 @@ namespace Iterate.Domain.Progression
             )
             {
                 throw new ArgumentException(
-                    "The Dependency '" + definitionID + "' declares a build interaction whose frequency is not FIRST_QUALIFYING_EVENT per PROCESS.",
+                    $"The Dependency '{definitionID}' declares a build interaction whose frequency is not FIRST_QUALIFYING_EVENT per PROCESS.",
                     nameof(effect)
                 );
             }

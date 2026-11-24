@@ -15,7 +15,6 @@ namespace Iterate.Application.Persistence.Tests
     public sealed class FakeSaveFileStore : ISaveFileStore
     {
         private readonly List<string> _writes = new();
-
         private readonly List<string> _deletes = new();
 
         /// <summary>

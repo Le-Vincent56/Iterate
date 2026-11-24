@@ -23,9 +23,7 @@ namespace Iterate.Application.Persistence.Tests
     public sealed class PersistenceServiceTests
     {
         private FakeSaveFileStore _store;
-
         private FakeLogSink _sink;
-
         private PersistenceService _service;
 
         [SetUp]

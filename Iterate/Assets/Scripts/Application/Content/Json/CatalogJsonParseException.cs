@@ -19,7 +19,7 @@ namespace Iterate.Application.Content.Json
         public int Column { get; }
 
         public CatalogJsonParseException(int line, int column, string message)
-            : base("JSON parse error at line " + line + ", column " + column + ": " + message)
+            : base($"JSON parse error at line {line}, column {column}: {message}")
         {
             Line = line;
             Column = column;

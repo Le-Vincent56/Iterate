@@ -38,7 +38,7 @@ namespace Iterate.Application.Content
 
             for (int index = 0; index < array.Items.Count; index++)
             {
-                string path = "$[" + index + "]";
+                string path = $"$[{index}]";
                 if (array.Items[index] is not JsonObject definition)
                 {
                     context.AddError(path, "definition.not-object", "each definition must be an object.");

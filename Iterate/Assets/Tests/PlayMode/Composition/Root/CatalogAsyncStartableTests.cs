@@ -80,7 +80,6 @@ namespace Iterate.Composition.Root.Tests
         private sealed class StubFileSource : ICatalogFileSource
         {
             private readonly string _manifest;
-
             private readonly IReadOnlyDictionary<string, string> _files;
 
             public StubFileSource(string manifest, IReadOnlyDictionary<string, string> files)
@@ -101,7 +100,7 @@ namespace Iterate.Composition.Root.Tests
                     return Task.FromResult(text);
                 }
 
-                throw new FileNotFoundException("missing: " + fileName);
+                throw new FileNotFoundException($"missing: {fileName}");
             }
         }
     }

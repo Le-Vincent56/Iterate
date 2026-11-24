@@ -45,7 +45,7 @@ namespace Iterate.Application.Content.Tests
 
                 Assert.IsFalse(
                     CatalogTestFixtures.HasRule(errors, "manifest.unknown-category"),
-                    "the category token '" + token + "' is not routed to a rule set."
+                    $"the category token '{token}' is not routed to a rule set."
                 );
             }
         }
@@ -59,7 +59,7 @@ namespace Iterate.Application.Content.Tests
 
                 Assert.IsFalse(
                     CatalogTestFixtures.HasRule(errors, "manifest.unknown-category"),
-                    "the category token '" + token + "' is no longer routed to a rule set."
+                    $"the category token '{token}' is no longer routed to a rule set."
                 );
             }
         }

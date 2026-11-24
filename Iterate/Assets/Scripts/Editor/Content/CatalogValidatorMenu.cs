@@ -22,9 +22,7 @@ namespace Iterate.Editor.Content
     public static class CatalogValidatorMenu
     {
         private const string CatalogFolder = "Catalog";
-
         private const string ManifestFileName = "manifest.json";
-
         private const string SchemaFileName = "catalog.schema.json";
 
         /// <summary>
@@ -36,7 +34,7 @@ namespace Iterate.Editor.Content
             string root = Path.Combine(UnityEngine.Application.streamingAssetsPath, CatalogFolder);
             if (!Directory.Exists(root))
             {
-                Debug.LogError("[Catalog] Validate Catalog: the catalog folder was not found at " + root + ".");
+                Debug.LogError($"[Catalog] Validate Catalog: the catalog folder was not found at {root}.");
                 return;
             }
 
@@ -50,19 +48,19 @@ namespace Iterate.Editor.Content
             try
             {
                 ContentCatalog catalog = Task.Run(() => loader.LoadAsync(CancellationToken.None)).GetAwaiter().GetResult();
-                Debug.Log("[Catalog] Validate Catalog: PASS | revision=" + catalog.Revision + " | definitions=" + catalog.DefinitionCount);
+                Debug.Log($"[Catalog] Validate Catalog: PASS | revision={catalog.Revision} | definitions={catalog.DefinitionCount}");
             }
             catch (CatalogLoadException exception)
             {
-                Debug.LogError("[Catalog] Validate Catalog: FAIL | " + exception.Errors.Count + " error(s).");
+                Debug.LogError($"[Catalog] Validate Catalog: FAIL | {exception.Errors.Count} error(s).");
                 foreach (CatalogError error in exception.Errors)
                 {
-                    Debug.LogError("[Catalog]   " + error.File + " | " + error.JsonPath + " | " + error.RuleName + " | " + error.Message);
+                    Debug.LogError($"[Catalog]   {error.File} | {error.JsonPath} | {error.RuleName} | {error.Message}");
                 }
             }
             catch (Exception exception)
             {
-                Debug.LogError("[Catalog] Validate Catalog: FAIL | unexpected error: " + exception.Message);
+                Debug.LogError($"[Catalog] Validate Catalog: FAIL | unexpected error: {exception.Message}");
             }
 
             FlagStrayFiles(root);
@@ -87,7 +85,7 @@ namespace Iterate.Editor.Content
             {
                 string name = Path.GetFileName(present[index]);
                 if (!known.Contains(name))
-                    Debug.LogWarning("[Catalog]   stray unlisted file: " + name);
+                    Debug.LogWarning($"[Catalog]   stray unlisted file: {name}");
             }
         }
 

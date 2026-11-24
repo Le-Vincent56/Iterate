@@ -519,7 +519,7 @@ namespace Iterate.Infrastructure.Content.Tests
                     return record.Units[i];
             }
 
-            Assert.Fail("No runtime unit at position " + position.LineNumber + ".");
+            Assert.Fail($"No runtime unit at position {position.LineNumber}.");
 
             return null;
         }

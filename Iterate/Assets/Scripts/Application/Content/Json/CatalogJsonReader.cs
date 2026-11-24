@@ -106,7 +106,7 @@ namespace Iterate.Application.Content.Json
                 int keyColumn = scanner.Column;
                 string key = ParseStringValue(scanner);
                 if (members.ContainsKey(key))
-                    throw new CatalogJsonParseException(keyLine, keyColumn, "duplicate key '" + key + "'.");
+                    throw new CatalogJsonParseException(keyLine, keyColumn, $"duplicate key '{key}'.");
 
                 scanner.SkipWhitespace();
                 if (scanner.AtEnd || scanner.Current != ':')
@@ -458,7 +458,7 @@ namespace Iterate.Application.Content.Json
             for (int index = 0; index < keyword.Length; index++)
             {
                 if (scanner.AtEnd || scanner.Current != keyword[index])
-                    throw new CatalogJsonParseException(scanner.Line, scanner.Column, "invalid literal; expected '" + keyword + "'.");
+                    throw new CatalogJsonParseException(scanner.Line, scanner.Column, $"invalid literal; expected '{keyword}'.");
 
                 scanner.Advance();
             }
@@ -470,11 +470,8 @@ namespace Iterate.Application.Content.Json
         private sealed class Scanner
         {
             private readonly string _text;
-
             private int _index;
-
             private int _line;
-
             private int _column;
 
             /// <summary>

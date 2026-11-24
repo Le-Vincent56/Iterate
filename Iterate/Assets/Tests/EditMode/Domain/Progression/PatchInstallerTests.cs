@@ -14,7 +14,6 @@ namespace Iterate.Domain.Progression.Tests
     public sealed class PatchInstallerTests
     {
         private const string ConstantPatch = "WB-PAT-001";
-
         private const string FixedNumberAdditionHosts = "FIXED_NUMBER_ADDITION_HOSTS";
 
         [Test]
@@ -377,7 +376,7 @@ namespace Iterate.Domain.Progression.Tests
                     return entries[i].Item.InstanceID;
             }
 
-            Assert.Fail("the fixture Session carries no " + definitionID);
+            Assert.Fail($"the fixture Session carries no {definitionID}");
             return default;
         }
     }

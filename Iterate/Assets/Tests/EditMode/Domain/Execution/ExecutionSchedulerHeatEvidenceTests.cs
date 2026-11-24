@@ -316,7 +316,7 @@ namespace Iterate.Domain.Execution.Tests
                     return i;
             }
 
-            Assert.Fail("No " + subtype + " event was recorded.");
+            Assert.Fail($"No {subtype} event was recorded.");
 
             return -1;
         }

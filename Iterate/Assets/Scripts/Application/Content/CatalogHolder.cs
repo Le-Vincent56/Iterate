@@ -13,11 +13,8 @@ namespace Iterate.Application.Content
     public sealed class CatalogHolder
     {
         private readonly object _gate = new();
-
         private CatalogState _state = CatalogState.Unloaded;
-
         private ContentCatalog _catalog;
-
         private IReadOnlyList<CatalogError> _errors = Array.Empty<CatalogError>();
 
         /// <summary>

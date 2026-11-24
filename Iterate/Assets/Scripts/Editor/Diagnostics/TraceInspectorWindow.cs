@@ -115,7 +115,7 @@ namespace Iterate.Editor.Diagnostics
             string root = Path.Combine(UnityEngine.Application.streamingAssetsPath, CatalogFolder);
             if (!Directory.Exists(root))
             {
-                Debug.LogError("[Trace] The catalog folder was not found at " + root + ".");
+                Debug.LogError($"[Trace] The catalog folder was not found at {root}.");
                 return;
             }
 
@@ -135,11 +135,11 @@ namespace Iterate.Editor.Diagnostics
             }
             catch (CatalogLoadException exception)
             {
-                Debug.LogError("[Trace] The catalog failed to load: " + exception.Errors.Count + " error(s).");
+                Debug.LogError($"[Trace] The catalog failed to load: {exception.Errors.Count} error(s).");
             }
             catch (ArgumentException exception)
             {
-                Debug.LogError("[Trace] Fixture defect in '" + _fixture + "': " + exception.Message);
+                Debug.LogError($"[Trace] Fixture defect in '{_fixture}': {exception.Message}");
             }
         }
         
@@ -162,7 +162,7 @@ namespace Iterate.Editor.Diagnostics
             ExecutionRecordReadResult read = ExecutionRecordDocument.Read(File.ReadAllText(path));
             if (read.Outcome != ExecutionRecordReadOutcome.Loaded)
             {
-                Debug.LogError("[Trace] " + read.Outcome + " — " + read.Defect);
+                Debug.LogError($"[Trace] {read.Outcome} — {read.Defect}");
                 return;
             }
 
@@ -182,9 +182,7 @@ namespace Iterate.Editor.Diagnostics
 
             if (_status != null)
             {
-                _status.text = "Loaded " + source + " — " + record.Events.Count + " events, "
-                    + record.Units.Count + " units, completion " + record.CompletionStatus
-                    + ", safety " + record.SafetyStatus + ".";
+                _status.text = $"Loaded {source} — {record.Events.Count} events, {record.Units.Count} units, completion {record.CompletionStatus}, safety {record.SafetyStatus}.";
             }
 
             Rebuild();
@@ -238,7 +236,7 @@ namespace Iterate.Editor.Diagnostics
         private VisualElement TimelinesSection()
         {
             IReadOnlyList<EffectResolutionTimeline> timelines = EffectResolutionProjection.TimelinesOf(_record);
-            Foldout section = Section("Effect timelines (" + timelines.Count + ")");
+            Foldout section = Section($"Effect timelines ({timelines.Count})");
 
             if (timelines.Count == 0)
                 section.Add(new Label("No effect resolved or near-missed in this execution."));
@@ -246,8 +244,8 @@ namespace Iterate.Editor.Diagnostics
             for (int index = 0; index < timelines.Count; index++)
             {
                 EffectResolutionTimeline timeline = timelines[index];
-                string host = timeline.Host == null ? "no host" : "host " + timeline.Host.Value.Value;
-                Foldout origin = Section("origin " + timeline.Origin.Value + " (" + host + ") — " + timeline.Entries.Count + " entries");
+                string host = timeline.Host == null ? "no host" : $"host {timeline.Host.Value.Value}";
+                Foldout origin = Section($"origin {timeline.Origin.Value} ({host}) — {timeline.Entries.Count} entries");
 
                 for (int entry = 0; entry < timeline.Entries.Count; entry++)
                 {
@@ -267,7 +265,7 @@ namespace Iterate.Editor.Diagnostics
         private VisualElement OffersSection()
         {
             IReadOnlyList<BoundaryOfferView> offers = EffectResolutionProjection.OffersOf(_record);
-            Foldout section = Section("Boundary offers (" + offers.Count + ")");
+            Foldout section = Section($"Boundary offers ({offers.Count})");
 
             if (offers.Count == 0)
                 section.Add(new Label("No candidate event drew a resolution in this execution."));
@@ -275,7 +273,7 @@ namespace Iterate.Editor.Diagnostics
             for (int index = 0; index < offers.Count; index++)
             {
                 BoundaryOfferView offer = offers[index];
-                Foldout candidate = Section("candidate event " + offer.CandidateEvent.Value + " — " + offer.Entries.Count + " observers");
+                Foldout candidate = Section($"candidate event {offer.CandidateEvent.Value} — {offer.Entries.Count} observers");
 
                 for (int entry = 0; entry < offer.Entries.Count; entry++)
                 {
@@ -303,10 +301,10 @@ namespace Iterate.Editor.Diagnostics
             }
 
             TraceEventID identity = _selected.Value;
-            section.Add(new Label("selected: event " + identity.Value));
-            section.Add(new Label("ancestors (nearest first): " + Join(_causality.AncestorsOf(identity))));
-            section.Add(new Label("direct consequences: " + Join(_causality.ConsequencesOf(identity))));
-            section.Add(new Label("containment children: " + Join(_causality.ContainmentChildrenOf(identity))));
+            section.Add(new Label($"selected: event {identity.Value}"));
+            section.Add(new Label($"ancestors (nearest first): {Join(_causality.AncestorsOf(identity))}"));
+            section.Add(new Label($"direct consequences: {Join(_causality.ConsequencesOf(identity))}"));
+            section.Add(new Label($"containment children: {Join(_causality.ContainmentChildrenOf(identity))}"));
             return section;
         }
 
@@ -318,23 +316,21 @@ namespace Iterate.Editor.Diagnostics
         {
             ExecutionEvidenceHeader header = _record.Header;
             Foldout section = Section("Header");
-            section.Add(new Label("execution: " + header.ExecutionIdentity));
-            section.Add(new Label("compilation: " + header.CompilationIdentity + " | source revision: " + header.CompiledSourceRevision));
-            section.Add(new Label("Process: " + header.ProcessIdentity + " | Core: " + header.CoreIdentity));
-            section.Add(new Label("rule configuration: " + header.ProcessRuleConfigurationIdentity + " | Session seed: " + header.SessionSeedIdentity));
+            section.Add(new Label($"execution: {header.ExecutionIdentity}"));
+            section.Add(new Label($"compilation: {header.CompilationIdentity} | source revision: {header.CompiledSourceRevision}"));
+            section.Add(new Label($"Process: {header.ProcessIdentity} | Core: {header.CoreIdentity}"));
+            section.Add(new Label($"rule configuration: {header.ProcessRuleConfigurationIdentity} | Session seed: {header.SessionSeedIdentity}"));
 
             for (int index = 0; index < header.RevisionStamps.Count; index++)
             {
                 RevisionStamp stamp = header.RevisionStamps[index];
-                section.Add(new Label("stamp: " + stamp.Name + " = " + stamp.Revision));
+                section.Add(new Label($"stamp: {stamp.Name} = {stamp.Revision}"));
             }
 
-            section.Add(new Label("active Directives: " + JoinInstances(header.ActiveDirectiveInstances)));
-            section.Add(new Label("installed Dependencies: " + JoinInstances(header.InstalledDependencyInstances)));
-            section.Add(new Label("relevant Patches: " + JoinInstances(header.RelevantPatchInstances)));
-            section.Add(new Label("initial: Value " + header.InitialState.InitialValue.Value
-                + " Signal " + header.InitialState.InitialSignal.Value
-                + " Score " + header.InitialState.InitialScore.Value));
+            section.Add(new Label($"active Directives: {JoinInstances(header.ActiveDirectiveInstances)}"));
+            section.Add(new Label($"installed Dependencies: {JoinInstances(header.InstalledDependencyInstances)}"));
+            section.Add(new Label($"relevant Patches: {JoinInstances(header.RelevantPatchInstances)}"));
+            section.Add(new Label($"initial: Value {header.InitialState.InitialValue.Value} Signal {header.InitialState.InitialSignal.Value} Score {header.InitialState.InitialScore.Value}"));
             return section;
         }
 
@@ -346,7 +342,7 @@ namespace Iterate.Editor.Diagnostics
         /// <returns>The section.</returns>
         private VisualElement UnitSection()
         {
-            Foldout section = Section("Units (" + _record.Units.Count + ")");
+            Foldout section = Section($"Units ({_record.Units.Count})");
             HashSet<int> descendants = new();
 
             for (int index = 0; index < _record.Units.Count; index++)
@@ -379,11 +375,7 @@ namespace Iterate.Editor.Diagnostics
         private VisualElement UnitRow(RuntimeUnitRecord unit, int depth)
         {
             VisualElement container = new();
-            Label label = new(Indent(depth) + "unit " + unit.Identity.Value
-                + " | " + unit.Opening.Activation
-                + " | closure " + unit.Closure.Status
-                + " | disposition " + unit.Closure.FinalDisposition
-                + " | events " + unit.ChildEvents.Count);
+            Label label = new($"{Indent(depth)}unit {unit.Identity.Value} | {unit.Opening.Activation} | closure {unit.Closure.Status} | disposition {unit.Closure.FinalDisposition} | events {unit.ChildEvents.Count}");
             container.Add(label);
 
             for (int index = 0; index < unit.DescendantUnits.Count; index++)
@@ -402,15 +394,14 @@ namespace Iterate.Editor.Diagnostics
         /// <returns>The section.</returns>
         private VisualElement EventSection()
         {
-            Foldout section = Section("Events (" + _record.Events.Count + ")");
+            Foldout section = Section($"Events ({_record.Events.Count})");
 
             for (int index = 0; index < _record.Events.Count; index++)
             {
                 EventRecord entry = _record.Events[index];
                 Button row = new(() => Select(entry.Identity))
                 {
-                    text = entry.Identity.Value + "  " + entry.Evidence.Family + " / " + entry.Evidence.Subtype
-                        + (entry.Evidence.Disposition == null ? string.Empty : "  [" + entry.Evidence.Disposition + "]")
+                    text = $"{entry.Identity.Value}  {entry.Evidence.Family} / {entry.Evidence.Subtype}{(entry.Evidence.Disposition == null ? string.Empty : "  [" + entry.Evidence.Disposition + "]")}"
                 };
                 row.style.unityTextAlign = TextAnchor.MiddleLeft;
                 section.Add(row);
@@ -445,20 +436,20 @@ namespace Iterate.Editor.Diagnostics
             EventRecord entry = found.Value;
 
             EventEvidence evidence = entry.Evidence;
-            section.Add(new Label("family / subtype: " + evidence.Family + " / " + evidence.Subtype));
-            section.Add(new Label("causal depth: " + evidence.CausalDepth));
-            section.Add(new Label("containing unit: " + Optional(evidence.ContainingUnit)));
-            section.Add(new Label("parent event: " + Optional(evidence.ParentEvent)));
-            section.Add(new Label("causing event: " + Optional(evidence.CausingEvent)));
-            section.Add(new Label("effect origin: " + Optional(evidence.EffectOriginInstance)));
-            section.Add(new Label("host instance: " + Optional(evidence.HostInstance)));
-            section.Add(new Label("Core line: " + (evidence.CoreLineIdentity ?? "—")));
-            section.Add(new Label("target: " + (evidence.TargetIdentity ?? "—")));
-            section.Add(new Label("ownership: " + (evidence.Ownership == null ? "—" : evidence.Ownership.ToString())));
-            section.Add(new Label("disposition: " + (evidence.Disposition == null ? "—" : evidence.Disposition.ToString())));
-            section.Add(new Label("disposition reason: " + (evidence.DispositionReason ?? "—")));
-            section.Add(new Label("safety status: " + evidence.SafetyStatus));
-            section.Add(new Label("lineage: " + JoinInstances(evidence.Lineage.Entries)));
+            section.Add(new Label($"family / subtype: {evidence.Family} / {evidence.Subtype}"));
+            section.Add(new Label($"causal depth: {evidence.CausalDepth}"));
+            section.Add(new Label($"containing unit: {Optional(evidence.ContainingUnit)}"));
+            section.Add(new Label($"parent event: {Optional(evidence.ParentEvent)}"));
+            section.Add(new Label($"causing event: {Optional(evidence.CausingEvent)}"));
+            section.Add(new Label($"effect origin: {Optional(evidence.EffectOriginInstance)}"));
+            section.Add(new Label($"host instance: {Optional(evidence.HostInstance)}"));
+            section.Add(new Label($"Core line: {(evidence.CoreLineIdentity ?? "—")}"));
+            section.Add(new Label($"target: {(evidence.TargetIdentity ?? "—")}"));
+            section.Add(new Label($"ownership: {(evidence.Ownership == null ? "—" : evidence.Ownership.ToString())}"));
+            section.Add(new Label($"disposition: {(evidence.Disposition == null ? "—" : evidence.Disposition.ToString())}"));
+            section.Add(new Label($"disposition reason: {(evidence.DispositionReason ?? "—")}"));
+            section.Add(new Label($"safety status: {evidence.SafetyStatus}"));
+            section.Add(new Label($"lineage: {JoinInstances(evidence.Lineage.Entries)}"));
             section.Add(PayloadView(evidence.Payload));
             return section;
         }
@@ -478,25 +469,16 @@ namespace Iterate.Editor.Diagnostics
                     return new Label("payload: —");
 
                 case QuantityChangePayload quantity:
-                    return new Label("payload: quantity " + quantity.QuantityIdentity
-                        + " | " + quantity.Category + " " + quantity.Operation
-                        + " | requested " + quantity.RequestedAmount
-                        + " | prior " + quantity.PriorValue
-                        + " | delta " + quantity.FinalDelta
-                        + " | final " + quantity.FinalValue
-                        + " | modifiers " + quantity.AppliedModifiers.Count
-                        + (quantity.AppliedBounds == null ? string.Empty : " | bounded"));
+                    return new Label($"payload: quantity {quantity.QuantityIdentity} | {quantity.Category} {quantity.Operation} | requested {quantity.RequestedAmount} | prior {quantity.PriorValue} | delta {quantity.FinalDelta} | final {quantity.FinalValue} | modifiers {quantity.AppliedModifiers.Count}{(quantity.AppliedBounds == null ? string.Empty : " | bounded")}");
 
                 case SafetyAbortPayload abort:
-                    return new Label("payload: safety abort at " + abort.OverLimitOccurrenceIdentity
-                        + " | unit " + abort.AffectedUnit.Value
-                        + " | breached limits " + abort.BreachedLimits.Count);
+                    return new Label($"payload: safety abort at {abort.OverLimitOccurrenceIdentity} | unit {abort.AffectedUnit.Value} | breached limits {abort.BreachedLimits.Count}");
 
                 case RandomDecisionPayload:
                     return new Label("payload: random decision (no producer wires random decisions yet)");
 
                 default:
-                    return new Label("payload: " + payload.GetType().Name + " (no renderer — add one)");
+                    return new Label($"payload: {payload.GetType().Name} (no renderer — add one)");
             }
         }
 
@@ -508,23 +490,21 @@ namespace Iterate.Editor.Diagnostics
         {
             SafetyCounts counts = _record.SafetyCounts;
             Foldout section = Section("Safety and statuses");
-            section.Add(new Label("completion: " + _record.CompletionStatus + " | safety: " + _record.SafetyStatus));
-            section.Add(new Label("trace completeness: " + _record.TraceCompleteness
-                + " | result validity: " + _record.ResultValidity
-                + " | handoff: " + _record.HandoffStatus));
-            section.Add(new Label("lineage depth high water: " + counts.LineageDepthHighWater));
-            section.Add(new Label("added descendants: " + counts.AddedDescendants));
-            section.Add(new Label("source execution units: " + counts.SourceExecutionUnits));
-            section.Add(new Label("effect reactions: " + counts.EffectReactions));
-            section.Add(new Label("operation transformations: " + counts.OperationTransformations));
-            section.Add(new Label("threshold history: " + Join(_record.ThresholdHistory)));
-            section.Add(new Label("counter history: " + Join(_record.CounterHistory)));
+            section.Add(new Label($"completion: {_record.CompletionStatus} | safety: {_record.SafetyStatus}"));
+            section.Add(new Label($"trace completeness: {_record.TraceCompleteness} | result validity: {_record.ResultValidity} | handoff: {_record.HandoffStatus}"));
+            section.Add(new Label($"lineage depth high water: {counts.LineageDepthHighWater}"));
+            section.Add(new Label($"added descendants: {counts.AddedDescendants}"));
+            section.Add(new Label($"source execution units: {counts.SourceExecutionUnits}"));
+            section.Add(new Label($"effect reactions: {counts.EffectReactions}"));
+            section.Add(new Label($"operation transformations: {counts.OperationTransformations}"));
+            section.Add(new Label($"threshold history: {Join(_record.ThresholdHistory)}"));
+            section.Add(new Label($"counter history: {Join(_record.CounterHistory)}"));
 
-            Foldout defects = Section("Defect ledger (" + _record.Defects.Count + ")");
+            Foldout defects = Section($"Defect ledger ({_record.Defects.Count})");
             for (int index = 0; index < _record.Defects.Count; index++)
             {
                 EvidenceDefect defect = _record.Defects[index];
-                defects.Add(new Label(defect.FieldName + " — " + defect.Reason));
+                defects.Add(new Label($"{defect.FieldName} — {defect.Reason}"));
             }
 
             section.Add(defects);
@@ -540,15 +520,15 @@ namespace Iterate.Editor.Diagnostics
         private Button EntryRow(EffectResolutionEntry entry)
         {
             string requirement = entry.Kind == EffectResolutionEntryKind.FailedToQualify
-                ? "  failed on " + entry.FailedRequirement
+                ? $"  failed on {entry.FailedRequirement}"
                 : string.Empty;
             string candidate = entry.CausingEvent == null
                 ? "  (no candidate)"
-                : "  observing event " + entry.CausingEvent.Value.Value;
+                : $"  observing event {entry.CausingEvent.Value.Value}";
 
             Button row = new(() => Select(entry.Event))
             {
-                text = "event " + entry.Event.Value + "  " + entry.Kind + requirement + candidate
+                text = $"event {entry.Event.Value}  {entry.Kind}{requirement}{candidate}"
             };
             row.style.unityTextAlign = TextAnchor.MiddleLeft;
             return row;
@@ -631,7 +611,7 @@ namespace Iterate.Editor.Diagnostics
             string joined = string.Empty;
             for (int index = 0; index < identities.Count; index++)
             {
-                joined += index == 0 ? identities[index].Value.ToString() : ", " + identities[index].Value;
+                joined += index == 0 ? identities[index].Value.ToString() : $", {identities[index].Value}";
             }
 
             return joined;
@@ -650,7 +630,7 @@ namespace Iterate.Editor.Diagnostics
             string joined = string.Empty;
             for (int index = 0; index < instances.Count; index++)
             {
-                joined += index == 0 ? instances[index].Value.ToString() : ", " + instances[index].Value;
+                joined += index == 0 ? instances[index].Value.ToString() : $", {instances[index].Value}";
             }
 
             return joined;

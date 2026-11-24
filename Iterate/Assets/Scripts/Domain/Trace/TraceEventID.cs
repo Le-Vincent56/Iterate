@@ -28,6 +28,6 @@ namespace Iterate.Domain.Trace
         /// Renders the identity as an E-prefixed ordinal.
         /// </summary>
         /// <returns>The value prefixed with 'E', formatted in the invariant culture.</returns>
-        public override string ToString() => "E" + Value.ToString(CultureInfo.InvariantCulture);
+        public override string ToString() => $"E{Value.ToString(CultureInfo.InvariantCulture)}";
     }
 }

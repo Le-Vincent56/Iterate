@@ -107,7 +107,7 @@ namespace Iterate.Application.Content.Json.Tests
         [Test]
         public void Read_OfANonIntegerVersion_IsMalformed([Values("\"1\"", "1.5", "true", "null")] string version)
         {
-            AssertMalformed(VersionedDocument.Read("{\"formatVersion\": " + version + "}", 1));
+            AssertMalformed(VersionedDocument.Read($"{{\"formatVersion\": {version}}}", 1));
         }
 
         [Test]

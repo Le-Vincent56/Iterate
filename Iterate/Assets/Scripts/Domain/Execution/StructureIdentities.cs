@@ -30,9 +30,7 @@ namespace Iterate.Domain.Execution
             if (entryOrdinal < 1)
                 throw new ArgumentException("An entry ordinal is one-based.", nameof(entryOrdinal));
 
-            return structureInstance.ToString()
-                + "@" + headerPosition.LineNumber.ToString(CultureInfo.InvariantCulture)
-                + "#" + entryOrdinal.ToString(CultureInfo.InvariantCulture);
+            return $"{structureInstance}@{headerPosition.LineNumber.ToString(CultureInfo.InvariantCulture)}#{entryOrdinal.ToString(CultureInfo.InvariantCulture)}";
         }
 
         /// <summary>
@@ -48,7 +46,7 @@ namespace Iterate.Domain.Execution
             if (iterationOrdinal < 1)
                 throw new ArgumentException("An iteration ordinal is one-based.", nameof(iterationOrdinal));
 
-            return entryIdentity + "/iter-" + iterationOrdinal.ToString(CultureInfo.InvariantCulture);
+            return $"{entryIdentity}/iter-{iterationOrdinal.ToString(CultureInfo.InvariantCulture)}";
         }
 
         /// <summary>
@@ -59,7 +57,7 @@ namespace Iterate.Domain.Execution
         /// <returns>The evaluation identity.</returns>
         public static string Evaluation(string entryIdentity)
         {
-            return entryIdentity + "/eval-1";
+            return $"{entryIdentity}/eval-1";
         }
     }
 }

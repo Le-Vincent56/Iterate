@@ -39,7 +39,7 @@ namespace Iterate.Application.Content
 
             for (int index = 0; index < array.Items.Count; index++)
             {
-                string path = "$[" + index + "]";
+                string path = $"$[{index}]";
                 if (!(array.Items[index] is JsonObject definition))
                 {
                     context.AddError(path, "definition.not-object", "each definition must be an object.");
@@ -62,7 +62,7 @@ namespace Iterate.Application.Content
 
             if (!CatalogValidationContext.StructureKindTokens.Contains(kind))
             {
-                context.AddError(path + ".structureKind", "definition.field-type", "'" + kind + "' is not a structure kind.");
+                context.AddError($"{path}.structureKind", "definition.field-type", $"'{kind}' is not a structure kind.");
                 return;
             }
 
@@ -81,7 +81,7 @@ namespace Iterate.Application.Content
             if (!hasPredicate)
                 context.AddError(path, "definition.structure-pairing", "a Condition Structure requires a predicate.");
             else if (predicateNode is JsonObject predicate)
-                ValidatePredicate(predicate, path + ".predicate", context);
+                ValidatePredicate(predicate, $"{path}.predicate", context);
 
             if (hasRepeat && repeatNode is JsonNumber { IsInteger: true } repeat && repeat.IntegerValue != 0L)
                 context.AddError(path, "definition.structure-pairing", "a Condition Structure must carry a repeatCount of zero.");
@@ -90,10 +90,10 @@ namespace Iterate.Application.Content
         private static void ValidatePredicate(JsonObject predicate, string path, CatalogValidationContext context)
         {
             if (context.TryString(predicate, "register", path, "definition.missing-field", "definition.field-type", out string register) && !CatalogValidationContext.RegisterTokens.Contains(register))
-                context.AddError(path + ".register", "definition.field-type", "'" + register + "' is not a Core register.");
+                context.AddError($"{path}.register", "definition.field-type", $"'{register}' is not a Core register.");
 
             if (context.TryString(predicate, "comparison", path, "definition.missing-field", "definition.field-type", out string comparison) && !CatalogValidationContext.PredicateComparisonTokens.Contains(comparison))
-                context.AddError(path + ".comparison", "definition.field-type", "'" + comparison + "' is not a predicate comparison.");
+                context.AddError($"{path}.comparison", "definition.field-type", $"'{comparison}' is not a predicate comparison.");
 
             context.TryInteger(predicate, "operand", path, "definition.missing-field", "definition.field-type", out _);
         }

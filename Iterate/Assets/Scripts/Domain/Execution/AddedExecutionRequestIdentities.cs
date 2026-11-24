@@ -23,7 +23,7 @@ namespace Iterate.Domain.Execution
             if (creator == null)
                 throw new ArgumentException("A request identity requires a creator effect.", nameof(creator));
 
-            return creator.FrequencyKey + "@e" + triggeringEvent.Value.ToString(CultureInfo.InvariantCulture);
+            return $"{creator.FrequencyKey}@e{triggeringEvent.Value.ToString(CultureInfo.InvariantCulture)}";
         }
     }
 }

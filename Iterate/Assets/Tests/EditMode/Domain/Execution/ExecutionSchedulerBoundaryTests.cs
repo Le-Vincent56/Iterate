@@ -169,7 +169,7 @@ namespace Iterate.Domain.Execution.Tests
             Assert.AreEqual(first.SafetyCounts, second.SafetyCounts);
             for (int i = 0; i < first.Events.Count; i++)
             {
-                Assert.AreEqual(first.Events[i].Evidence, second.Events[i].Evidence, "event " + i);
+                Assert.AreEqual(first.Events[i].Evidence, second.Events[i].Evidence, $"event {i}");
             }
         }
 
@@ -360,7 +360,7 @@ namespace Iterate.Domain.Execution.Tests
             Assert.AreEqual(first.SafetyCounts, second.SafetyCounts);
             for (int i = 0; i < first.Events.Count; i++)
             {
-                Assert.AreEqual(first.Events[i].Evidence, second.Events[i].Evidence, "event " + i);
+                Assert.AreEqual(first.Events[i].Evidence, second.Events[i].Evidence, $"event {i}");
             }
         }
 

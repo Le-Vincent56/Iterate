@@ -97,7 +97,7 @@ namespace Iterate.Domain.Progression
         {
             int next = _transactionCounts.TryGetValue(kind, out int used) ? used + 1 : 1;
             _transactionCounts[kind] = next;
-            return KindToken(kind) + ":" + next;
+            return $"{KindToken(kind)}:{next}";
         }
         
         /// <summary>
@@ -339,7 +339,7 @@ namespace Iterate.Domain.Progression
                 case TransactionKind.ItemDuplication: return "item-duplication";
                 case TransactionKind.Reward: return "reward";
                 default:
-                    throw new ArgumentException("Unknown transaction kind " + kind + ".", nameof(kind));
+                    throw new ArgumentException($"Unknown transaction kind {kind}.", nameof(kind));
             }
         }
     }

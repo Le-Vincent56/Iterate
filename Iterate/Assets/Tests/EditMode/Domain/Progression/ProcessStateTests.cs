@@ -43,7 +43,7 @@ namespace Iterate.Domain.Progression.Tests
                 Assert.AreEqual(
                     byHand.Slots[index].Kind,
                     produced.Slots[index].Kind,
-                    "slot " + (index + 1) + " kind"
+                    $"slot {(index + 1)} kind"
                 );
             }
         }
@@ -599,7 +599,7 @@ namespace Iterate.Domain.Progression.Tests
         private static CoreLine CoreLineAt(int position)
         {
             return new CoreLine(
-                "WB-CORE-002:L" + position.ToString("00"),
+                $"WB-CORE-002:L{position.ToString("00")}",
                 new CoreLineOperation(CoreLineOperator.Assign, CoreRegister.Value, OperandSpec.FromConstant(1))
             );
         }

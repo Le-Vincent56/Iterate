@@ -185,14 +185,14 @@ namespace Iterate.Domain.Progression.Tests
                         buffer.Admit(Item(100 + index));
                     }
 
-                    Assert.IsTrue(buffer.IsOverflowing, "capacity " + capacity + ", queued " + queued);
+                    Assert.IsTrue(buffer.IsOverflowing, $"capacity {capacity}, queued {queued}");
 
                     int exits = 0;
                     while (buffer.IsOverflowing)
                     {
                         Assert.IsTrue(
                             buffer.ArchiveIncoming().Succeeded,
-                            "capacity " + capacity + ", queued " + queued + ": archiving the incoming item is the universal exit."
+                            $"capacity {capacity}, queued {queued}: archiving the incoming item is the universal exit."
                         );
 
                         exits++;

@@ -53,7 +53,7 @@ namespace Iterate.Application.Content
 
             for (int index = 0; index < array.Items.Count; index++)
             {
-                string path = "$[" + index + "]";
+                string path = $"$[{index}]";
                 if (array.Items[index] is not JsonObject definition)
                 {
                     context.AddError(path, "definition.not-object", "each definition must be an object.");
@@ -78,7 +78,7 @@ namespace Iterate.Application.Content
 
             for (int index = 0; index < components.Items.Count; index++)
             {
-                string path = jsonPath + ".components[" + index + "]";
+                string path = $"{jsonPath}.components[{index}]";
                 if (components.Items[index] is not JsonObject component)
                 {
                     context.AddError(path, "definition.not-object", "each reward component must be an object.");
@@ -100,14 +100,14 @@ namespace Iterate.Application.Content
             context.RejectUnknownKeys(component, _allowedComponentKeys, jsonPath, "definition.unknown-field");
 
             if (context.TryString(component, "tier", jsonPath, "definition.missing-field", "definition.field-type", out string tier))
-                context.RequireMembership(tier, _tiers, jsonPath + ".tier", "reward.unknown-tier");
+                context.RequireMembership(tier, _tiers, $"{jsonPath}.tier", "reward.unknown-tier");
 
             if (!context.TryString(component, "kind", jsonPath, "definition.missing-field", "definition.field-type", out string kind))
                 return;
 
             if (!_componentKinds.Contains(kind))
             {
-                context.AddError(jsonPath + ".kind", "reward.unknown-component-kind", "'" + kind + "' is not a reward component kind.");
+                context.AddError($"{jsonPath}.kind", "reward.unknown-component-kind", $"'{kind}' is not a reward component kind.");
                 return;
             }
 
@@ -126,7 +126,7 @@ namespace Iterate.Application.Content
                 }
 
                 if (context.TryInteger(component, "amount", jsonPath, "definition.missing-field", "definition.field-type", out long amount) && amount < 1)
-                    context.AddError(jsonPath + ".amount", "reward.amount-not-positive", "a reward amount must be positive.");
+                    context.AddError($"{jsonPath}.amount", "reward.amount-not-positive", "a reward amount must be positive.");
 
                 return;
             }

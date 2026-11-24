@@ -79,12 +79,12 @@ namespace Iterate.Domain.Execution.Tests
 
             for (int i = 0; i < first.Events.Count; i++)
             {
-                Assert.AreEqual(first.Events[i].Evidence, second.Events[i].Evidence, "event " + i);
+                Assert.AreEqual(first.Events[i].Evidence, second.Events[i].Evidence, $"event {i}");
             }
 
             for (int i = 0; i < first.Units.Count; i++)
             {
-                Assert.AreEqual(first.Units[i].Opening, second.Units[i].Opening, "unit " + i);
+                Assert.AreEqual(first.Units[i].Opening, second.Units[i].Opening, $"unit {i}");
             }
         }
 

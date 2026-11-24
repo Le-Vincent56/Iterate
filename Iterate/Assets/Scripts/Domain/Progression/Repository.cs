@@ -16,13 +16,9 @@ namespace Iterate.Domain.Progression
     public sealed class Repository
     {
         private readonly InstanceIDSource _instanceIDs;
-
         private readonly List<RepositoryEntry> _entries = new();
-
         private readonly Dictionary<InstanceID, RepositoryEntry> _byInstance = new();
-
         private readonly Dictionary<string, int> _lastSuffix = new(StringComparer.Ordinal);
-
         private readonly List<RepositoryRecord> _records = new();
 
         /// <summary>

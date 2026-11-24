@@ -34,7 +34,6 @@ namespace Iterate.Editor.Diagnostics
         /// The baselines' directory, relative to the project root.
         /// </summary>
         public const string BaselineFolder = "Diagnostics/Baselines";
-
         private const string Prefix = "[Harness] ";
 
         /// <summary>
@@ -66,7 +65,7 @@ namespace Iterate.Editor.Diagnostics
                 slug.Append(current == ' ' ? '-' : char.ToLowerInvariant(current));
             }
 
-            return slug.ToString().Replace("--", "-") + ".json";
+            return $"{slug.ToString().Replace("--", "-")}.json";
         }
 
         /// <summary>
@@ -81,7 +80,7 @@ namespace Iterate.Editor.Diagnostics
 
             string directory = BaselineDirectory();
             Directory.CreateDirectory(directory);
-            Debug.Log(Prefix + "writing baselines to " + directory);
+            Debug.Log($"{Prefix}writing baselines to {directory}");
 
             IReadOnlyList<string> names = DiagnosticFixtureRegistry.Names();
             int written = 0;
@@ -99,16 +98,16 @@ namespace Iterate.Editor.Diagnostics
                         new UTF8Encoding(false)
                     );
 
-                    Debug.Log(Prefix + "wrote " + fileName);
+                    Debug.Log($"{Prefix}wrote {fileName}");
                     written++;
                 }
                 catch (ArgumentException exception)
                 {
-                    Debug.LogError(Prefix + "fixture defect in '" + name + "': " + exception.Message);
+                    Debug.LogError($"{Prefix}fixture defect in '{name}': {exception.Message}");
                 }
             }
 
-            Debug.Log(Prefix + "Refresh Baselines: " + Count(written, names.Count) + " written.");
+            Debug.Log($"{Prefix}Refresh Baselines: {Count(written, names.Count)} written.");
         }
 
         /// <summary>
@@ -130,7 +129,7 @@ namespace Iterate.Editor.Diagnostics
                     matched++;
             }
 
-            Debug.Log(Prefix + "Compare Baselines: " + Count(matched, names.Count) + " matched.");
+            Debug.Log($"{Prefix}Compare Baselines: {Count(matched, names.Count)} matched.");
         }
 
         /// <summary>
@@ -145,14 +144,14 @@ namespace Iterate.Editor.Diagnostics
             string path = Path.Combine(directory, FileNameFor(name));
             if (!File.Exists(path))
             {
-                Debug.LogWarning(Prefix + "no baseline for " + name + " at " + path + ".");
+                Debug.LogWarning($"{Prefix}no baseline for {name} at {path}.");
                 return false;
             }
 
             ExecutionRecordReadResult stored = ExecutionRecordDocument.Read(File.ReadAllText(path));
             if (stored.Outcome != ExecutionRecordReadOutcome.Loaded)
             {
-                Debug.LogWarning(Prefix + name + ": baseline " + stored.Outcome + " — " + stored.Defect);
+                Debug.LogWarning($"{Prefix}{name}: baseline {stored.Outcome} — {stored.Defect}");
                 return false;
             }
 
@@ -163,7 +162,7 @@ namespace Iterate.Editor.Diagnostics
             }
             catch (ArgumentException exception)
             {
-                Debug.LogError(Prefix + "fixture defect in '" + name + "': " + exception.Message);
+                Debug.LogError($"{Prefix}fixture defect in '{name}': {exception.Message}");
                 return false;
             }
 
@@ -171,22 +170,15 @@ namespace Iterate.Editor.Diagnostics
             switch (result.Status)
             {
                 case ReplayComparisonStatus.Match:
-                    Debug.Log(Prefix + name + ": Match");
+                    Debug.Log($"{Prefix}{name}: Match");
                     return true;
 
                 case ReplayComparisonStatus.ExactReproductionUnavailable:
-                    Debug.LogWarning(
-                        Prefix + name + ": exact reproduction unavailable (" + result.UnavailableComponent + ")"
-                    );
-
+                    Debug.LogWarning($"{Prefix}{name}: exact reproduction unavailable ({result.UnavailableComponent})");
                     return false;
 
                 default:
-                    Debug.LogWarning(
-                        Prefix + name + " diverged at " + Locus(result.Divergence)
-                        + ": " + result.Divergence.Description
-                    );
-
+                    Debug.LogWarning($"{Prefix}{name} diverged at {Locus(result.Divergence)}: {result.Divergence.Description}");
                     return false;
             }
         }
@@ -201,7 +193,7 @@ namespace Iterate.Editor.Diagnostics
             if (divergence.ElementIndex < 0)
                 return divergence.Area.ToString();
 
-            return divergence.Area + "[" + divergence.ElementIndex.ToString(CultureInfo.InvariantCulture) + "]";
+            return $"{divergence.Area}[{divergence.ElementIndex.ToString(CultureInfo.InvariantCulture)}]";
         }
 
         /// <summary>
@@ -212,7 +204,7 @@ namespace Iterate.Editor.Diagnostics
         {
             if (!Directory.Exists(EditorCatalog.ShippedRoot()))
             {
-                Debug.LogError(Prefix + "the catalog folder was not found at " + EditorCatalog.ShippedRoot() + ".");
+                Debug.LogError($"{Prefix}the catalog folder was not found at {EditorCatalog.ShippedRoot()}.");
                 return null;
             }
 
@@ -222,7 +214,7 @@ namespace Iterate.Editor.Diagnostics
             }
             catch (CatalogLoadException exception)
             {
-                Debug.LogError(Prefix + "the catalog failed to load: " + exception.Errors.Count + " error(s).");
+                Debug.LogError($"{Prefix}the catalog failed to load: {exception.Errors.Count} error(s).");
                 return null;
             }
         }
@@ -235,9 +227,7 @@ namespace Iterate.Editor.Diagnostics
         /// <returns>The rendered count.</returns>
         private static string Count(int reached, int total)
         {
-            return reached.ToString(CultureInfo.InvariantCulture)
-                + " of "
-                + total.ToString(CultureInfo.InvariantCulture);
+            return $"{reached.ToString(CultureInfo.InvariantCulture)} of {total.ToString(CultureInfo.InvariantCulture)}";
         }
     }
 }

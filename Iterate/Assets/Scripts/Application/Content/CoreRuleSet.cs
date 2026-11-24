@@ -48,7 +48,7 @@ namespace Iterate.Application.Content
 
             for (int index = 0; index < array.Items.Count; index++)
             {
-                string path = "$[" + index + "]";
+                string path = $"$[{index}]";
                 if (array.Items[index] is not JsonObject definition)
                 {
                     context.AddError(path, "definition.not-object", "each definition must be an object.");
@@ -73,7 +73,7 @@ namespace Iterate.Application.Content
 
             for (int index = 0; index < lines.Items.Count; index++)
             {
-                string path = jsonPath + ".lines[" + index + "]";
+                string path = $"{jsonPath}.lines[{index}]";
                 if (lines.Items[index] is not JsonObject line)
                 {
                     context.AddError(path, "core.line-shape", "each Core line must be an object.");
@@ -81,7 +81,7 @@ namespace Iterate.Application.Content
                 }
 
                 if (context.TryInteger(line, "position", path, "definition.missing-field", "definition.field-type", out long position) && position != index + 1)
-                    context.AddError(path + ".position", "core.positions-not-contiguous", "Core line positions must run from one without gaps.");
+                    context.AddError($"{path}.position", "core.positions-not-contiguous", "Core line positions must run from one without gaps.");
 
                 ValidateLine(line, path, context, false);
             }
@@ -89,7 +89,7 @@ namespace Iterate.Application.Content
             if (!context.TryInteger(definition, "finalOutputPosition", jsonPath, "definition.missing-field", "definition.field-type", out long finalOutput))
                 return;
 
-            string outputPath = jsonPath + ".finalOutputPosition";
+            string outputPath = $"{jsonPath}.finalOutputPosition";
             if (finalOutput < 1 || finalOutput > lines.Items.Count)
             {
                 context.AddError(outputPath, "core.final-output-not-fixed-instruction", "the designated final output must name one of the Core's own lines.");
@@ -124,7 +124,7 @@ namespace Iterate.Application.Content
 
             if (!_lineKinds.Contains(kind))
             {
-                context.AddError(jsonPath + ".kind", "core.unknown-line-kind", "'" + kind + "' is not a Core line kind.");
+                context.AddError($"{jsonPath}.kind", "core.unknown-line-kind", $"'{kind}' is not a Core line kind.");
                 return;
             }
 
@@ -143,7 +143,7 @@ namespace Iterate.Application.Content
                         context.AddError(jsonPath, "core.line-shape", "a fixed-instruction Core line carries no predicate or contained line.");
 
                     if (hasOperation && operationValue is JsonObject operation)
-                        ValidateOperation(operation, jsonPath + ".operation", context);
+                        ValidateOperation(operation, $"{jsonPath}.operation", context);
 
                     return;
                 }
@@ -176,12 +176,12 @@ namespace Iterate.Application.Content
             }
 
             if (hasPredicate && predicateValue is JsonObject predicate)
-                ValidatePredicate(predicate, jsonPath + ".predicate", context);
+                ValidatePredicate(predicate, $"{jsonPath}.predicate", context);
 
             if (containedValue is JsonObject contained)
-                ValidateLine(contained, jsonPath + ".contained", context, true);
+                ValidateLine(contained, $"{jsonPath}.contained", context, true);
             else
-                context.AddError(jsonPath + ".contained", "core.line-shape", "a contained Core line must be an object.");
+                context.AddError($"{jsonPath}.contained", "core.line-shape", "a contained Core line must be an object.");
         }
 
         /// <summary>
@@ -193,16 +193,16 @@ namespace Iterate.Application.Content
         private static void ValidateOperation(JsonObject operation, string jsonPath, CatalogValidationContext context)
         {
             if (context.TryString(operation, "operator", jsonPath, "definition.missing-field", "definition.field-type", out string lineOperator))
-                context.RequireMembership(lineOperator, _lineOperators, jsonPath + ".operator", "core.unknown-operator");
+                context.RequireMembership(lineOperator, _lineOperators, $"{jsonPath}.operator", "core.unknown-operator");
 
             if (context.TryString(operation, "register", jsonPath, "definition.missing-field", "definition.field-type", out string register))
-                context.RequireMembership(register, CatalogValidationContext.RegisterTokens, jsonPath + ".register", "core.unknown-register");
+                context.RequireMembership(register, CatalogValidationContext.RegisterTokens, $"{jsonPath}.register", "core.unknown-register");
 
             if (!context.TryObject(operation, "operand", jsonPath, "definition.missing-field", "definition.field-type", out JsonObject operand))
                 return;
 
-            if (context.TryString(operand, "source", jsonPath + ".operand", "definition.missing-field", "definition.field-type", out string source))
-                context.RequireMembership(source, CatalogValidationContext.OperandSourceTokens, jsonPath + ".operand.source", "core.unknown-operand-source");
+            if (context.TryString(operand, "source", $"{jsonPath}.operand", "definition.missing-field", "definition.field-type", out string source))
+                context.RequireMembership(source, CatalogValidationContext.OperandSourceTokens, $"{jsonPath}.operand.source", "core.unknown-operand-source");
         }
 
         /// <summary>
@@ -214,10 +214,10 @@ namespace Iterate.Application.Content
         private static void ValidatePredicate(JsonObject predicate, string jsonPath, CatalogValidationContext context)
         {
             if (context.TryString(predicate, "register", jsonPath, "definition.missing-field", "definition.field-type", out string register))
-                context.RequireMembership(register, CatalogValidationContext.RegisterTokens, jsonPath + ".register", "core.unknown-register");
+                context.RequireMembership(register, CatalogValidationContext.RegisterTokens, $"{jsonPath}.register", "core.unknown-register");
 
             if (context.TryString(predicate, "comparison", jsonPath, "definition.missing-field", "definition.field-type", out string comparison))
-                context.RequireMembership(comparison, CatalogValidationContext.PredicateComparisonTokens, jsonPath + ".comparison", "core.unknown-comparison");
+                context.RequireMembership(comparison, CatalogValidationContext.PredicateComparisonTokens, $"{jsonPath}.comparison", "core.unknown-comparison");
 
             context.TryInteger(predicate, "operand", jsonPath, "definition.missing-field", "definition.field-type", out _);
         }

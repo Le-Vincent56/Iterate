@@ -32,7 +32,7 @@ namespace Iterate.Domain.Progression
             if (!CatalogVocabulary.PatchHostEligibilityRules.Contains(rule))
             {
                 throw new ArgumentException(
-                    "The Patch '" + patch.ID.Value + "' declares the unregistered host-eligibility rule '" + rule + "'.",
+                    $"The Patch '{patch.ID.Value}' declares the unregistered host-eligibility rule '{rule}'.",
                     nameof(patch));
             }
 
@@ -59,7 +59,7 @@ namespace Iterate.Domain.Progression
 
                 default:
                     throw new ArgumentException(
-                        "The host-eligibility rule '" + rule + "' is registered but not evaluated.",
+                        $"The host-eligibility rule '{rule}' is registered but not evaluated.",
                         nameof(patch));
             }
         }

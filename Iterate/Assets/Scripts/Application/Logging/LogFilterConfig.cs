@@ -13,7 +13,6 @@ namespace Iterate.Application.Logging
         private static readonly Dictionary<string, LogLevel> _emptyOverrides = new();
 
         private readonly LogLevel _defaultMinimumLevel;
-
         private readonly IReadOnlyDictionary<string, LogLevel> _categoryOverrides;
 
         public LogFilterConfig(LogLevel defaultMinimumLevel) : this(defaultMinimumLevel, _emptyOverrides) { }

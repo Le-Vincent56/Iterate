@@ -124,7 +124,7 @@ namespace Iterate.Domain.Execution
             if (!triggeringUnit.HasValue)
                 throw new InvalidOperationException($"The source-execution-scoped effect '{effect.FrequencyKey}' was offered with no triggering unit.");
 
-            return effect.FrequencyKey + "@u" + triggeringUnit.Value.Value.ToString(CultureInfo.InvariantCulture);
+            return $"{effect.FrequencyKey}@u{triggeringUnit.Value.Value.ToString(CultureInfo.InvariantCulture)}";
         }
 
         /// <summary>

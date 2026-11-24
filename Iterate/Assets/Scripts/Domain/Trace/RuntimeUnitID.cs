@@ -27,6 +27,6 @@ namespace Iterate.Domain.Trace
         /// Renders the identity as a U-prefixed ordinal.
         /// </summary>
         /// <returns>The value prefixed with 'U', formatted in the invariant culture.</returns>
-        public override string ToString() => "U" + Value.ToString(CultureInfo.InvariantCulture);
+        public override string ToString() => $"U{Value.ToString(CultureInfo.InvariantCulture)}";
     }
 }

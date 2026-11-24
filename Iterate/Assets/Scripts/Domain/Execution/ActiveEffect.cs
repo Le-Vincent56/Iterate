@@ -136,7 +136,7 @@ namespace Iterate.Domain.Execution
             BoundaryName = boundaryName;
             Frequency = frequency;
             IsModification = kind == ActiveEffectKind.Modification;
-            FrequencyKey = definitionID + ":" + effectIndex.ToString(CultureInfo.InvariantCulture) + "#" + origin.Value.ToString(CultureInfo.InvariantCulture);
+            FrequencyKey = $"{definitionID}:{effectIndex.ToString(CultureInfo.InvariantCulture)}#{origin.Value.ToString(CultureInfo.InvariantCulture)}";
         }
 
         /// <summary>

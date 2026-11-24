@@ -126,7 +126,7 @@ namespace Iterate.Domain.Progression
             {
                 if (!catalog.TryGetItem(contentID, out ContentDefinition definition))
                     throw new ArgumentException(
-                        "The Starter Archetype names '" + contentID + "', which the catalog does not supply as a Repository item.",
+                        $"The Starter Archetype names '{contentID}', which the catalog does not supply as a Repository item.",
                         nameof(archetype)
                     );
 
@@ -135,13 +135,13 @@ namespace Iterate.Domain.Progression
 
             if (!catalog.TryGetDependency(archetype.StarterDependency, out DependencyDefinition dependency))
                 throw new ArgumentException(
-                    "The Starter Archetype names starter Dependency '" + archetype.StarterDependency.Value + "', which the catalog does not define.",
+                    $"The Starter Archetype names starter Dependency '{archetype.StarterDependency.Value}', which the catalog does not define.",
                     nameof(archetype)
                 );
 
             if (dependency.RAM != 0)
                 throw new ArgumentException(
-                    "The starter Dependency '" + dependency.ID.Value + "' consumes RAM, which a starter Dependency may not.",
+                    $"The starter Dependency '{dependency.ID.Value}' consumes RAM, which a starter Dependency may not.",
                     nameof(archetype)
                 );
 
@@ -225,8 +225,7 @@ namespace Iterate.Domain.Progression
                 {
                     return SessionRestoreResult.Rejected(
                         SessionRestoreRejection.RAMOverCapacity,
-                        "the installed Dependencies need more RAM than the capacity of "
-                            + economy.RAMCapacity.ToString(CultureInfo.InvariantCulture) + "."
+                        $"the installed Dependencies need more RAM than the capacity of {economy.RAMCapacity.ToString(CultureInfo.InvariantCulture)}."
                     );
                 }
             }
@@ -270,8 +269,7 @@ namespace Iterate.Domain.Progression
         {
             if (!string.Equals(snapshot.CatalogRevision, catalog.Revision, StringComparison.Ordinal))
             {
-                detail = "the snapshot names catalog revision '" + snapshot.CatalogRevision
-                    + "', not '" + catalog.Revision + "'.";
+                detail = $"the snapshot names catalog revision '{snapshot.CatalogRevision}', not '{catalog.Revision}'.";
                 return SessionRestoreRejection.CatalogRevisionMismatch;
             }
 
@@ -297,8 +295,7 @@ namespace Iterate.Domain.Progression
 
             if (snapshot.Economy.Starter.Definition.RAM != 0)
             {
-                detail = "the starter Dependency '" + snapshot.Economy.Starter.Definition.ID.Value
-                    + "' consumes RAM, which a starter Dependency may not.";
+                detail = $"the starter Dependency '{snapshot.Economy.Starter.Definition.ID.Value}' consumes RAM, which a starter Dependency may not.";
                 return SessionRestoreRejection.StarterConsumesRAM;
             }
 
@@ -329,10 +326,9 @@ namespace Iterate.Domain.Progression
                     return SessionRestoreRejection.OrdinalCounterInvalid;
                 }
 
-                if (!seen.Add(counter.SelectionPurpose + "�" + counter.GoverningContextIdentity))
+                if (!seen.Add($"{counter.SelectionPurpose}�{counter.GoverningContextIdentity}"))
                 {
-                    detail = "the occurrence-ordinal counters repeat the pair ('"
-                        + counter.SelectionPurpose + "', '" + counter.GoverningContextIdentity + "').";
+                    detail = $"the occurrence-ordinal counters repeat the pair ('{counter.SelectionPurpose}', '{counter.GoverningContextIdentity}').";
                     return SessionRestoreRejection.OrdinalCounterInvalid;
                 }
             }
@@ -364,7 +360,7 @@ namespace Iterate.Domain.Progression
 
                 if (!seen.Add(counter.Kind))
                 {
-                    detail = "the transaction counters repeat the kind " + counter.Kind + ".";
+                    detail = $"the transaction counters repeat the kind {counter.Kind}.";
                     return SessionRestoreRejection.TransactionCounterInvalid;
                 }
             }
@@ -475,14 +471,13 @@ namespace Iterate.Domain.Progression
         {
             if (id.Value > snapshot.LastAllocatedInstance)
             {
-                detail = position + " carries " + id + ", above the last allocated identity #"
-                    + snapshot.LastAllocatedInstance.ToString(CultureInfo.InvariantCulture) + ".";
+                detail = $"{position} carries {id}, above the last allocated identity #{snapshot.LastAllocatedInstance.ToString(CultureInfo.InvariantCulture)}.";
                 return SessionRestoreRejection.InstanceAboveCounter;
             }
 
             if (!seen.Add(id))
             {
-                detail = position + " repeats " + id + ".";
+                detail = $"{position} repeats {id}.";
                 return SessionRestoreRejection.DuplicateInstance;
             }
 
@@ -506,8 +501,7 @@ namespace Iterate.Domain.Progression
                 if (entries[index].Suffix >= 1)
                     continue;
 
-                detail = "the Repository entry " + entries[index].Item.InstanceID + " carries suffix "
-                    + entries[index].Suffix.ToString(CultureInfo.InvariantCulture) + ".";
+                detail = $"the Repository entry {entries[index].Item.InstanceID} carries suffix {entries[index].Suffix.ToString(CultureInfo.InvariantCulture)}.";
                 return SessionRestoreRejection.SuffixInvalid;
             }
 
@@ -539,7 +533,7 @@ namespace Iterate.Domain.Progression
                 if (held.Contains(eligible[index]))
                     continue;
 
-                detail = "the confirmed Branch names " + eligible[index] + ", which the Repository does not hold.";
+                detail = $"the confirmed Branch names {eligible[index]}, which the Repository does not hold.";
                 return SessionRestoreRejection.BranchMemberMissing;
             }
 
@@ -568,8 +562,7 @@ namespace Iterate.Domain.Progression
                         continue;
                     }
 
-                    detail = "the Utility '" + utilities[index].Definition.ID.Value
-                        + "' is committed twice to " + utilities[index].TargetProcess.Value + ".";
+                    detail = $"the Utility '{utilities[index].Definition.ID.Value}' is committed twice to {utilities[index].TargetProcess.Value}.";
                     return SessionRestoreRejection.DuplicateUtilityCommitment;
                 }
             }

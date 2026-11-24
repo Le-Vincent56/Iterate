@@ -41,7 +41,7 @@ namespace Iterate.Application.Content
 
             for (int index = 0; index < array.Items.Count; index++)
             {
-                string path = "$[" + index + "]";
+                string path = $"$[{index}]";
                 if (array.Items[index] is not JsonObject definition)
                 {
                     context.AddError(path, "definition.not-object", "each definition must be an object.");
@@ -75,13 +75,13 @@ namespace Iterate.Application.Content
 
             if (items.Items.Count == 0)
             {
-                context.AddError(jsonPath + ".startingRepository", "archetype.starting-repository-empty", "a Starter Archetype must seed at least one Repository item.");
+                context.AddError($"{jsonPath}.startingRepository", "archetype.starting-repository-empty", "a Starter Archetype must seed at least one Repository item.");
                 return;
             }
 
             for (int index = 0; index < items.Items.Count; index++)
             {
-                string path = jsonPath + ".startingRepository[" + index + "]";
+                string path = $"{jsonPath}.startingRepository[{index}]";
                 if (items.Items[index] is JsonString id)
                     PackageFieldRules.RegisterContentReference(context, path, id.Value, "reference.wrong-kind");
                 else
